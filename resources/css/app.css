@@ -1,0 +1,462 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   فونت IRANYekan — آفلاین
+   ============================================================ */
+@font-face {
+  font-family: 'IRANYekan';
+  src: url('/fonts/IRANYekanLight.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IRANYekan';
+  src: url('/fonts/IRANYekanRegular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IRANYekan';
+  src: url('/fonts/IRANYekanMedium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IRANYekan';
+  src: url('/fonts/IRANYekanExtraBold.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============================================================
+   Design Tokens — Dark Mode (default)
+   ============================================================ */
+:root {
+  /* Base */
+  --gs-bg:           #0a0a0f;
+  --gs-bg-soft:      #111118;
+  --gs-bg-card:      #16161f;
+  --gs-bg-elevated:  #1e1e2a;
+
+  /* Gold Palette */
+  --gs-gold:         #c9a84c;
+  --gs-gold-light:   #e2c97e;
+  --gs-gold-dark:    #9b7a2f;
+  --gs-gold-muted:   rgba(201, 168, 76, 0.15);
+
+  /* Text */
+  --gs-text-primary:   #f0ece0;
+  --gs-text-secondary: #a09880;
+  --gs-text-muted:     #5a5648;
+
+  /* Border */
+  --gs-border:         rgba(201, 168, 76, 0.15);
+  --gs-border-hover:   rgba(201, 168, 76, 0.4);
+  --gs-border-strong:  rgba(201, 168, 76, 0.6);
+
+  /* Status */
+  --gs-success:  #4caf7d;
+  --gs-error:    #e05c5c;
+  --gs-warning:  #e0a84c;
+  --gs-info:     #4c8fe0;
+
+  /* Sidebar */
+  --gs-sidebar-w: 260px;
+
+  /* Shadow */
+  --gs-shadow-sm:  0 2px 8px rgba(0, 0, 0, 0.4);
+  --gs-shadow-md:  0 4px 20px rgba(0, 0, 0, 0.5);
+  --gs-shadow-gold: 0 4px 24px rgba(201, 168, 76, 0.12);
+
+  /* Transition */
+  --gs-transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================================
+   Light Mode
+   ============================================================ */
+.light {
+  --gs-bg:           #f5f0e8;
+  --gs-bg-soft:      #ede8dc;
+  --gs-bg-card:      #ffffff;
+  --gs-bg-elevated:  #faf7f0;
+
+  --gs-gold:         #9b7a2f;
+  --gs-gold-light:   #c9a84c;
+  --gs-gold-dark:    #7a5e1f;
+  --gs-gold-muted:   rgba(155, 122, 47, 0.1);
+
+  --gs-text-primary:   #1a1612;
+  --gs-text-secondary: #5c4f38;
+  --gs-text-muted:     #a09070;
+
+  --gs-border:         rgba(155, 122, 47, 0.15);
+  --gs-border-hover:   rgba(155, 122, 47, 0.35);
+  --gs-border-strong:  rgba(155, 122, 47, 0.55);
+
+  --gs-shadow-sm:  0 2px 8px rgba(0, 0, 0, 0.08);
+  --gs-shadow-md:  0 4px 20px rgba(0, 0, 0, 0.1);
+  --gs-shadow-gold: 0 4px 24px rgba(155, 122, 47, 0.1);
+}
+
+/* ============================================================
+   Base
+   ============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  direction: rtl;
+}
+
+body {
+  font-family: 'IRANYekan', Tahoma, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.7;
+  background-color: var(--gs-bg);
+  color: var(--gs-text-primary);
+  transition: background-color var(--gs-transition), color var(--gs-transition);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============================================================
+   Scrollbar
+   ============================================================ */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--gs-bg-soft); }
+::-webkit-scrollbar-thumb { background: var(--gs-gold-dark); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gs-gold); }
+
+/* ============================================================
+   Typography
+   ============================================================ */
+@layer components {
+  .gs-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--gs-text-primary);
+    letter-spacing: -0.02em;
+  }
+
+  .gs-subtitle {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--gs-text-secondary);
+  }
+
+  .gs-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--gs-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* ============================================================
+     Card
+     ============================================================ */
+  .gs-card {
+    background: var(--gs-bg-card);
+    border: 1px solid var(--gs-border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: var(--gs-shadow-sm);
+    transition: border-color var(--gs-transition), box-shadow var(--gs-transition);
+  }
+
+  .gs-card:hover {
+    border-color: var(--gs-border-hover);
+    box-shadow: var(--gs-shadow-gold);
+  }
+
+  .gs-card-elevated {
+    background: var(--gs-bg-elevated);
+    border: 1px solid var(--gs-border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: var(--gs-shadow-md);
+  }
+
+  /* ============================================================
+     Button
+     ============================================================ */
+  .gs-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1.25rem;
+    border-radius: 8px;
+    font-family: 'IRANYekan', Tahoma, Arial, sans-serif;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all var(--gs-transition);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .gs-btn-primary {
+    background: linear-gradient(135deg, var(--gs-gold) 0%, var(--gs-gold-dark) 100%);
+    color: #0a0a0f;
+    font-weight: 700;
+    box-shadow: 0 2px 12px rgba(201, 168, 76, 0.3);
+  }
+
+  .gs-btn-primary:hover {
+    background: linear-gradient(135deg, var(--gs-gold-light) 0%, var(--gs-gold) 100%);
+    box-shadow: 0 4px 20px rgba(201, 168, 76, 0.45);
+    transform: translateY(-1px);
+  }
+
+  .gs-btn-secondary {
+    background: var(--gs-bg-elevated);
+    color: var(--gs-text-primary);
+    border: 1px solid var(--gs-border);
+  }
+
+  .gs-btn-secondary:hover {
+    border-color: var(--gs-border-hover);
+    background: var(--gs-bg-card);
+  }
+
+  .gs-btn-ghost {
+    background: transparent;
+    color: var(--gs-text-secondary);
+    border: 1px solid transparent;
+  }
+
+  .gs-btn-ghost:hover {
+    background: var(--gs-gold-muted);
+    color: var(--gs-gold);
+    border-color: var(--gs-border);
+  }
+
+  .gs-btn-danger {
+    background: rgba(224, 92, 92, 0.1);
+    color: var(--gs-error);
+    border: 1px solid rgba(224, 92, 92, 0.2);
+  }
+
+  .gs-btn-danger:hover {
+    background: rgba(224, 92, 92, 0.2);
+    border-color: var(--gs-error);
+  }
+
+  .gs-btn-sm {
+    padding: 0.35rem 0.9rem;
+    font-size: 0.8rem;
+    border-radius: 6px;
+  }
+
+  .gs-btn-lg {
+    padding: 0.75rem 2rem;
+    font-size: 1rem;
+    border-radius: 10px;
+  }
+
+  /* ============================================================
+     Input
+     ============================================================ */
+  .gs-input {
+    width: 100%;
+    padding: 0.6rem 0.9rem;
+    background: var(--gs-bg-elevated);
+    border: 1px solid var(--gs-border);
+    border-radius: 8px;
+    color: var(--gs-text-primary);
+    font-family: 'IRANYekan', Tahoma, Arial, sans-serif;
+    font-size: 0.875rem;
+    transition: border-color var(--gs-transition), box-shadow var(--gs-transition);
+    outline: none;
+    direction: rtl;
+  }
+
+  .gs-input:focus {
+    border-color: var(--gs-gold);
+    box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.15);
+  }
+
+  .gs-input::placeholder {
+    color: var(--gs-text-muted);
+  }
+
+  .gs-input-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--gs-text-secondary);
+    margin-bottom: 0.4rem;
+  }
+
+  .gs-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .gs-input-error {
+    border-color: var(--gs-error);
+  }
+
+  .gs-input-error:focus {
+    box-shadow: 0 0 0 3px rgba(224, 92, 92, 0.15);
+  }
+
+  .gs-error-msg {
+    font-size: 0.75rem;
+    color: var(--gs-error);
+    margin-top: 0.2rem;
+  }
+
+  /* ============================================================
+     Table
+     ============================================================ */
+  .gs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+
+  .gs-table th {
+    text-align: right;
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--gs-gold);
+    background: var(--gs-bg-elevated);
+    border-bottom: 1px solid var(--gs-border);
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  .gs-table td {
+    padding: 0.85rem 1rem;
+    color: var(--gs-text-primary);
+    border-bottom: 1px solid var(--gs-border);
+    vertical-align: middle;
+  }
+
+  .gs-table tbody tr {
+    transition: background-color var(--gs-transition);
+  }
+
+  .gs-table tbody tr:hover {
+    background: var(--gs-gold-muted);
+  }
+
+  .gs-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  /* ============================================================
+     Badge / Status
+     ============================================================ */
+  .gs-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.65rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .gs-badge-success {
+    background: rgba(76, 175, 125, 0.15);
+    color: var(--gs-success);
+    border: 1px solid rgba(76, 175, 125, 0.25);
+  }
+
+  .gs-badge-error {
+    background: rgba(224, 92, 92, 0.15);
+    color: var(--gs-error);
+    border: 1px solid rgba(224, 92, 92, 0.25);
+  }
+
+  .gs-badge-warning {
+    background: rgba(224, 168, 76, 0.15);
+    color: var(--gs-warning);
+    border: 1px solid rgba(224, 168, 76, 0.25);
+  }
+
+  .gs-badge-info {
+    background: rgba(76, 143, 224, 0.15);
+    color: var(--gs-info);
+    border: 1px solid rgba(76, 143, 224, 0.25);
+  }
+
+  .gs-badge-gold {
+    background: var(--gs-gold-muted);
+    color: var(--gs-gold);
+    border: 1px solid rgba(201, 168, 76, 0.3);
+  }
+
+  /* ============================================================
+     Divider
+     ============================================================ */
+  .gs-divider {
+    height: 1px;
+    background: var(--gs-border);
+    margin: 1rem 0;
+  }
+
+  .gs-divider-gold {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gs-gold), transparent);
+    margin: 1.5rem 0;
+  }
+
+  /* ============================================================
+     Gold Accent
+     ============================================================ */
+  .gs-gold-text {
+    color: var(--gs-gold);
+  }
+
+  .gs-gold-border-b {
+    border-bottom: 2px solid var(--gs-gold);
+    padding-bottom: 0.5rem;
+  }
+
+  /* ============================================================
+     Transitions
+     ============================================================ */
+  .gs-fade-enter-active,
+  .gs-fade-leave-active {
+    transition: opacity 0.2s ease;
+  }
+
+  .gs-fade-enter-from,
+  .gs-fade-leave-to {
+    opacity: 0;
+  }
+
+  .gs-slide-enter-active,
+  .gs-slide-leave-active {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+  }
+
+  .gs-slide-enter-from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  .gs-slide-leave-to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
