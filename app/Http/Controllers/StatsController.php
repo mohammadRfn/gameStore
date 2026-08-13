@@ -34,7 +34,10 @@ class StatsController extends Controller
 
         return $this->index($request);
     }
-
+    public function ranking(Request $request): Response
+    {
+        return Inertia::render('Stats/Ranking', $this->payload($request));
+    }
     public function monthlyStats(Request $request): Response
     {
         if (! $request->filled('from') && ! $request->filled('to')) {
