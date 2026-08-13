@@ -203,7 +203,7 @@ class StatsService
             })
             ->get();
 
-        return $jobs->groupBy(fn ($job) => $job->service_type_id ?: 0)->map(function ($group) {
+        return $jobs->groupBy(fn($job) => $job->service_type_id ?: 0)->map(function ($group) {
             $partsCost = 0.0;
             $partsSale = 0.0;
             foreach ($group as $job) {
@@ -245,7 +245,7 @@ class StatsService
             ->get()
             ->map(function (Invoice $invoice) {
                 $items = (float) $invoice->orderItems
-                    ->when(Schema::hasColumn('order_items', 'is_returned'), fn ($c) => $c->where('is_returned', false))
+                    ->when(Schema::hasColumn('order_items', 'is_returned'), fn($c) => $c->where('is_returned', false))
                     ->sum('total_price');
                 $svc = (float) $invoice->serviceJobs->sum('final_price');
                 $adj = 0.0;
@@ -345,7 +345,7 @@ class StatsService
             ->selectRaw("COALESCE(payment_method, payment_status, 'unknown') as method, COUNT(*) as cnt, SUM({$amount}) as total")
             ->groupBy('method')
             ->get()
-            ->map(fn ($row) => [
+            ->map(fn($row) => [
                 'method' => $row->method,
                 'count'  => (int) $row->cnt,
                 'total'  => round((float) $row->total, 0),
@@ -355,37 +355,49 @@ class StatsService
 
     public function agingBuckets(): array
     {
-        $amount = $this->invoiceAmountSql();
-        $rows = Invoice::query()
-            ->where('payment_status', Invoice::PAYMENT_UNPAID)
-            ->where(function ($q) {
-                $q->where('is_returned', false)->orWhereNull('is_returned');
-            })
-            ->selectRaw("
-                CASE
-                    WHEN DATEDIFF(NOW(), created_at) <= 7 THEN '0-7'
-                    WHEN DATEDIFF(NOW(), created_at) <= 30 THEN '8-30'
-                    ELSE '30+'
-                END as bucket,
-                COUNT(*) as cnt,
-                SUM({$amount}) as total
-            ")
-            ->groupBy('bucket')
-            ->get()
-            ->keyBy('bucket');
+        $today = now()->startOfDay();
 
-        $order = ['0-7' => '۰–۷ روز', '8-30' => '۸–۳۰ روز', '30+' => '+۳۰ روز'];
-        $out = [];
-        foreach ($order as $key => $label) {
-            $out[] = [
-                'bucket' => $key,
-                'label'  => $label,
-                'count'  => (int) ($rows[$key]->cnt ?? 0),
-                'total'  => round((float) ($rows[$key]->total ?? 0), 0),
-            ];
-        }
+        $buckets = [
+            'week'  => ['label' => '۰ تا ۷ روز',   'count' => 0, 'amount' => 0.0],
+            'month' => ['label' => '۸ تا ۳۰ روز',  'count' => 0, 'amount' => 0.0],
+            'older' => ['label' => 'بیش از ۳۰ روز', 'count' => 0, 'amount' => 0.0],
+        ];
 
-        return $out;
+        Invoice::query()
+            ->where('is_returned', false)
+            ->where('payment_status', '!=', Invoice::PAYMENT_PAID)
+            ->select(['id', 'invoice_number', 'total_amount', 'created_at'])
+            ->chunkById(500, function ($invoices) use (&$buckets, $today) {
+                foreach ($invoices as $invoice) {
+                    $days   = $invoice->created_at->startOfDay()->diffInDays($today);
+                    $amount = (float) $invoice->total_amount;
+
+                    $key = $days <= 7 ? 'week' : ($days <= 30 ? 'month' : 'older');
+
+                    $buckets[$key]['count']++;
+                    $buckets[$key]['amount'] += $amount;
+                }
+            });
+
+        return array_values($buckets);
+    }
+    public function monthlyBreakdown(Carbon $from, Carbon $to): array
+    {
+        return Invoice::query()
+            ->where('is_returned', false)
+            ->whereBetween('created_at', [$from, $to])
+            ->get(['total_amount', 'created_at', 'payment_status'])
+            ->groupBy(fn($invoice) => $invoice->created_at->format('Y-m'))
+            ->map(fn($group, $ym) => [
+                'period'    => $ym,
+                'count'     => $group->count(),
+                'billed'    => (float) $group->sum('total_amount'),
+                'collected' => (float) $group
+                    ->where('payment_status', Invoice::PAYMENT_PAID)
+                    ->sum('total_amount'),
+            ])
+            ->values()
+            ->all();
     }
 
     public function stockSnapshot(array $itemIds): array
@@ -405,7 +417,7 @@ class StatsService
                 ELSE 0 END) as on_hand', array_merge($inTypes, $outTypes))
             ->groupBy('item_id')
             ->pluck('on_hand', 'item_id')
-            ->map(fn ($v) => (int) $v)
+            ->map(fn($v) => (int) $v)
             ->all();
     }
 
@@ -426,57 +438,69 @@ class StatsService
         ];
     }
 
-    public function weekdayHeatmap(Carbon $from, Carbon $to, bool $paidOnly): array
+    public function weekdayHeatmap(Carbon $from, Carbon $to, bool $paidOnly = false): array
     {
-        $amount = $this->invoiceAmountSql('invoices');
-        $query = Invoice::query()
-            ->whereBetween('created_at', [$from, $to]);
-        $this->applyInvoiceFilters($query, $paidOnly);
+        // ترتیب فارسی: شنبه (index 0) تا جمعه (index 6)
+        $labels = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه'];
 
-        $rows = $query
-            ->selectRaw("DAYOFWEEK(created_at) as dow, SUM({$amount}) as total, COUNT(*) as cnt")
-            ->groupBy('dow')
-            ->get()
-            ->keyBy('dow');
-
-        // MySQL DAYOFWEEK: 1=Sunday ... 7=Saturday. Jalali week starts Saturday.
-        $map = [
-            7 => 'شنبه',
-            1 => 'یکشنبه',
-            2 => 'دوشنبه',
-            3 => 'سه‌شنبه',
-            4 => 'چهارشنبه',
-            5 => 'پنجشنبه',
-            6 => 'جمعه',
-        ];
-
-        $out = [];
-        foreach ($map as $dow => $label) {
-            $out[] = [
-                'dow'   => $dow,
-                'label' => $label,
-                'total' => round((float) ($rows[$dow]->total ?? 0), 0),
-                'count' => (int) ($rows[$dow]->cnt ?? 0),
-            ];
+        $days = [];
+        foreach ($labels as $i => $label) {
+            $days[$i] = ['label' => $label, 'count' => 0, 'amount' => 0.0];
         }
 
-        return $out;
+        /* فروش کالا در بازه */
+        $orders = OrderItem::query()
+            ->where('is_returned', false)
+            ->whereBetween('order_items.created_at', [$from, $to])
+            ->whereHas('invoice', function ($q) use ($paidOnly) {
+                $q->where('is_returned', false)
+                    ->when($paidOnly, fn($q) => $q->where('payment_status', Invoice::PAYMENT_PAID));
+            })
+            ->select(
+                'order_items.created_at as order_at',
+                'order_items.total_price as price_total'
+            )
+            ->get();
+
+        /* درآمد سرویس در بازه */
+        $services = ServiceJob::query()
+            ->whereNotIn('status', [ServiceJob::STATUS_CANCELED])
+            ->whereBetween('completed_at', [$from, $to])
+            ->get(['completed_at', 'final_price']);
+
+        foreach ($orders as $order) {
+            // Carbon: dayOfWeek => 0=یکشنبه ... 6=شنبه
+            // تبدیل به ایندکس فارسی: شنبه=0 → (dayOfWeek + 1) % 7
+            $idx = ($order->order_at->dayOfWeek + 1) % 7;
+
+            $days[$idx]['count']++;
+            $days[$idx]['amount'] += (float) $order->price_total;
+        }
+
+        foreach ($services as $job) {
+            $idx = ($job->completed_at->dayOfWeek + 1) % 7;
+
+            $days[$idx]['count']++;
+            $days[$idx]['amount'] += (float) $job->final_price;
+        }
+
+        return array_values($days);
     }
 
     /* ----------------------------------------------------------------- */
 
     private function applyInvoiceFilters($query, bool $paidOnly, string $table = ''): void
     {
-        $col = $table ? $table.'.' : '';
+        $col = $table ? $table . '.' : '';
 
         $query->where(function ($q) use ($col) {
-            $q->where($col.'is_returned', false)->orWhereNull($col.'is_returned');
+            $q->where($col . 'is_returned', false)->orWhereNull($col . 'is_returned');
         });
 
         if ($paidOnly) {
-            $query->where($col.'payment_status', Invoice::PAYMENT_PAID);
+            $query->where($col . 'payment_status', Invoice::PAYMENT_PAID);
         } else {
-            $query->where($col.'payment_status', '!=', Invoice::PAYMENT_RETURNED);
+            $query->where($col . 'payment_status', '!=', Invoice::PAYMENT_RETURNED);
         }
     }
 
