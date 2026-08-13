@@ -65,7 +65,8 @@ Route::middleware('auth')->group(function () {
     Route::get('stats/products', [StatsController::class, 'products'])->name('stats.products');
     Route::get('stats/services', [StatsController::class, 'services'])->name('stats.services');
     Route::get('stats/overview', [StatsController::class, 'overview'])->name('stats.overview');
-
+    Route::get('stats/ranking', [StatsController::class, 'ranking'])
+        ->name('stats.ranking');
     // Service Job Items
     Route::resource('service-jobs.items', ServiceJobItemController::class)
         ->shallow()

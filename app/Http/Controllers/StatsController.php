@@ -84,10 +84,50 @@ class StatsController extends Controller
         }
 
         return match ($range) {
-            'today' => [now()->toDateString(), now()->toDateString()],
-            'week'  => [now()->subDays(6)->toDateString(), now()->toDateString()],
-            'year'  => [now()->startOfYear()->toDateString(), now()->toDateString()],
-            default => [now()->startOfMonth()->toDateString(), now()->toDateString()],
+            'today' => [
+                now()->toDateString(),
+                now()->toDateString(),
+            ],
+
+            'yesterday' => [
+                now()->subDay()->toDateString(),
+                now()->subDay()->toDateString(),
+            ],
+
+            'week' => [
+                now()->subDays(6)->toDateString(),
+                now()->toDateString(),
+            ],
+
+            'last_30' => [
+                now()->subDays(29)->toDateString(),
+                now()->toDateString(),
+            ],
+
+            'month' => [
+                now()->startOfMonth()->toDateString(),
+                now()->toDateString(),
+            ],
+
+            'last_month' => [
+                now()->subMonthNoOverflow()->startOfMonth()->toDateString(),
+                now()->subMonthNoOverflow()->endOfMonth()->toDateString(),
+            ],
+
+            'year' => [
+                now()->startOfYear()->toDateString(),
+                now()->toDateString(),
+            ],
+
+            'last_year' => [
+                now()->subYearNoOverflow()->startOfYear()->toDateString(),
+                now()->subYearNoOverflow()->endOfYear()->toDateString(),
+            ],
+
+            default => [
+                now()->startOfMonth()->toDateString(),
+                now()->toDateString(),
+            ],
         };
     }
 }

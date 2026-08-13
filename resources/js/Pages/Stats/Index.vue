@@ -287,7 +287,105 @@ import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import GsChart from '@/Components/GsChart.vue'
 import JalaliDateInput from '@/Components/JalaliDateInput.vue'
+const rankingGroup = ref('products')
+const rankingMetric = ref('top_profit')
+const rankingLimit = ref(10)
 
+const rankingGroups = [
+    { id: 'products', label: 'محصولات' },
+    { id: 'services', label: 'سرویس‌ها' },
+    { id: 'categories', label: 'دسته‌بندی‌ها' },
+]
+
+const rankingMetricOptions = computed(() => {
+    if (rankingGroup.value === 'services') {
+        return [
+            { id: 'best_selling', label: 'پرتعدادترین سرویس' },
+            { id: 'top_revenue', label: 'پردرآمدترین سرویس' },
+            { id: 'top_profit', label: 'پرسودترین / خالص‌ترین' },
+            { id: 'highest_price', label: 'گران‌ترین میانگین' },
+            { id: 'open_services', label: 'نیازمند پیگیری' },
+        ]
+    }
+
+    if (rankingGroup.value === 'categories') {
+        return [
+            { id: 'best_selling', label: 'پرفروش‌ترین دسته' },
+            { id: 'top_revenue', label: 'پردرآمدترین دسته' },
+            { id: 'top_profit', label: 'پرسودترین دسته' },
+            { id: 'best_margin', label: 'بهترین حاشیه دسته' },
+        ]
+    }
+
+    return [
+        { id: 'best_selling', label: 'پرفروش‌ترین محصول' },
+        { id: 'top_revenue', label: 'پردرآمدترین محصول' },
+        { id: 'top_profit', label: 'پرسودترین محصول' },
+        { id: 'highest_price', label: 'گران‌ترین محصول' },
+        { id: 'best_margin', label: 'بهترین حاشیه سود' },
+        { id: 'low_stock', label: 'کم‌موجودی اما پرفروش' },
+        { id: 'slow_moving', label: 'کندفروش / خواب سرمایه' },
+    ]
+})
+
+const rankingRows = computed(() => {
+    const group = props.rankings?.[rankingGroup.value] || {}
+    const rows = group[rankingMetric.value] || []
+
+    return rows.slice(0, Number(rankingLimit.value || 10))
+})
+
+const rankingChartLabels = computed(() => rankingRows.value.map((row) => row.name))
+
+const rankingChartData = computed(() => rankingRows.value.map((row) => rankingScore(row)))
+
+function rankingScore(row) {
+    switch (rankingMetric.value) {
+        case 'best_selling':
+            return Number(row.qty || row.jobs || 0)
+        case 'top_revenue':
+            return Number(row.revenue || 0)
+        case 'top_profit':
+            return Number(row.profit || row.net || 0)
+        case 'highest_price':
+            return Number(row.avg_sell || row.avg || 0)
+        case 'best_margin':
+            return Number(row.margin || 0)
+        case 'low_stock':
+            return Number(row.stock || 0)
+        case 'slow_moving':
+            return Number(row.stock || 0)
+        case 'open_services':
+            return Number(row.open || 0)
+        default:
+            return Number(row.profit || row.net || row.revenue || 0)
+    }
+}
+
+function rankingValue(row) {
+    switch (rankingMetric.value) {
+        case 'best_selling':
+            return rankingGroup.value === 'services'
+                ? fa(row.jobs) + ' کار'
+                : fa(row.qty) + ' عدد'
+        case 'top_revenue':
+            return money(row.revenue)
+        case 'top_profit':
+            return money(row.profit ?? row.net)
+        case 'highest_price':
+            return money(row.avg_sell ?? row.avg)
+        case 'best_margin':
+            return fa(row.margin) + '٪'
+        case 'low_stock':
+            return fa(row.stock) + ' موجودی'
+        case 'slow_moving':
+            return fa(row.stock) + ' موجودی / فروش ' + fa(row.qty)
+        case 'open_services':
+            return fa(row.open) + ' کار باز'
+        default:
+            return money(row.revenue)
+    }
+}
 const props = defineProps({
     from: { type: String, default: '' },
     to: { type: String, default: '' },
@@ -303,6 +401,7 @@ const props = defineProps({
     aging: { type: Array, default: () => [] },
     funnel: { type: Array, default: () => [] },
     heatmap: { type: Array, default: () => [] },
+    rankings: { type: Object, default: () => ({}) },
 })
 
 const tab = ref('overview')
@@ -313,14 +412,19 @@ const range = ref(props.range || 'month')
 
 const ranges = [
     { id: 'today', label: 'امروز' },
-    { id: 'week', label: '۷ روز' },
+    { id: 'yesterday', label: 'دیروز' },
+    { id: 'week', label: '۷ روز اخیر' },
+    { id: 'last_30', label: '۳۰ روز اخیر' },
     { id: 'month', label: 'این ماه' },
+    { id: 'last_month', label: 'ماه قبل' },
     { id: 'year', label: 'امسال' },
+    { id: 'last_year', label: 'سال قبل' },
 ]
 const tabs = [
     { id: 'overview', label: 'نمای کلی' },
-    { id: 'products', label: 'سود کالا' },
-    { id: 'services', label: 'درآمد سرویس' },
+    { id: 'rankings', label: 'رتبه‌بندی' },
+    { id: 'products', label: 'محصولات' },
+    { id: 'services', label: 'سرویس' },
     { id: 'invoices', label: 'فاکتور و وصول' },
 ]
 

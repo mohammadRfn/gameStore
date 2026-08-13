@@ -41,20 +41,21 @@ class StatsService
         );
 
         return [
-            'from'     => $fromAt->toDateString(),
-            'to'       => $toAt->toDateString(),
-            'paidOnly' => $paidOnly,
-            'kpi'      => $nowKpi,
-            'compare'  => $this->compareKpi($nowKpi, $prevKpi),
-            'daily'    => $daily,
-            'products' => $products->values(),
-            'services' => $services->values(),
-            'invoices' => $invoices->take(20)->values(),
-            'payments' => $this->paymentMix($fromAt, $toAt),
-            'aging'    => $this->agingBuckets(),
-            'stock'    => $stock,
-            'funnel'   => $this->serviceFunnel(),
-            'heatmap'  => $this->weekdayHeatmap($fromAt, $toAt, $paidOnly),
+            'from'       => $fromAt->toDateString(),
+            'to'         => $toAt->toDateString(),
+            'paidOnly'   => $paidOnly,
+            'kpi'        => $nowKpi,
+            'compare'    => $this->compareKpi($nowKpi, $prevKpi),
+            'daily'      => $daily,
+            'products'   => $products->values(),
+            'services'   => $services->values(),
+            'invoices'   => $invoices->take(20)->values(),
+            'payments'   => $this->paymentMix($fromAt, $toAt),
+            'aging'      => $this->agingBuckets(),
+            'stock'      => $stock,
+            'funnel'     => $this->serviceFunnel(),
+            'heatmap'    => $this->weekdayHeatmap($fromAt, $toAt, $paidOnly),
+            'rankings'   => $this->leaderboards($products, $services),
         ];
     }
 
@@ -566,5 +567,100 @@ class StatsService
         }
 
         return $out;
+    }
+    private function leaderboards(Collection $products, Collection $services): array
+    {
+        $productRows = $products->values();
+        $serviceRows = $services->values();
+        $categoryRows = $this->categoryRows($productRows);
+
+        return [
+            'products' => [
+                'best_selling' => $this->topRows($productRows, 'qty'),
+                'top_revenue'  => $this->topRows($productRows, 'revenue'),
+                'top_profit'   => $this->topRows($productRows, 'profit'),
+                'highest_price' => $this->topRows($productRows, 'avg_sell'),
+                'best_margin'  => $this->topRows($productRows, 'margin'),
+                'low_stock'    => $this->lowStockWinners($productRows),
+                'slow_moving'  => $this->slowMovingProducts($productRows),
+            ],
+
+            'services' => [
+                'best_selling' => $this->topRows($serviceRows, 'jobs'),
+                'top_revenue'  => $this->topRows($serviceRows, 'revenue'),
+                'top_profit'   => $this->topRows($serviceRows, 'net'),
+                'highest_price' => $this->topRows($serviceRows, 'avg'),
+                'open_services' => $this->topRows($serviceRows, 'open'),
+            ],
+
+            'categories' => [
+                'best_selling' => $this->topRows($categoryRows, 'qty'),
+                'top_revenue'  => $this->topRows($categoryRows, 'revenue'),
+                'top_profit'   => $this->topRows($categoryRows, 'profit'),
+                'best_margin'  => $this->topRows($categoryRows, 'margin'),
+            ],
+        ];
+    }
+
+    private function categoryRows(Collection $products): Collection
+    {
+        return $products
+            ->groupBy(fn($row) => $row['category'] ?? 'بدون دسته')
+            ->map(function ($group, $category) {
+                $qty = (int) $group->sum('qty');
+                $revenue = (float) $group->sum('revenue');
+                $cogs = (float) $group->sum('cogs');
+                $profit = $revenue - $cogs;
+
+                return [
+                    'name'     => $category,
+                    'category' => $category,
+                    'qty'      => $qty,
+                    'revenue'  => round($revenue, 0),
+                    'cogs'     => round($cogs, 0),
+                    'profit'   => round($profit, 0),
+                    'margin'   => $revenue > 0 ? round($profit / $revenue * 100, 1) : 0,
+                ];
+            })
+            ->values();
+    }
+
+    private function topRows(Collection $rows, string $metric, int $limit = 20): array
+    {
+        return $rows
+            ->sortByDesc(fn($row) => (float) ($row[$metric] ?? 0))
+            ->take($limit)
+            ->values()
+            ->all();
+    }
+
+    private function lowStockWinners(Collection $products, int $limit = 20): array
+    {
+        return $products
+            ->filter(fn($row) => array_key_exists('stock', $row) && $row['stock'] !== null)
+            ->sortBy(function ($row) {
+                return [
+                    (int) $row['stock'],
+                    -1 * (int) ($row['qty'] ?? 0),
+                ];
+            })
+            ->take($limit)
+            ->values()
+            ->all();
+    }
+
+    private function slowMovingProducts(Collection $products, int $limit = 20): array
+    {
+        return $products
+            ->filter(function ($row) {
+                $stock = $row['stock'] ?? null;
+                $qty = (int) ($row['qty'] ?? 0);
+
+                return $stock !== null && $stock > 0 && $qty <= 1;
+            })
+            ->sortByDesc(fn($row) => (int) ($row['stock'] ?? 0))
+            ->take($limit)
+            ->values()
+            ->all();
     }
 }
