@@ -7,16 +7,16 @@
 
         <form class="gs-filter" @submit.prevent="apply">
             <div class="gs-filter-ranges">
-                <button type="button" v-for="r in ranges" :key="r.id"
-                    class="gs-btn" :class="range === r.id ? 'gs-btn-primary' : 'gs-btn-ghost'"
-                    @click="setRange(r.id)">{{ r.label }}</button>
+                <button type="button" v-for="r in ranges" :key="r.id" class="gs-btn"
+                    :class="range === r.id ? 'gs-btn-primary' : 'gs-btn-ghost'" @click="setRange(r.id)">{{ r.label
+                    }}</button>
             </div>
             <label class="gs-check">
                 <input type="checkbox" v-model="paidOnly">
                 فقط وصول‌شده
             </label>
-            <input type="date" class="gs-input gs-date" v-model="from">
-            <input type="date" class="gs-input gs-date" v-model="to">
+            <JalaliDateInput v-model="from" class="gs-date" placeholder="از تاریخ" />
+            <JalaliDateInput v-model="to" class="gs-date" placeholder="تا تاریخ" />
             <button type="submit" class="gs-btn gs-btn-primary">اعمال</button>
         </form>
 
@@ -41,8 +41,7 @@
             <div class="gs-grid-2">
                 <div class="gs-card">
                     <h3 class="gs-card-title">روند روزانه — کالا + سرویس</h3>
-                    <GsChart type="bar" :stacked="true" :labels="dailyLabels"
-                        :datasets="dailyDatasets" :height="260" />
+                    <GsChart type="bar" :stacked="true" :labels="dailyLabels" :datasets="dailyDatasets" :height="260" />
                 </div>
                 <div class="gs-card">
                     <h3 class="gs-card-title">ترکیب درآمد</h3>
@@ -54,13 +53,12 @@
             <div class="gs-grid-2">
                 <div class="gs-card">
                     <h3 class="gs-card-title">سود کالا در برابر درآمد سرویس</h3>
-                    <GsChart type="line" :labels="dailyLabels"
-                        :datasets="splitDatasets" :height="240" />
+                    <GsChart type="line" :labels="dailyLabels" :datasets="splitDatasets" :height="240" />
                 </div>
                 <div class="gs-card">
                     <h3 class="gs-card-title">روش پرداخت</h3>
-                    <GsChart type="doughnut" :labels="paymentLabels"
-                        :datasets="[{ data: paymentData }]" :height="240" />
+                    <GsChart type="doughnut" :labels="paymentLabels" :datasets="[{ data: paymentData }]"
+                        :height="240" />
                 </div>
             </div>
         </section>
@@ -89,19 +87,19 @@
             <div class="gs-grid-2">
                 <div class="gs-card">
                     <h3 class="gs-card-title">سود هر کالا</h3>
-                    <GsChart type="hbar" :labels="productNames"
-                        :datasets="[{ data: productProfits, color: '#4caf7d' }]" :height="280" />
+                    <GsChart type="hbar" :labels="productNames" :datasets="[{ data: productProfits, color: '#4caf7d' }]"
+                        :height="280" />
                 </div>
                 <div class="gs-card">
                     <h3 class="gs-card-title">درآمد در برابر خرید</h3>
-                    <GsChart type="bar" :labels="productNames"
-                        :datasets="productCompare" :height="280" />
+                    <GsChart type="bar" :labels="productNames" :datasets="productCompare" :height="280" />
                 </div>
             </div>
 
             <div class="gs-card">
                 <h3 class="gs-card-title">جزئیات کالا — وصل به آیتم، فاکتور و گردش انبار</h3>
-                <p class="gs-hint">سود هر ردیف = (قیمت فروش روی فاکتور − قیمت خرید کاتالوگ) × تعداد. مرجوعی‌ها حذف شده‌اند.</p>
+                <p class="gs-hint">سود هر ردیف = (قیمت فروش روی فاکتور − قیمت خرید کاتالوگ) × تعداد. مرجوعی‌ها حذف
+                    شده‌اند.</p>
                 <div class="gs-table-wrap">
                     <table class="gs-table">
                         <thead>
@@ -169,8 +167,7 @@
                 </div>
                 <div class="gs-card">
                     <h3 class="gs-card-title">قیف وضعیت کارها (کل فروشگاه)</h3>
-                    <GsChart type="doughnut" :labels="funnelLabels"
-                        :datasets="[{ data: funnelData }]" :height="260" />
+                    <GsChart type="doughnut" :labels="funnelLabels" :datasets="[{ data: funnelData }]" :height="260" />
                 </div>
             </div>
 
@@ -234,13 +231,13 @@
             <div class="gs-grid-2">
                 <div class="gs-card">
                     <h3 class="gs-card-title">سن مطالبات</h3>
-                    <GsChart type="bar" :labels="agingLabels"
-                        :datasets="[{ data: agingData, color: '#e05c5c' }]" :height="240" />
+                    <GsChart type="bar" :labels="agingLabels" :datasets="[{ data: agingData, color: '#e05c5c' }]"
+                        :height="240" />
                 </div>
                 <div class="gs-card">
                     <h3 class="gs-card-title">نقشهٔ فروش هفته</h3>
-                    <GsChart type="bar" :labels="heatLabels"
-                        :datasets="[{ data: heatData, color: '#c9a84c' }]" :height="240" />
+                    <GsChart type="bar" :labels="heatLabels" :datasets="[{ data: heatData, color: '#c9a84c' }]"
+                        :height="240" />
                 </div>
             </div>
             <div class="gs-card">
@@ -261,7 +258,8 @@
                         <tbody>
                             <tr v-for="inv in invoices" :key="inv.id">
                                 <td>
-                                    <Link :href="route('invoices.show', inv.id)" class="gold strong">{{ inv.number }}</Link>
+                                    <Link :href="route('invoices.show', inv.id)" class="gold strong">{{ inv.number }}
+                                    </Link>
                                 </td>
                                 <td>{{ inv.customer }}</td>
                                 <td>{{ money(inv.items) }}</td>
@@ -288,6 +286,7 @@ import { computed, ref } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import GsChart from '@/Components/GsChart.vue'
+import JalaliDateInput from '@/Components/JalaliDateInput.vue'
 
 const props = defineProps({
     from: { type: String, default: '' },
@@ -429,8 +428,17 @@ function statusBadge(inv) {
     align-items: center;
     margin-bottom: 1.25rem;
 }
-.gs-filter-ranges { display: flex; flex-wrap: wrap; gap: .35rem; }
-.gs-date { width: auto; }
+
+.gs-filter-ranges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+}
+
+.gs-date {
+    width: auto;
+}
+
 .gs-check {
     display: flex;
     align-items: center;
@@ -438,6 +446,7 @@ function statusBadge(inv) {
     font-size: .82rem;
     color: var(--gs-text-secondary);
 }
+
 .gs-tabs {
     display: flex;
     flex-wrap: wrap;
@@ -445,6 +454,7 @@ function statusBadge(inv) {
     border-bottom: 1px solid var(--gs-border);
     margin-bottom: 1.25rem;
 }
+
 .gs-tab {
     background: none;
     border: none;
@@ -455,48 +465,90 @@ function statusBadge(inv) {
     padding: .55rem .9rem;
     cursor: pointer;
 }
+
 .gs-tab.active {
     color: var(--gs-gold);
     border-bottom-color: var(--gs-gold);
 }
+
 .gs-kpi-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: .75rem;
     margin-bottom: 1rem;
 }
+
 .gs-kpi-val {
     font-size: 1.2rem;
     font-weight: 800;
     color: var(--gs-gold);
     line-height: 1.3;
 }
-.gs-kpi-delta { font-size: .72rem; font-weight: 600; }
-.gs-kpi-delta.up { color: var(--gs-success); }
-.gs-kpi-delta.down { color: var(--gs-error); }
+
+.gs-kpi-delta {
+    font-size: .72rem;
+    font-weight: 600;
+}
+
+.gs-kpi-delta.up {
+    color: var(--gs-success);
+}
+
+.gs-kpi-delta.down {
+    color: var(--gs-error);
+}
+
 .gs-grid-2 {
     display: grid;
     grid-template-columns: 1.4fr 1fr;
     gap: 1rem;
     margin-bottom: 1rem;
 }
+
 @media (max-width: 900px) {
-    .gs-grid-2 { grid-template-columns: 1fr; }
+    .gs-grid-2 {
+        grid-template-columns: 1fr;
+    }
 }
+
 .gs-card-title {
     font-size: .95rem;
     font-weight: 700;
     margin: 0 0 .75rem;
 }
+
 .gs-hint {
     font-size: .78rem;
     color: var(--gs-text-secondary);
     margin: 0 0 .75rem;
 }
-.gs-table-wrap { overflow-x: auto; }
-.strong { font-weight: 700; }
-.gold { color: var(--gs-gold); font-weight: 700; }
-.ok { color: var(--gs-success); font-weight: 700; }
-.bad { color: var(--gs-error); font-weight: 700; }
-.empty { text-align: center; color: var(--gs-text-muted); padding: 1.2rem !important; }
+
+.gs-table-wrap {
+    overflow-x: auto;
+}
+
+.strong {
+    font-weight: 700;
+}
+
+.gold {
+    color: var(--gs-gold);
+    font-weight: 700;
+}
+
+.ok {
+    color: var(--gs-success);
+    font-weight: 700;
+}
+
+.bad {
+    color: var(--gs-error);
+    font-weight: 700;
+}
+
+.empty {
+    text-align: center;
+    color: var(--gs-text-muted);
+    padding: 1.2rem !important;
+}
 </style>
