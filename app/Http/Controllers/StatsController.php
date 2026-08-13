@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Services\StatsService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class StatsController extends Controller
 {
@@ -12,27 +14,80 @@ class StatsController extends Controller
         protected StatsService $statsService
     ) {}
 
-    public function dailyStats(Request $request)
+    /**
+     * مرکز گزارشات — صفحهٔ اصلی ایندکس.
+     * stats.daily و stats.monthly هم همین را رندر می‌کنند تا منوی فعلی نشکند.
+     */
+    public function index(Request $request): Response
     {
-        $statDate = $request->input('date', now()->format('Y-m-d'));
-        $stats    = $this->statsService->getDailyItemStats($statDate);
-
-        return Inertia::render('Stats/Daily', [
-            'stats'    => $stats,
-            'statDate' => $statDate,
-        ]);
+        return Inertia::render('Stats/Index', $this->payload($request));
     }
 
-    public function monthlyStats(Request $request)
+    public function dailyStats(Request $request): Response
     {
-        $year  = (int) $request->input('year',  now()->year);
-        $month = (int) $request->input('month', now()->month);
-        $sales = $this->statsService->getMonthlySales($year, $month);
+        if (! $request->filled('from') && ! $request->filled('to')) {
+            $request->merge([
+                'from' => now()->toDateString(),
+                'to'   => now()->toDateString(),
+            ]);
+        }
 
-        return Inertia::render('Stats/Monthly', [
-            'sales' => $sales,
-            'year'  => $year,
-            'month' => $month,
-        ]);
+        return $this->index($request);
+    }
+
+    public function monthlyStats(Request $request): Response
+    {
+        if (! $request->filled('from') && ! $request->filled('to')) {
+            $request->merge([
+                'from' => now()->startOfMonth()->toDateString(),
+                'to'   => now()->endOfMonth()->toDateString(),
+            ]);
+        }
+
+        return $this->index($request);
+    }
+
+    public function products(Request $request): Response
+    {
+        return Inertia::render('Stats/Product', $this->payload($request));
+    }
+
+    public function services(Request $request): Response
+    {
+        return Inertia::render('Stats/Service', $this->payload($request));
+    }
+
+    public function overview(Request $request): Response
+    {
+        return Inertia::render('Stats/Overview', $this->payload($request));
+    }
+
+    private function payload(Request $request): array
+    {
+        $range = $request->input('range', 'month');
+        [$from, $to] = $this->resolveRange($request, $range);
+        $paidOnly = $request->boolean('paid_only', true);
+
+        $data = $this->statsService->dashboard($from, $to, $paidOnly);
+        $data['range'] = $range;
+
+        return $data;
+    }
+
+    private function resolveRange(Request $request, string $range): array
+    {
+        if ($request->filled('from') && $request->filled('to')) {
+            return [
+                Carbon::parse($request->input('from'))->toDateString(),
+                Carbon::parse($request->input('to'))->toDateString(),
+            ];
+        }
+
+        return match ($range) {
+            'today' => [now()->toDateString(), now()->toDateString()],
+            'week'  => [now()->subDays(6)->toDateString(), now()->toDateString()],
+            'year'  => [now()->startOfYear()->toDateString(), now()->toDateString()],
+            default => [now()->startOfMonth()->toDateString(), now()->toDateString()],
+        };
     }
 }

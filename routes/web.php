@@ -61,6 +61,10 @@ Route::middleware('auth')->group(function () {
 
     // Service Jobs
     Route::resource('service-jobs', ServiceJobController::class);
+    Route::get('stats', [StatsController::class, 'index'])->name('stats.index');
+    Route::get('stats/products', [StatsController::class, 'products'])->name('stats.products');
+    Route::get('stats/services', [StatsController::class, 'services'])->name('stats.services');
+    Route::get('stats/overview', [StatsController::class, 'overview'])->name('stats.overview');
 
     // Service Job Items
     Route::resource('service-jobs.items', ServiceJobItemController::class)

@@ -3,36 +3,77 @@
 /* ============================================================
    فونت IRANYekan — آفلاین
    ============================================================ */
+/* ============================================================
+   فونت وزیرمتن (Vazirmatn) — آفلاین — همهٔ وزن‌ها
+   مسیر نسبی است؛ Vite از resources/fonts/Vazirmatn فایل‌ها را می‌سازد
+   ============================================================ */
 @font-face {
   font-family: 'Vazir';
-  src: url('/fonts/Vazir/Vazirmatn-Light.ttf') format('truetype');
+  src: url('../fonts/Vazirmatn/Vazirmatn-Thin.ttf') format('truetype');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Vazir';
+  src: url('../fonts/Vazirmatn/Vazirmatn-ExtraLight.ttf') format('truetype');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Vazir';
+  src: url('../fonts/Vazirmatn/Vazirmatn-Light.ttf') format('truetype');
   font-weight: 300;
   font-style: normal;
   font-display: swap;
 }
-
 @font-face {
   font-family: 'Vazir';
-  src: url('/fonts/Vazir/Vazirmatn-Regular.ttf') format('truetype');
+  src: url('../fonts/Vazirmatn/Vazirmatn-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
-
 @font-face {
   font-family: 'Vazir';
-  src: url('/fonts/Vazir/Vazirmatn-Medium.ttf') format('truetype');
+  src: url('../fonts/Vazirmatn/Vazirmatn-Medium.ttf') format('truetype');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
-
 @font-face {
   font-family: 'Vazir';
-  src: url('/fonts/Vazir/Vazirmatn-Black.ttf') format('truetype');
+  src: url('../fonts/Vazirmatn/Vazirmatn-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Vazir';
+  src: url('../fonts/Vazirmatn/Vazirmatn-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Vazir';
+  src: url('../fonts/Vazirmatn/Vazirmatn-ExtraBold.ttf') format('truetype');
   font-weight: 800;
   font-style: normal;
   font-display: swap;
+}
+@font-face {
+  font-family: 'Vazir';
+  src: url('../fonts/Vazirmatn/Vazirmatn-Black.ttf') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ثبت فونت در تم Tailwind v4 — از این به بعد font-sans هم وزیرمتن است */
+@theme {
+  --font-sans: 'Vazir', Tahoma, Arial, sans-serif;
 }
 
 /* ============================================================
