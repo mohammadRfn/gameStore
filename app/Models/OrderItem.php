@@ -18,12 +18,16 @@ class OrderItem extends Model
         'price',
         'total_price',
         'image_path',
+        'deduct_from_stock',
+        'restocked_at',
     ];
 
     protected $casts = [
-        'price'       => 'decimal:2',
-        'total_price' => 'decimal:2',
-        'quantity'    => 'integer',
+        'price'             => 'decimal:2',
+        'total_price'       => 'decimal:2',
+        'quantity'          => 'integer',
+        'deduct_from_stock' => 'boolean',
+        'restocked_at'      => 'datetime',
     ];
 
     public function invoice()

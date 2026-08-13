@@ -6,26 +6,31 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class OrderItemRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
-            'item_id' => 'required|exists:items,id',
-            'quantity' => 'required|integer',
-            'category_id' => 'required|exists:categories,id', 
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'invoice_id'         => ['required', 'integer', 'exists:invoices,id'],
+            'item_id'            => ['required', 'integer', 'exists:items,id'],
+            'quantity'           => ['required', 'integer', 'min:1'],
+            'image'              => ['nullable', 'image', 'max:4096'],
+            'deduct_from_stock'  => ['nullable', 'boolean'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'item_id.required'     => 'انتخاب محصول الزامی است.',
+            'item_id.exists'       => 'محصول انتخاب‌شده معتبر نیست.',
+            'quantity.required'    => 'تعداد الزامی است.',
+            'quantity.min'         => 'تعداد باید حداقل ۱ باشد.',
+            'invoice_id.required'  => 'فاکتور مشخص نشده است.',
+            'invoice_id.exists'    => 'فاکتور معتبر نیست.',
         ];
     }
 }

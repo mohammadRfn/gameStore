@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Request;
 use Illuminate\Support\Collection;
 
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+
 class RequestService
 {
     public function createRequest(array $data): Request
@@ -12,7 +14,7 @@ class RequestService
         $request = Request::create([
             'customer_name' => $data['customer_name'],
             'description'   => $data['description'],
-            'status'        => $data['status'],
+            'status'        => \App\Models\Request::STATUS_PENDING,
             'customer_id'   => $data['customer_id'] ?? null,
         ]);
 
@@ -27,11 +29,25 @@ class RequestService
         return $request->load('categories');
     }
 
-    public function getAllRequests(): Collection
-    {
-        return Request::with('categories', 'customer')->get();
-    }
 
+
+    public function getAllRequests(array $filters = []): LengthAwarePaginator
+    {
+        $query = Request::with('categories', 'customer');
+
+        if (!empty($filters['search'])) {
+            $query->where(function ($q) use ($filters) {
+                $q->where('customer_name', 'like', '%' . $filters['search'] . '%')
+                    ->orWhere('description', 'like', '%' . $filters['search'] . '%');
+            });
+        }
+
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        return $query->latest()->paginate(10);
+    }
     public function updateRequest(int $requestId, array $data): Request
     {
         $request = Request::findOrFail($requestId);
@@ -39,7 +55,6 @@ class RequestService
         $request->update([
             'customer_name' => $data['customer_name'] ?? $request->customer_name,
             'description'   => $data['description']   ?? $request->description,
-            'status'        => $data['status']         ?? $request->status,
             'customer_id'   => $data['customer_id']   ?? $request->customer_id,
         ]);
 

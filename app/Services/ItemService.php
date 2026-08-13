@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Category;
 use App\Models\Item;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -9,12 +10,17 @@ class ItemService
 {
     public function getAllItems(): Collection
     {
-        return Item::all();
+        return Item::with('category')->get();
     }
 
     public function findItem(int $id): Item
     {
-        return Item::findOrFail($id);
+        return Item::with('category')->findOrFail($id);
+    }
+
+    public function getAllCategories(): Collection
+    {
+        return Category::orderBy('name')->get();
     }
 
     public function createItem(array $data): Item
@@ -24,10 +30,13 @@ class ItemService
         }
 
         return Item::create([
-            'name'        => $data['name'],
-            'price'       => $data['price'],
-            'description' => $data['description'] ?? null,
-            'image_path'  => $data['image_path'] ?? null,
+            'name'            => $data['name'],
+            'purchase_price'  => $data['purchase_price'],
+            'sale_price'      => $data['sale_price'],
+            'description'     => $data['description'] ?? null,
+            'image_path'      => $data['image_path'] ?? null,
+            'category_id'     => $data['category_id'] ?? null,
+            'tracks_stock'    => $data['tracks_stock'] ?? true,
         ]);
     }
 
@@ -40,10 +49,13 @@ class ItemService
         }
 
         $item->update([
-            'name'        => $data['name']        ?? $item->name,
-            'price'       => $data['price']       ?? $item->price,
-            'description' => $data['description'] ?? $item->description,
-            'image_path'  => $data['image_path']  ?? $item->image_path,
+            'name'            => $data['name']            ?? $item->name,
+            'purchase_price'  => $data['purchase_price']  ?? $item->purchase_price,
+            'sale_price'      => $data['sale_price']      ?? $item->sale_price,
+            'description'     => $data['description']     ?? $item->description,
+            'image_path'      => $data['image_path']      ?? $item->image_path,
+            'category_id'     => $data['category_id']     ?? $item->category_id,
+            'tracks_stock'    => array_key_exists('tracks_stock', $data) ? $data['tracks_stock'] : $item->tracks_stock,
         ]);
 
         return $item;

@@ -22,12 +22,11 @@ class RequestRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'customer_name' => 'required|string|max:255',
-            'customer_id' => 'nullable|exists:customers,id',
-            'category_id' => 'required|array', 
-            'category_id.*' => 'exists:categories,id',
-            'description' => 'required|string',
-            'status' => 'required|string|in:new,processing,completed,canceled',
+            'customer_name'   => 'required|string|max:255',
+            'customer_id'     => 'nullable|exists:customers,id',
+            'category_ids'    => 'required|array',
+            'category_ids.*'  => 'exists:categories,id',
+            'description'     => 'required|string',
         ];
     }
 }

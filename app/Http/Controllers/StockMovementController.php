@@ -23,9 +23,27 @@ class StockMovementController extends Controller
             $query->where('item_id', $itemId);
         }
 
+        // فقط اقلامی که «موجودی انبار دارد» تیک خورده باشد (tracks_stock)
+        // در انتخابگر گردش انبار و کارت‌های خلاصه ظاهر می‌شوند.
+        $items = Item::where('tracks_stock', true)
+            ->select('id', 'name', 'price')
+            ->orderBy('name')
+            ->get();
+
+        $stockSummary = $items->map(function ($item) {
+            return [
+                'id'            => $item->id,
+                'name'          => $item->name,
+                'price'         => $item->price,
+                'current_stock' => $this->stockMovementService->getCurrentStock($item->id),
+            ];
+        })->values();
+
         return Inertia::render('StockMovements/Index', [
-            'movements' => $query->paginate(30),
-            'filters'   => $request->only(['item_id']),
+            'movements'    => $query->paginate(30),
+            'items'        => $items,
+            'stockSummary' => $stockSummary,
+            'filters'      => $request->only(['item_id']),
         ]);
     }
 

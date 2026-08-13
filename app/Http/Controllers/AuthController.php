@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -19,15 +21,21 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email'    => 'required|email',
+            'username' => 'required|string',
             'password' => 'required|min:6',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        \Log::info('DB path: ' . DB::connection()->getDatabaseName());
+        \Log::info('User search: ' . $request->username);
+
+        $user = User::where('username', $request->username)->first();
+
+        \Log::info('User found: ' . ($user ? 'YES - ' . $user->username : 'NO'));
+        \Log::info('Password check: ' . ($user ? (Hash::check($request->password, $user->password) ? 'OK' : 'FAIL') : 'N/A'));
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
-                'email' => 'اطلاعات وارد شده صحیح نیست.',
+                'username' => 'اطلاعات وارد شده صحیح نیست.',
             ]);
         }
 

@@ -23,6 +23,7 @@ class CategoryRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255',
+            'default_tracks_stock' => 'boolean',
         ];
     }
 }

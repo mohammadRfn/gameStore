@@ -22,7 +22,6 @@ class StockMovementRequest extends FormRequest
     public function rules(): array
     {
           return [
-            'shop_id'       => ['required', 'integer', 'exists:shops,id'],
             'item_id'       => ['required', 'integer', 'exists:items,id'],
             'movement_type' => ['required', 'in:in,out,adjust_in,adjust_out'],
             'quantity'      => ['required', 'integer', 'min:1'],

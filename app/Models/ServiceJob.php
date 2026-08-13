@@ -60,7 +60,10 @@ class ServiceJob extends Model
     {
         return $this->belongsTo(ServiceType::class);
     }
-
+    public function serviceTypes(): HasMany
+    {
+        return $this->hasMany(ServiceJobServiceType::class);
+    }
     public function invoice(): BelongsTo
     {
         return $this->belongsTo(Invoice::class);

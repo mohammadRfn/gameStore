@@ -21,13 +21,33 @@ class CategoryController extends Controller
 
     public function store(CategoryRequest $request)
     {
-        $this->categoryService->createCategory($request->name);
+        $category = $this->categoryService->createCategory(
+            $request->name,
+            $request->boolean('default_tracks_stock', true)
+        );
+
+        if ($request->wantsJson()) {
+            return response()->json($category, 201);
+        }
+
         return redirect()->back();
     }
 
     public function destroy(int $id)
     {
-        $this->categoryService->deleteCategory($id);
+        try {
+            $this->categoryService->deleteCategory($id);
+        } catch (\RuntimeException $e) {
+            if (request()->wantsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+            return redirect()->back()->withErrors(['category' => $e->getMessage()]);
+        }
+
+        if (request()->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+
         return redirect()->back();
     }
 }

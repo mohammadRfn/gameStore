@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ServiceTypeRequest;
 use App\Services\ServiceTypeService;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class ServiceTypeController extends Controller
@@ -54,5 +55,20 @@ class ServiceTypeController extends Controller
     {
         $this->serviceTypeService->deleteServiceType($id);
         return redirect()->route('service-types.index');
+    }
+    public function quickStore(Request $request)
+    {
+        $data = $request->validate([
+            'name'       => 'required|string|max:255',
+            'base_price' => 'nullable|numeric|min:0',
+        ]);
+
+        $serviceType = $this->serviceTypeService->createServiceType([
+            'name'       => $data['name'],
+            'base_price' => $data['base_price'] ?? null,
+            'is_active'  => true,
+        ]);
+
+        return response()->json($serviceType, 201);
     }
 }

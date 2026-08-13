@@ -9,28 +9,42 @@ use Inertia\Inertia;
 class ItemController extends Controller
 {
     public function __construct(
-        protected ItemService $itemService
+        protected ItemService $itemService,
+        protected \App\Services\StockMovementService $stockMovementService
     ) {}
 
     public function index()
     {
-        return Inertia::render('Inventory/Index', [
-            'items' => $this->itemService->getAllItems(),
+        $items = $this->itemService->getAllItems()->map(function ($item) {
+            $item->current_stock = $item->tracks_stock
+                ? $this->stockMovementService->getCurrentStock($item->id)
+                : null;
+            return $item;
+        });
+
+        return Inertia::render('Items/Index', [
+            'items' => $items,
         ]);
     }
 
     public function show(int $id)
     {
-        return Inertia::render('Inventory/Show', [
-            'item' => $this->itemService->findItem($id),
+        $item = $this->itemService->findItem($id);
+        $item->current_stock = $item->tracks_stock
+            ? $this->stockMovementService->getCurrentStock($item->id)
+            : null;
+
+        return Inertia::render('Items/Show', [
+            'item' => $item,
         ]);
     }
 
     public function create()
     {
-        return Inertia::render('Inventory/Create');
+        return Inertia::render('Items/Create', [
+            'categories' => $this->itemService->getAllCategories(),
+        ]);
     }
-
     public function store(ItemRequest $request)
     {
         $validated = $request->validated();
@@ -45,23 +59,28 @@ class ItemController extends Controller
 
     public function edit(int $id)
     {
-        return Inertia::render('Inventory/Edit', [
-            'item' => $this->itemService->findItem($id),
+        return Inertia::render('Items/Edit', [
+            'item'       => $this->itemService->findItem($id),
+            'categories' => $this->itemService->getAllCategories(),
         ]);
     }
 
     public function update(ItemRequest $request, int $id)
     {
+        \Log::info('=== UPDATE CALLED ===', ['id' => $id, 'input' => $request->all()]);
+
         $validated = $request->validated();
+        \Log::info('=== VALIDATED ===', $validated);
 
         if ($request->hasFile('image')) {
             $validated['image'] = $request->file('image');
         }
 
-        $this->itemService->updateItem($id, $validated);
-        return redirect()->route('items.show', $id);
-    }
+        $item = $this->itemService->updateItem($id, $validated);
+        \Log::info('=== AFTER UPDATE ===', $item->fresh()->toArray());
 
+        return redirect()->route('items.index');
+    }
     public function destroy(int $id)
     {
         $this->itemService->deleteItem($id);

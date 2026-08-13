@@ -12,14 +12,23 @@ class Item extends Model
 
     protected $fillable = [
         'name',
-        'price',
+        'purchase_price',
+        'sale_price',
         'description',
         'image_path',
+        'category_id',
+        'tracks_stock',
     ];
 
     protected $casts = [
-        'price' => 'decimal:2',
+        'price'        => 'decimal:2',
+        'tracks_stock' => 'boolean',
     ];
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
 
     public function orderItems()
     {

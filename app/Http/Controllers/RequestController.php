@@ -15,10 +15,11 @@ class RequestController extends Controller
         protected CategoryService $categoryService,
     ) {}
 
-    public function index()
+    public function index(HttpRequest $request)
     {
         return Inertia::render('Requests/Index', [
-            'requests' => $this->requestService->getAllRequests(),
+            'requests' => $this->requestService->getAllRequests($request->only(['search', 'status'])),
+            'filters'  => $request->only(['search', 'status']),
         ]);
     }
 
@@ -33,6 +34,7 @@ class RequestController extends Controller
     {
         return Inertia::render('Requests/Create', [
             'categories' => $this->categoryService->getAllCategories(),
+            'customers'  => \App\Models\Customer::select('id', 'name')->get(),
         ]);
     }
 
@@ -47,6 +49,7 @@ class RequestController extends Controller
         return Inertia::render('Requests/Edit', [
             'request'    => $this->requestService->showRequest($id),
             'categories' => $this->categoryService->getAllCategories(),
+            'customers'  => \App\Models\Customer::select('id', 'name')->get(),
         ]);
     }
 
