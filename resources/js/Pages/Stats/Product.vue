@@ -1,59 +1,56 @@
 <template>
     <AppLayout>
-        <template #header>
-            <h1 class="gs-title">سود کالا</h1>
-            <p class="gs-subtitle">مابه‌تفاوت قیمت خرید و فروش روی فاکتورهای واقعی — وصل به آیتم و گردش انبار</p>
-        </template>
+        <StatHero
+            title="سود کالا"
+            subtitle="مابه‌تفاوت قیمت خرید و فروش روی فاکتورهای واقعی — متصل به آیتم و گردش انبار"
+            :from="from" :to="to" :range="range"
+        >
+            <template #actions>
+                <Link :href="route('stats.index', query)" class="gs-btn gs-btn-soft">مرکز گزارشات</Link>
+                <Link :href="route('stats.services', query)" class="gs-btn gs-btn-soft">سرویس</Link>
+                <Link :href="route('stats.ranking', query)" class="gs-btn gs-btn-soft">رتبه‌بندی</Link>
+            </template>
+        </StatHero>
 
-        <div class="gs-toolbar">
-            <Link :href="route('stats.index', query)" class="gs-btn gs-btn-ghost">← نمای کلی</Link>
-            <Link :href="route('stats.services', query)" class="gs-btn gs-btn-ghost">سرویس</Link>
-            <button type="button" class="gs-btn gs-btn-primary" @click="reload">بروزرسانی</button>
+        <RangeFilter
+            :from="from" :to="to" :paid-only="paidOnly" :range="range"
+            route-name="stats.products" class="mb"
+        />
+
+        <div class="gs-kpi-grid gs-stagger">
+            <KpiCard label="فروش کالا" :value="compactMoney(kpi.product_revenue)" :icon="Package" tone="gold" />
+            <KpiCard label="بهای تمام‌شده" :value="compactMoney(kpi.product_cogs)" :icon="Coins" tone="gold" />
+            <KpiCard label="سود ناخالص" :value="compactMoney(kpi.product_profit)" :icon="TrendingUp" tone="green" />
+            <KpiCard label="حاشیهٔ سود" :value="percent(kpi.product_margin)" :icon="Percent" tone="violet" />
         </div>
 
-        <div class="gs-kpi-grid">
-            <article class="gs-card">
-                <p class="gs-label">فروش کالا</p>
-                <p class="gs-num">{{ money(kpi.product_revenue) }}</p>
-            </article>
-            <article class="gs-card">
-                <p class="gs-label">بهای تمام‌شده</p>
-                <p class="gs-num">{{ money(kpi.product_cogs) }}</p>
-            </article>
-            <article class="gs-card">
-                <p class="gs-label">سود ناخالص</p>
-                <p class="gs-num">{{ money(kpi.product_profit) }}</p>
-            </article>
-            <article class="gs-card">
-                <p class="gs-label">حاشیه</p>
-                <p class="gs-num">{{ fa(kpi.product_margin) }}٪</p>
-            </article>
-        </div>
+        <div class="gs-grid-2">
+            <section class="gs-card">
+                <div class="gs-card-head">
+                    <h3 class="gs-card-title"><BarChart3 class="ic" :size="17" /> سود هر کالا — ۱۰ تای اول</h3>
+                </div>
+                <Bar3D :labels="topNames" :values="topProfits" color="#45d68b" :money="true" :height="290" />
+            </section>
 
-        <div class="gs-grid">
-            <div class="gs-card">
-                <h3 class="gs-card-title">سود هر کالا</h3>
-                <GsChart type="hbar" :labels="names" :datasets="[{ data: profits, color: '#4caf7d' }]" :height="300" />
-            </div>
-            <div class="gs-card">
-                <h3 class="gs-card-title">درآمد در برابر خرید</h3>
-                <GsChart
-                    type="bar"
-                    :labels="names"
+            <section class="gs-card">
+                <div class="gs-card-head">
+                    <h3 class="gs-card-title"><Scale class="ic" :size="17" /> درآمد در برابر خرید</h3>
+                </div>
+                <GsChart type="bar" :labels="topNames"
                     :datasets="[
-                        { label: 'درآمد', data: revenues, color: '#c9a84c' },
-                        { label: 'خرید', data: costs, color: '#e05c5c' },
-                    ]"
-                    :height="300"
-                />
-            </div>
+                        { label: 'درآمد', data: topRevenues, color: '#e3bd5c' },
+                        { label: 'خرید', data: topCosts, color: '#f06a6a' },
+                    ]" :height="290" />
+            </section>
         </div>
 
-        <div class="gs-card">
-            <h3 class="gs-card-title">جدول کالا</h3>
-            <p class="gs-hint">
-                فرمول: (order_items.price − items.purchase_price) × quantity.
-                فاکتور مرجوع و ردیف مرجوع حذف می‌شود. موجودی از جمع stock_movements است.
+        <section class="gs-card">
+            <div class="gs-card-head">
+                <h3 class="gs-card-title"><Table class="ic" :size="17" /> جزئیات کالا</h3>
+                <span class="gs-label">{{ faInt(products.length) }} کالا</span>
+            </div>
+            <p class="gs-hint" style="margin-bottom: 0.9rem;">
+                فرمول سود: (قیمت فروش روی فاکتور − قیمت خرید کاتالوگ) × تعداد. مرجوعی‌ها حذف شده و موجودی از گردش انبار است.
             </p>
             <div class="gs-table-wrap">
                 <table class="gs-table">
@@ -74,36 +71,46 @@
                     <tbody>
                         <tr v-for="row in products" :key="row.item_id || row.name">
                             <td>
-                                <Link v-if="row.item_id" :href="route('items.edit', row.item_id)" class="strong gold">
+                                <Link v-if="row.item_id" :href="route('items.edit', row.item_id)" class="strong gold" style="text-decoration: none;">
                                     {{ row.name }}
                                 </Link>
                                 <span v-else class="strong">{{ row.name }}</span>
                             </td>
                             <td><span class="gs-badge gs-badge-gold">{{ row.category }}</span></td>
-                            <td>{{ fa(row.qty) }}</td>
+                            <td>{{ faInt(row.qty) }}</td>
                             <td>{{ money(row.avg_buy) }}</td>
                             <td>{{ money(row.avg_sell) }}</td>
                             <td class="gold">{{ money(row.revenue) }}</td>
                             <td>{{ money(row.cogs) }}</td>
                             <td :class="row.profit >= 0 ? 'ok' : 'bad'">{{ money(row.profit) }}</td>
-                            <td>{{ fa(row.margin) }}٪</td>
-                            <td>{{ row.stock === null ? '—' : fa(row.stock) }}</td>
+                            <td>{{ percent(row.margin) }}</td>
+                            <td>
+                                <span v-if="row.stock !== null && row.stock <= 2" class="gs-badge gs-badge-error">کم {{ faInt(row.stock) }}</span>
+                                <span v-else-if="row.stock !== null">{{ faInt(row.stock) }}</span>
+                                <span v-else class="gs-label">—</span>
+                            </td>
                         </tr>
                         <tr v-if="!products.length">
-                            <td colspan="10" class="empty">در این بازه فروش کالایی ثبت نشده</td>
+                            <td colspan="10" class="gs-empty">در این بازه فروش کالایی ثبت نشده</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
-        </div>
+        </section>
     </AppLayout>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { Link, router } from '@inertiajs/vue3'
+import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import StatHero from '@/Components/Stats/StatHero.vue'
+import RangeFilter from '@/Components/Stats/RangeFilter.vue'
+import KpiCard from '@/Components/Stats/KpiCard.vue'
 import GsChart from '@/Components/GsChart.vue'
+import Bar3D from '@/Components/Stats/Bar3D.vue'
+import { Package, Coins, TrendingUp, Percent, BarChart3, Scale, Table } from '@lucide/vue'
+import { faInt, money, compactMoney, percent } from '@/Utils/format'
 
 const props = defineProps({
     from: { type: String, default: '' },
@@ -115,51 +122,19 @@ const props = defineProps({
 })
 
 const query = computed(() => ({
-    from: props.from,
-    to: props.to,
+    from: props.from || undefined,
+    to: props.to || undefined,
     paid_only: props.paidOnly ? 1 : 0,
     range: props.range,
 }))
 
 const top = computed(() => props.products.slice(0, 10))
-const names = computed(() => top.value.map((p) => p.name))
-const profits = computed(() => top.value.map((p) => p.profit))
-const revenues = computed(() => top.value.map((p) => p.revenue))
-const costs = computed(() => top.value.map((p) => p.cogs))
-
-function fa(n) {
-    return Number(n || 0).toLocaleString('fa-IR')
-}
-function money(n) {
-    return fa(Math.round(Number(n || 0))) + ' تومان'
-}
-function reload() {
-    router.reload({ preserveScroll: true })
-}
+const topNames = computed(() => top.value.map((p) => p.name))
+const topProfits = computed(() => top.value.map((p) => p.profit))
+const topRevenues = computed(() => top.value.map((p) => p.revenue))
+const topCosts = computed(() => top.value.map((p) => p.cogs))
 </script>
 
 <style scoped>
-.gs-toolbar { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
-.gs-kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: .75rem;
-    margin-bottom: 1rem;
-}
-.gs-num { font-size: 1.25rem; font-weight: 800; color: var(--gs-gold); }
-.gs-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-@media (max-width: 900px) { .gs-grid { grid-template-columns: 1fr; } }
-.gs-card-title { margin: 0 0 .75rem; font-size: .95rem; }
-.gs-hint { font-size: .78rem; color: var(--gs-text-secondary); margin: 0 0 .75rem; }
-.gs-table-wrap { overflow-x: auto; }
-.strong { font-weight: 700; }
-.gold { color: var(--gs-gold); }
-.ok { color: var(--gs-success); font-weight: 700; }
-.bad { color: var(--gs-error); font-weight: 700; }
-.empty { text-align: center; color: var(--gs-text-muted); padding: 1.2rem !important; }
+.mb { margin-bottom: 1rem; }
 </style>

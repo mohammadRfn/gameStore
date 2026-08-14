@@ -32,7 +32,8 @@
             <div class="gs-topbar-left">
                 <!-- Theme Toggle -->
                 <button class="gs-icon-btn" @click="toggleTheme" :title="isDark ? 'حالت روشن' : 'حالت تاریک'">
-                    <span>{{ isDark ? '☀️' : '🌙' }}</span>
+                    <Sun v-if="isDark" :size="18" />
+                    <Moon v-else :size="18" />
                 </button>
 
                 <!-- User -->
@@ -103,24 +104,20 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { Link, usePage } from '@inertiajs/vue3'
+import { Sun, Moon } from 'lucide-vue-next'
+import { useTheme } from '@/Composables/useTheme'
 
 const page = usePage()
 
-// Theme
-const isDark = ref(true)
+// Theme — حالت اشتراکی روی <html> اعمال می‌شود (بدون فلش هنگام لود)
+const { isDark, toggle } = useTheme()
 const themeClass = computed(() => isDark.value ? '' : 'light')
 
 function toggleTheme() {
-    isDark.value = !isDark.value
-    localStorage.setItem('gs-theme', isDark.value ? 'dark' : 'light')
+    toggle()
 }
-
-onMounted(() => {
-    const saved = localStorage.getItem('gs-theme')
-    if (saved) isDark.value = saved === 'dark'
-})
 
 // Sidebar
 const sidebarOpen = ref(false)
@@ -228,6 +225,8 @@ const vClickOutside = {
     justify-content: space-between;
     padding: 0 1.25rem;
     background: var(--gs-bg-card);
+    backdrop-filter: blur(16px) saturate(1.4);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
     border-bottom: 1px solid var(--gs-border);
     box-shadow: var(--gs-shadow-sm);
     gap: 1rem;

@@ -16,9 +16,12 @@
     },
     "dependencies": {
         "@inertiajs/vue3": "^3.4.0",
+        "@lucide/vue": "^1.31.0",
         "@vitejs/plugin-vue": "^6.0.7",
         "chart.js": "^4.5.1",
         "jalaali-js": "^2.0.0",
+        "lucide-vue-next": "^1.0.0",
+        "three": "^0.185.1",
         "vue": "^3.5.38"
     }
 }

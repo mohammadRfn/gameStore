@@ -1,252 +1,281 @@
 <template>
-    <canvas ref="canvas" :height="height"></canvas>
+    <div class="gs-chart" :style="{ height: height + 'px' }">
+        <canvas ref="canvas"></canvas>
+    </div>
 </template>
 
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { Chart, registerables } from 'chart.js'
+import { faInt } from '@/Utils/format'
+
+Chart.register(...registerables)
+Chart.defaults.font.family = "'Vazir', Tahoma, sans-serif"
 
 const props = defineProps({
-    type: { type: String, default: 'bar' },
+    type: { type: String, default: 'bar' }, // bar | line | doughnut | hbar
     labels: { type: Array, default: () => [] },
     datasets: { type: Array, default: () => [] },
-    height: { type: Number, default: 240 },
+    height: { type: Number, default: 260 },
     stacked: { type: Boolean, default: false },
+    centerText: { type: String, default: '' },
 })
 
 const canvas = ref(null)
-let resizeObserver = null
+let chart = null
+let themeObserver = null
 
-const gold = '#c9a84c'
-const muted = '#a09880'
-const grid = 'rgba(201,168,76,0.12)'
+const PALETTE = ['#e3bd5c', '#5b9df0', '#45d68b', '#9f7bf6', '#f0b04c', '#f06a6a']
 
-function css(name, fallback) {
+function cssVar(name, fallback) {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
 }
 
-function draw() {
-    const el = canvas.value
-    if (!el) return
-    const ctx = el.getContext('2d')
-    const dpr = window.devicePixelRatio || 1
-    const width = el.clientWidth || el.parentElement?.clientWidth || 600
-    const height = props.height
-    el.width = width * dpr
-    el.height = height * dpr
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-    ctx.clearRect(0, 0, width, height)
-
-    const labels = props.labels || []
-    const datasets = (props.datasets || []).map((d, i) => ({
-        label: d.label || '',
-        data: (d.data || []).map((n) => Number(n) || 0),
-        color: d.color || [gold, '#4c8fe0', '#4caf7d', '#e05c5c'][i % 4],
-    }))
-
-    if (!labels.length || !datasets.length) {
-        ctx.fillStyle = muted
-        ctx.font = '13px Vazirmatn, Tahoma, sans-serif'
-        ctx.textAlign = 'center'
-        ctx.fillText('داده‌ای برای این بازه نیست', width / 2, height / 2)
-        return
-    }
-
-    if (props.type === 'doughnut') {
-        drawDoughnut(ctx, width, height, labels, datasets[0])
-        return
-    }
-    if (props.type === 'hbar') {
-        drawHBar(ctx, width, height, labels, datasets[0])
-        return
-    }
-    drawCartesian(ctx, width, height, labels, datasets)
+function isDark() {
+    return !document.documentElement.classList.contains('light')
 }
 
-function maxValue(datasets) {
-    if (props.stacked) {
-        const len = datasets[0]?.data.length || 0
-        let m = 0
-        for (let i = 0; i < len; i++) {
-            const s = datasets.reduce((a, d) => a + (d.data[i] || 0), 0)
-            if (s > m) m = s
-        }
-        return m || 1
-    }
-    return Math.max(1, ...datasets.flatMap((d) => d.data))
+function palette() {
+    return [
+        cssVar('--gs-gold', '#e3bd5c'),
+        cssVar('--gs-accent', '#5b9df0'),
+        cssVar('--gs-accent-2', '#45d68b'),
+        cssVar('--gs-accent-3', '#9f7bf6'),
+        cssVar('--gs-warning', '#f0b04c'),
+        cssVar('--gs-error', '#f06a6a'),
+    ]
 }
 
-function drawCartesian(ctx, width, height, labels, datasets) {
-    const pad = { t: 16, r: 12, b: 44, l: 48 }
-    const w = width - pad.l - pad.r
-    const h = height - pad.t - pad.b
-    const max = maxValue(datasets)
-    const n = labels.length
-    const gap = 6
-    const groupW = w / n
-    const barW = Math.max(4, (groupW - gap) / (props.stacked ? 1 : datasets.length))
-
-    ctx.strokeStyle = grid
-    ctx.lineWidth = 1
-    ctx.fillStyle = muted
-    ctx.font = '11px Vazirmatn, Tahoma, sans-serif'
-    ctx.textAlign = 'left'
-    for (let i = 0; i <= 4; i++) {
-        const y = pad.t + h - (h * i) / 4
-        ctx.beginPath()
-        ctx.moveTo(pad.l, y)
-        ctx.lineTo(pad.l + w, y)
-        ctx.stroke()
-        const val = (max * i) / 4
-        ctx.fillText(shortNum(val), 4, y + 4)
-    }
-
-    ctx.textAlign = 'center'
-    labels.forEach((label, i) => {
-        const x = pad.l + i * groupW + groupW / 2
-        if (n > 20 && i % Math.ceil(n / 12) !== 0) return
-        ctx.save()
-        ctx.translate(x, pad.t + h + 14)
-        ctx.rotate(-0.45)
-        ctx.fillText(String(label), 0, 0)
-        ctx.restore()
-    })
-
-    if (props.type === 'line') {
-        datasets.forEach((ds) => {
-            ctx.beginPath()
-            ctx.strokeStyle = ds.color
-            ctx.lineWidth = 2
-            ds.data.forEach((v, i) => {
-                const x = pad.l + i * groupW + groupW / 2
-                const y = pad.t + h - (v / max) * h
-                if (i === 0) ctx.moveTo(x, y)
-                else ctx.lineTo(x, y)
-            })
-            ctx.stroke()
-            ctx.lineTo(pad.l + (n - 1) * groupW + groupW / 2, pad.t + h)
-            ctx.lineTo(pad.l + groupW / 2, pad.t + h)
-            ctx.closePath()
-            ctx.fillStyle = hexAlpha(ds.color, 0.15)
-            ctx.fill()
-        })
-        return
-    }
-
-    datasets.forEach((ds, di) => {
-        ds.data.forEach((v, i) => {
-            let base = 0
-            if (props.stacked) {
-                base = datasets.slice(0, di).reduce((a, d) => a + (d.data[i] || 0), 0)
-            }
-            const bh = (v / max) * h
-            const bb = (base / max) * h
-            const x = props.stacked
-                ? pad.l + i * groupW + gap / 2
-                : pad.l + i * groupW + gap / 2 + di * barW
-            const y = pad.t + h - bb - bh
-            const bw = props.stacked ? groupW - gap : barW
-            ctx.fillStyle = ds.color
-            roundRect(ctx, x, y, Math.max(1, bw), Math.max(0, bh), 3)
-            ctx.fill()
-        })
-    })
-}
-
-function drawHBar(ctx, width, height, labels, ds) {
-    const pad = { t: 8, r: 16, b: 8, l: 120 }
-    const w = width - pad.l - pad.r
-    const h = height - pad.t - pad.b
-    const n = labels.length || 1
-    const rowH = h / n
-    const max = Math.max(1, ...ds.data)
-    ctx.font = '12px Vazirmatn, Tahoma, sans-serif'
-    labels.forEach((label, i) => {
-        const y = pad.t + i * rowH + 4
-        const bh = Math.max(10, rowH - 10)
-        ctx.fillStyle = muted
-        ctx.textAlign = 'right'
-        ctx.fillText(truncate(String(label), 16), pad.l - 8, y + bh * 0.7)
-        ctx.fillStyle = ds.color
-        roundRect(ctx, pad.l, y, (ds.data[i] / max) * w, bh, 4)
-        ctx.fill()
-    })
-}
-
-function drawDoughnut(ctx, width, height, labels, ds) {
-    const cx = width / 2
-    const cy = height / 2 - 8
-    const r = Math.min(width, height) / 2 - 28
-    const total = ds.data.reduce((a, b) => a + b, 0) || 1
-    let angle = -Math.PI / 2
-    ds.data.forEach((v, i) => {
-        const slice = (v / total) * Math.PI * 2
-        ctx.beginPath()
-        ctx.moveTo(cx, cy)
-        ctx.fillStyle = ['#c9a84c', '#4c8fe0', '#4caf7d', '#e05c5c', '#e0a84c', '#8b5cf6'][i % 6]
-        ctx.arc(cx, cy, r, angle, angle + slice)
-        ctx.closePath()
-        ctx.fill()
-        angle += slice
-    })
-    ctx.beginPath()
-    ctx.fillStyle = css('--gs-bg-card', '#16161f')
-    ctx.arc(cx, cy, r * 0.62, 0, Math.PI * 2)
-    ctx.fill()
-
-    ctx.font = '11px Vazirmatn, Tahoma, sans-serif'
-    ctx.textAlign = 'center'
-    const legendY = height - 14
-    const step = width / Math.max(labels.length, 1)
-    labels.forEach((label, i) => {
-        ctx.fillStyle = ['#c9a84c', '#4c8fe0', '#4caf7d', '#e05c5c', '#e0a84c', '#8b5cf6'][i % 6]
-        ctx.fillRect(step * i + step / 2 - 28, legendY - 8, 8, 8)
-        ctx.fillStyle = muted
-        ctx.fillText(truncate(String(label), 10), step * i + step / 2 + 8, legendY)
-    })
-}
-
-function shortNum(v) {
-    if (v >= 1e9) return (v / 1e9).toFixed(1) + 'میلیارد'
-    if (v >= 1e6) return (v / 1e6).toFixed(1) + 'م'
-    if (v >= 1e3) return (v / 1e3).toFixed(0) + 'ه'
-    return String(Math.round(v))
-}
-
-function truncate(s, n) {
-    return s.length > n ? s.slice(0, n - 1) + '…' : s
-}
-
-function hexAlpha(hex, a) {
-    const n = hex.replace('#', '')
+function hexToRgba(hex, a) {
+    const n = String(hex).replace('#', '')
+    if (n.length !== 6) return hex
     const r = parseInt(n.slice(0, 2), 16)
     const g = parseInt(n.slice(2, 4), 16)
     const b = parseInt(n.slice(4, 6), 16)
-    return `rgba(${r},${g},${b},${a})`
+    return `rgba(${r}, ${g}, ${b}, ${a})`
 }
 
-function roundRect(ctx, x, y, w, h, r) {
-    const rr = Math.min(r, w / 2, h / 2)
-    ctx.beginPath()
-    ctx.moveTo(x + rr, y)
-    ctx.arcTo(x + w, y, x + w, y + h, rr)
-    ctx.arcTo(x + w, y + h, x, y + h, rr)
-    ctx.arcTo(x, y + h, x, y, rr)
-    ctx.arcTo(x, y, x + w, y, rr)
-    ctx.closePath()
+function normalize() {
+    const labels = props.labels || []
+    return (props.datasets || []).map((d, i) => ({
+        label: d.label || '',
+        data: (d.data || []).map((n) => Number(n) || 0),
+        color: d.color || PALETTE[i % PALETTE.length],
+        colors: d.colors || null,
+    }))
+}
+
+function build() {
+    if (!canvas.value) return
+    if (chart) { chart.destroy(); chart = null }
+
+    const labels = props.labels || []
+    const datasets = normalize()
+    const pal = palette()
+    const grid = cssVar('--gs-grid-line', 'rgba(227,189,92,0.08)')
+    const tickColor = cssVar('--gs-text-muted', '#6c6557')
+    const legendColor = cssVar('--gs-text-secondary', '#a9a194')
+    const rtl = true
+
+    // تیک محور دسته‌ای (برچسب‌ها) — برای هر دو جهت
+    const catTicks = () => ({
+        color: tickColor,
+        font: { size: 10 },
+        maxRotation: 0,
+        autoSkip: true,
+        autoSkipPadding: 6,
+        callback: function (val, i) {
+            const n = this.getLabelForValue(val)
+            const max = labels.length
+            if (max > 16 && i % Math.ceil(max / 14) !== 0) return ''
+            return typeof n === 'string' && n.length > 12 ? n.slice(0, 11) + '…' : n
+        },
+    })
+
+    // تیک محور مقداری (اعداد)
+    const valTicks = () => ({
+        color: tickColor,
+        font: { size: 10 },
+        callback: (v) => short(v),
+    })
+
+    if (props.type === 'doughnut') {
+        const ds = datasets[0] || { data: [], color: pal[0] }
+        const colors = ds.colors || pal.slice(0, ds.data.length)
+        chart = new Chart(canvas.value, {
+            type: 'doughnut',
+            data: {
+                labels,
+                datasets: [{
+                    data: ds.data,
+                    backgroundColor: colors.map((c, i) => c || pal[i % pal.length]),
+                    borderColor: cssVar('--gs-bg-card', '#14141f'),
+                    borderWidth: 3,
+                    hoverOffset: 8,
+                    borderRadius: 6,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '68%',
+                plugins: {
+                    legend: {
+                        rtl,
+                        position: 'bottom',
+                        labels: { color: legendColor, usePointStyle: true, pointStyle: 'circle', padding: 14, font: { size: 11 } },
+                    },
+                    tooltip: {
+                        rtl,
+                        callbacks: { label: (ctx) => ` ${ctx.label}: ${faInt(ctx.parsed)} تومان` },
+                    },
+                },
+            },
+            plugins: [centerTextPlugin()],
+        })
+        return
+    }
+
+    const horizontal = props.type === 'hbar'
+    const type = horizontal ? 'bar' : (props.type === 'line' ? 'line' : 'bar')
+
+    const chartDatasets = datasets.map((d, i) => {
+        const base = {
+            label: d.label,
+            data: d.data,
+            borderColor: d.color,
+            borderWidth: 2,
+            borderRadius: horizontal ? 6 : 6,
+            borderSkipped: false,
+            tension: 0.4,
+            hoverBackgroundColor: d.color,
+        }
+        if (type === 'line') {
+            base.fill = true
+            base.backgroundColor = (ctx) => {
+                const { chartArea } = ctx.chart
+                if (!chartArea) return hexToRgba(d.color, 0.12)
+                const g = ctx.chart.ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom)
+                g.addColorStop(0, hexToRgba(d.color, 0.3))
+                g.addColorStop(1, hexToRgba(d.color, 0.02))
+                return g
+            }
+            base.pointBackgroundColor = d.color
+            base.pointBorderColor = cssVar('--gs-bg-card', '#14141f')
+            base.pointRadius = 3
+            base.pointHoverRadius = 5
+        } else {
+            base.backgroundColor = (ctx) => {
+                const { chartArea } = ctx.chart
+                if (!chartArea) return hexToRgba(d.color, 0.8)
+                const g = ctx.chart.ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom)
+                g.addColorStop(0, hexToRgba(d.color, 0.95))
+                g.addColorStop(1, hexToRgba(d.color, 0.55))
+                return g
+            }
+        }
+        return base
+    })
+
+    chart = new Chart(canvas.value, {
+        type,
+        data: { labels, datasets: chartDatasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: horizontal ? 'y' : 'x',
+            animation: { duration: 700, easing: 'easeOutQuart' },
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    display: datasets.length > 1 || props.type !== 'bar' ? datasets.length > 1 : false,
+                    rtl,
+                    position: 'bottom',
+                    labels: { color: legendColor, usePointStyle: true, pointStyle: 'circle', padding: 14, font: { size: 11 } },
+                },
+                tooltip: {
+                    rtl,
+                    backgroundColor: cssVar('--gs-bg-elevated', '#191926'),
+                    borderColor: cssVar('--gs-border-hover', 'rgba(227,189,92,0.34)'),
+                    borderWidth: 1,
+                    titleColor: cssVar('--gs-text-primary', '#f4efe4'),
+                    bodyColor: cssVar('--gs-text-secondary', '#a9a194'),
+                    padding: 10,
+                    callbacks: { label: (ctx) => ` ${ctx.dataset.label || ''}: ${faInt(ctx.parsed.x ?? ctx.parsed.y)} تومان` },
+                },
+            },
+            scales: {
+                x: horizontal ? {
+                    rtl, stacked: props.stacked, grid: { color: grid, drawBorder: false }, border: { display: false }, ticks: valTicks(),
+                } : {
+                    rtl, grid: { color: grid, drawBorder: false }, border: { display: false }, ticks: catTicks(),
+                },
+                y: horizontal ? {
+                    rtl, grid: { color: grid, drawBorder: false }, border: { display: false }, ticks: catTicks(),
+                } : {
+                    rtl, stacked: props.stacked, grid: { color: grid, drawBorder: false }, border: { display: false }, ticks: valTicks(),
+                },
+            },
+        },
+    })
+}
+
+// متن مرکزی دونات
+function centerTextPlugin() {
+    return {
+        id: 'centerText',
+        afterDraw(chart) {
+            const { ctx, chartArea } = chart
+            if (!chartArea) return
+            const ds = chart.data.datasets[0]
+            if (!ds?.data?.length) return
+            const cx = (chartArea.left + chartArea.right) / 2
+            const cy = (chartArea.top + chartArea.bottom) / 2
+            const total = ds.data.reduce((s, v) => s + (Number(v) || 0), 0)
+            ctx.save()
+            ctx.textAlign = 'center'
+            ctx.textBaseline = 'middle'
+            ctx.fillStyle = cssVar('--gs-text-muted', '#6c6557')
+            ctx.font = '600 11px Vazir, Tahoma'
+            ctx.fillText('مجموع', cx, cy - 9)
+            ctx.fillStyle = cssVar('--gs-text-primary', '#f4efe4')
+            ctx.font = '800 15px Vazir, Tahoma'
+            ctx.fillText(short(total), cx, cy + 11)
+            ctx.restore()
+        },
+    }
+}
+
+function short(v) {
+    const n = Number(v) || 0
+    if (Math.abs(n) >= 1e9) return (n / 1e9).toLocaleString('fa-IR', { maximumFractionDigits: 1 }) + 'B'
+    if (Math.abs(n) >= 1e6) return (n / 1e6).toLocaleString('fa-IR', { maximumFractionDigits: 1 }) + 'M'
+    if (Math.abs(n) >= 1e3) return (n / 1e3).toLocaleString('fa-IR', { maximumFractionDigits: 0 }) + 'K'
+    return n.toLocaleString('fa-IR')
 }
 
 onMounted(() => {
-    draw()
-    resizeObserver = new ResizeObserver(() => draw())
-    if (canvas.value?.parentElement) resizeObserver.observe(canvas.value.parentElement)
+    build()
+    themeObserver = new MutationObserver(() => build())
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] })
+    window.addEventListener('gs-theme-changed', build)
 })
-onBeforeUnmount(() => resizeObserver?.disconnect())
-watch(() => [props.labels, props.datasets, props.type, props.stacked], draw, { deep: true })
+
+onBeforeUnmount(() => {
+    if (themeObserver) themeObserver.disconnect()
+    window.removeEventListener('gs-theme-changed', build)
+    if (chart) chart.destroy()
+})
+
+watch(() => [props.labels, props.datasets, props.type, props.stacked], build, { deep: true })
 </script>
 
 <style scoped>
-canvas {
+.gs-chart {
+    position: relative;
     width: 100%;
+}
+.gs-chart canvas {
     display: block;
 }
 </style>

@@ -1,112 +1,83 @@
 <template>
     <AppLayout>
-        <template #header>
-            <h1 class="gs-title">رتبه‌بندی فروش</h1>
-            <p class="gs-subtitle">پرفروش‌ترین و پرسودترین محصول و سرویس — برای روز، ماه، سال یا هر بازهٔ دلخواه</p>
-        </template>
+        <StatHero
+            title="رتبه‌بندی فروش"
+            subtitle="پرفروش‌ترین و پرسودترین محصول و سرویس — برای هر بازهٔ دلخواه"
+            :from="from" :to="to" :range="range"
+        >
+            <template #actions>
+                <Link :href="route('stats.index', query)" class="gs-btn gs-btn-soft">مرکز گزارشات</Link>
+                <Link :href="route('stats.products', query)" class="gs-btn gs-btn-soft">کالا</Link>
+                <Link :href="route('stats.services', query)" class="gs-btn gs-btn-soft">سرویس</Link>
+            </template>
+        </StatHero>
 
-        <!-- نوار ناوبری -->
-        <div class="gs-toolbar">
-            <Link :href="route('stats.index', query)" class="gs-btn gs-btn-ghost">← مرکز گزارشات</Link>
-            <Link :href="route('stats.products', query)" class="gs-btn gs-btn-ghost">کالا</Link>
-            <Link :href="route('stats.services', query)" class="gs-btn gs-btn-ghost">سرویس</Link>
-            <button type="button" class="gs-btn gs-btn-primary" @click="reload">بروزرسانی</button>
+        <RangeFilter
+            :from="from" :to="to" :paid-only="paidOnly" :range="range"
+            route-name="stats.ranking" class="mb"
+        />
+
+        <!-- کنترل‌ها -->
+        <div class="gs-tabs">
+            <button class="gs-tab" :class="{ active: pane === 'product' }" @click="pane = 'product'">
+                <Package :size="15" /> محصولات
+            </button>
+            <button class="gs-tab" :class="{ active: pane === 'service' }" @click="pane = 'service'">
+                <Wrench :size="15" /> سرویس‌ها
+            </button>
+            <button class="gs-tab" :class="{ active: pane === 'slow' }" @click="pane = 'slow'">
+                <Snowflake :size="15" /> کندفروش
+            </button>
+            <button class="gs-tab" :class="{ active: pane === 'category' }" @click="pane = 'category'">
+                <PieChart :size="15" /> تفکیک دسته
+            </button>
         </div>
 
-        <!-- فیلتر بازه -->
-        <form class="gs-filter" @submit.prevent="apply">
-            <div class="gs-filter-ranges">
-                <button type="button" v-for="r in ranges" :key="r.id" class="gs-btn"
-                    :class="range === r.id ? 'gs-btn-primary' : 'gs-btn-ghost'" @click="setRange(r.id)">{{ r.label }}</button>
-            </div>
-            <label class="gs-check">
-                <input type="checkbox" v-model="paidOnly">
-                فقط وصول‌شده
-            </label>
-            <JalaliDateInput v-model="from" class="gs-date" placeholder="از تاریخ" />
-            <JalaliDateInput v-model="to" class="gs-date" placeholder="تا تاریخ" />
-            <button type="submit" class="gs-btn gs-btn-primary">اعمال</button>
-        </form>
-
-        <!-- سورت و فیلتر -->
-        <div class="rk-toolbar">
-            <div class="rk-toolbar-group">
-                <label class="rk-label">مرتب‌سازی:</label>
-                <select class="gs-input rk-select" v-model="sort">
-                    <option value="qty">📊 پرفروش‌ترین (تعداد)</option>
-                    <option value="revenue">💰 بیشترین فروش (ریالی)</option>
-                    <option value="profit">🏆 پرسودترین</option>
-                    <option value="margin">📈 بالاترین حاشیه</option>
-                    <option value="avg_sell">💎 گران‌ترین</option>
-                </select>
-            </div>
-            <div class="rk-toolbar-group">
-                <label class="rk-label">دسته‌بندی:</label>
-                <select class="gs-input rk-select" v-model="category">
-                    <option value="">همهٔ دسته‌ها</option>
-                    <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
-                </select>
-            </div>
-            <div class="rk-toolbar-group">
-                <label class="rk-label">تعداد:</label>
-                <select class="gs-input rk-select rk-limit" v-model="limit">
-                    <option :value="10">۱۰</option>
-                    <option :value="20">۲۰</option>
-                    <option :value="50">۵۰</option>
-                    <option :value="0">همه</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- تب‌های رتبه‌بندی -->
-        <div class="gs-tabs" style="margin-bottom:1rem">
-            <button type="button" class="gs-tab" :class="{ active: pane === 'product' }" @click="pane = 'product'">📦 محصولات</button>
-            <button type="button" class="gs-tab" :class="{ active: pane === 'service' }" @click="pane = 'service'">🔧 سرویس‌ها</button>
-            <button type="button" class="gs-tab" :class="{ active: pane === 'slow' }" @click="pane = 'slow'">🧊 کندفروش</button>
-            <button type="button" class="gs-tab" :class="{ active: pane === 'category' }" @click="pane = 'category'">📊 تفکیک دسته</button>
-        </div>
-
-        <!-- ================= محصولات ================= -->
+        <!-- ============ محصولات ============ -->
         <section v-show="pane === 'product'">
-            <div class="gs-kpi-grid">
-                <article class="gs-card gs-kpi">
-                    <p class="gs-label">تعداد کالای رتبه‌بندی‌شده</p>
-                    <p class="gs-num">{{ fa(rankedProducts.length) }}</p>
-                </article>
-                <article class="gs-card gs-kpi">
-                    <p class="gs-label">درآمد همین لیست</p>
-                    <p class="gs-num">{{ money(rankedProducts.reduce((s, p) => s + (p.revenue || 0), 0)) }}</p>
-                </article>
-                <article class="gs-card gs-kpi">
-                    <p class="gs-label">سود همین لیست</p>
-                    <p class="gs-num">{{ money(rankedProducts.reduce((s, p) => s + (p.profit || 0), 0)) }}</p>
-                </article>
-                <article class="gs-card gs-kpi">
-                    <p class="gs-label">مرتب‌سازی</p>
-                    <p class="gs-num">{{ sortLabel }}</p>
-                </article>
+            <div class="rk-toolbar">
+                <label class="rk-field">
+                    <span class="rk-label">مرتب‌سازی</span>
+                    <select class="gs-select" v-model="sort">
+                        <option value="profit">🏆 پرسودترین</option>
+                        <option value="revenue">💰 بیشترین فروش</option>
+                        <option value="qty">📊 پرفروش‌ترین (تعداد)</option>
+                        <option value="margin">📈 بالاترین حاشیه</option>
+                        <option value="avg_sell">💎 گران‌ترین</option>
+                    </select>
+                </label>
+                <label class="rk-field">
+                    <span class="rk-label">دسته‌بندی</span>
+                    <select class="gs-select" v-model="category">
+                        <option value="">همهٔ دسته‌ها</option>
+                        <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
+                    </select>
+                </label>
+                <label class="rk-field">
+                    <span class="rk-label">تعداد</span>
+                    <select class="gs-select" v-model="limit">
+                        <option :value="10">۱۰</option>
+                        <option :value="20">۲۰</option>
+                        <option :value="50">۵۰</option>
+                        <option :value="0">همه</option>
+                    </select>
+                </label>
             </div>
 
-            <div class="gs-grid">
-                <div class="gs-card">
-                    <h3 class="gs-card-title">🏆 ۵ تای اول — {{ sortLabel }}</h3>
-                    <GsChart type="hbar" :labels="topNames" :datasets="[{ data: topValues, color: sortColor }]" :height="230" />
-                </div>
-                <div class="gs-card">
-                    <h3 class="gs-card-title">درآمد در برابر سود — ۵ تای اول</h3>
-                    <GsChart type="bar" :labels="topNames"
-                        :datasets="[
-                            { label: 'درآمد', data: topRevenues, color: '#c9a84c' },
-                            { label: 'سود', data: topProfits, color: '#4caf7d' },
-                        ]" :height="230" />
-                </div>
-            </div>
+            <Podium3D :items="podiumProducts" />
 
-            <div class="gs-card">
-                <h3 class="gs-card-title">جدول رتبه‌بندی محصولات</h3>
-                <p class="gs-hint">
-                    ردیف‌های ۱ تا ۳ با رنگ مدال مشخص‌اند. ⚠ یعنی موجودی کم است و در آستانهٔ اتمام.
-                </p>
+            <section class="gs-card">
+                <div class="gs-card-head">
+                    <h3 class="gs-card-title"><Trophy class="ic" :size="17" /> {{ sortLabel }} — ۵ تای اول</h3>
+                </div>
+                <Bar3D :labels="topNames" :values="topValues" :color="sortColor" :money="true" :height="250" />
+            </section>
+
+            <section class="gs-card">
+                <div class="gs-card-head">
+                    <h3 class="gs-card-title"><Table class="ic" :size="17" /> جدول کامل رتبه‌بندی</h3>
+                    <span class="gs-label">{{ faInt(rankedProducts.length) }} کالا</span>
+                </div>
                 <div class="gs-table-wrap">
                     <table class="gs-table">
                         <thead>
@@ -114,7 +85,7 @@
                                 <th>رتبه</th>
                                 <th>کالا</th>
                                 <th>دسته</th>
-                                <th>تعداد فروش</th>
+                                <th>تعداد</th>
                                 <th>فروش واحد</th>
                                 <th>درآمد</th>
                                 <th>سود</th>
@@ -123,70 +94,45 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="(p, i) in rankedProducts" :key="p.item_id || p.name"
-                                :class="medalClass(i)">
-                                <td class="rk-rank">{{ fa(i + 1) }}</td>
-                                <td class="strong">{{ p.name }}</td>
-                                <td><span class="gs-badge gs-badge-gold">{{ p.category }}</span></td>
-                                <td>{{ fa(p.qty) }}</td>
-                                <td>{{ money(p.avg_sell) }}</td>
-                                <td class="gold">{{ money(p.revenue) }}</td>
-                                <td :class="p.profit >= 0 ? 'ok' : 'bad'">{{ money(p.profit) }}</td>
-                                <td>{{ fa(p.margin) }}٪</td>
+                            <tr v-for="(row, i) in rankedProducts" :key="row.item_id || row.name" :class="medalClass(i)">
+                                <td class="rank-cell">{{ faInt(i + 1) }}</td>
+                                <td class="strong">{{ row.name }}</td>
+                                <td><span class="gs-badge gs-badge-gold">{{ row.category }}</span></td>
+                                <td>{{ faInt(row.qty) }}</td>
+                                <td>{{ money(row.avg_sell) }}</td>
+                                <td class="gold">{{ money(row.revenue) }}</td>
+                                <td :class="row.profit >= 0 ? 'ok' : 'bad'">{{ money(row.profit) }}</td>
+                                <td>{{ percent(row.margin) }}</td>
                                 <td>
-                                    <span v-if="p.stock !== null && p.stock <= 2" class="gs-badge gs-badge-error">⚠ {{ fa(p.stock) }}</span>
-                                    <span v-else-if="p.stock !== null">{{ fa(p.stock) }}</span>
+                                    <span v-if="row.stock !== null && row.stock <= 2" class="gs-badge gs-badge-error">کم {{ faInt(row.stock) }}</span>
+                                    <span v-else-if="row.stock !== null">{{ faInt(row.stock) }}</span>
                                     <span v-else>—</span>
                                 </td>
                             </tr>
                             <tr v-if="!rankedProducts.length">
-                                <td colspan="9" class="empty">در این بازه و دسته فروش کالایی ثبت نشده — بازهٔ تاریخ را عوض کن</td>
+                                <td colspan="9" class="gs-empty">در این بازه و دسته فروش کالایی ثبت نشده</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </section>
         </section>
 
-        <!-- ================= سرویس‌ها ================= -->
+        <!-- ============ سرویس‌ها ============ -->
         <section v-show="pane === 'service'">
-            <div class="gs-kpi-grid">
-                <article class="gs-card gs-kpi">
-                    <p class="gs-label">درآمد سرویس</p>
-                    <p class="gs-num">{{ money(kpi.service_revenue) }}</p>
-                </article>
-                <article class="gs-card gs-kpi">
-                    <p class="gs-label">خالص سرویس</p>
-                    <p class="gs-num">{{ money(kpi.service_net) }}</p>
-                </article>
-                <article class="gs-card gs-kpi">
-                    <p class="gs-label">تعداد کار</p>
-                    <p class="gs-num">{{ fa(kpi.service_jobs) }}</p>
-                </article>
-                <article class="gs-card gs-kpi">
-                    <p class="gs-label">پردرآمدترین نوع</p>
-                    <p class="gs-num rk-small">{{ topService?.name ?? '—' }}</p>
-                </article>
-            </div>
+            <Podium3D :items="podiumServices" />
 
-            <div class="gs-grid">
-                <div class="gs-card">
-                    <h3 class="gs-card-title">🏆 پردرآمدترین سرویس‌ها</h3>
-                    <GsChart type="hbar" :labels="topServiceNames" :datasets="[{ data: topServiceRevenues, color: '#4c8fe0' }]" :height="230" />
+            <section class="gs-card">
+                <div class="gs-card-head">
+                    <h3 class="gs-card-title"><Trophy class="ic" :size="17" /> پردرآمدترین سرویس‌ها</h3>
                 </div>
-                <div class="gs-card">
-                    <h3 class="gs-card-title">درآمد در برابر خالص</h3>
-                    <GsChart type="bar" :labels="topServiceNames"
-                        :datasets="[
-                            { label: 'درآمد', data: topServiceRevenues, color: '#4c8fe0' },
-                            { label: 'خالص', data: topServiceNets, color: '#4caf7d' },
-                        ]" :height="230" />
-                </div>
-            </div>
+                <Bar3D :labels="topServiceNames" :values="topServiceRevenues" color="#5b9df0" :money="true" :height="250" />
+            </section>
 
-            <div class="gs-card">
-                <h3 class="gs-card-title">جدول رتبه‌بندی سرویس‌ها</h3>
-                <p class="gs-hint">درآمد از final_price سرویس‌جاب. خالص = درآمد − جمع قطعات مصرفی از انبار.</p>
+            <section class="gs-card">
+                <div class="gs-card-head">
+                    <h3 class="gs-card-title"><Table class="ic" :size="17" /> جدول رتبه‌بندی سرویس</h3>
+                </div>
                 <div class="gs-table-wrap">
                     <table class="gs-table">
                         <thead>
@@ -196,41 +142,43 @@
                                 <th>تعداد کار</th>
                                 <th>میانگین</th>
                                 <th>درآمد</th>
-                                <th>هزینه قطعه</th>
+                                <th>قطعه</th>
                                 <th>خالص</th>
                                 <th>باز</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="(s, i) in rankedServices" :key="s.service_type_id || s.name" :class="medalClass(i)">
-                                <td class="rk-rank">{{ fa(i + 1) }}</td>
-                                <td class="strong">{{ s.name }}</td>
-                                <td>{{ fa(s.jobs) }}</td>
-                                <td>{{ money(s.avg) }}</td>
-                                <td class="gold">{{ money(s.revenue) }}</td>
-                                <td>{{ money(s.parts_cost) }}</td>
-                                <td class="ok">{{ money(s.net) }}</td>
+                            <tr v-for="(row, i) in rankedServices" :key="row.service_type_id || row.name" :class="medalClass(i)">
+                                <td class="rank-cell">{{ faInt(i + 1) }}</td>
+                                <td class="strong">{{ row.name }}</td>
+                                <td>{{ faInt(row.jobs) }}</td>
+                                <td>{{ money(row.avg) }}</td>
+                                <td class="gold">{{ money(row.revenue) }}</td>
+                                <td>{{ money(row.parts_cost) }}</td>
+                                <td class="ok">{{ money(row.net) }}</td>
                                 <td>
-                                    <span v-if="(s.open ?? 0) > 0" class="gs-badge gs-badge-warning">{{ fa(s.open ?? 0) }}</span>
+                                    <span v-if="(row.open ?? 0) > 0" class="gs-badge gs-badge-warning">{{ faInt(row.open) }}</span>
                                     <span v-else class="gs-badge gs-badge-success">۰</span>
                                 </td>
                             </tr>
                             <tr v-if="!rankedServices.length">
-                                <td colspan="8" class="empty">در این بازه سرویسی ثبت نشده — بازهٔ تاریخ را عوض کن</td>
+                                <td colspan="8" class="gs-empty">سرویسی در این بازه ثبت نشده</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </section>
         </section>
 
-        <!-- ================= کندفروش ================= -->
+        <!-- ============ کندفروش ============ -->
         <section v-show="pane === 'slow'">
-            <div class="gs-card">
-                <h3 class="gs-card-title">🧊 محصولات کندفروش — موجودی بالا نسبت به فروش</h3>
-                <p class="gs-hint">
-                    محصولاتی که فروش داشته‌اند ولی موجودی انبارشان حداقل ۳ برابر فروشِ بازه است.
-                    ارزش منجمد = موجودی × قیمت فروش واحد.
+            <section class="gs-card">
+                <div class="gs-card-head">
+                    <h3 class="gs-card-title"><Snowflake class="ic" :size="17" /> محصولات کندفروش</h3>
+                    <span class="gs-label">موجودی ≥ ۳ برابر فروش بازه</span>
+                </div>
+                <p class="gs-hint" style="margin-bottom: 0.9rem;">
+                    کالاهایی که فروش داشته‌اند اما موجودی انبارشان نسبت به فروش بازه زیاد است؛ «ارزش منجمد» = موجودی × قیمت فروش.
                 </p>
                 <div class="gs-table-wrap">
                     <table class="gs-table">
@@ -238,55 +186,60 @@
                             <tr>
                                 <th>کالا</th>
                                 <th>دسته</th>
-                                <th>فروش در بازه</th>
+                                <th>فروش بازه</th>
                                 <th>موجودی</th>
                                 <th>نسبت</th>
                                 <th>ارزش منجمد</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="p in slowMovers" :key="p.item_id || p.name">
-                                <td class="strong">{{ p.name }}</td>
-                                <td><span class="gs-badge gs-badge-gold">{{ p.category }}</span></td>
-                                <td>{{ fa(p.qty) }}</td>
+                            <tr v-for="row in slowMovers" :key="row.item_id || row.name">
+                                <td class="strong">{{ row.name }}</td>
+                                <td><span class="gs-badge gs-badge-gold">{{ row.category }}</span></td>
+                                <td>{{ faInt(row.qty) }}</td>
                                 <td>
-                                    <span class="gs-badge" :class="p.stock >= 10 ? 'gs-badge-error' : 'gs-badge-warning'">{{ fa(p.stock) }}</span>
+                                    <span class="gs-badge" :class="row.stock >= 10 ? 'gs-badge-error' : 'gs-badge-warning'">{{ faInt(row.stock) }}</span>
                                 </td>
-                                <td>{{ p.ratio }}×</td>
-                                <td class="gold">{{ money(p.frozen) }}</td>
+                                <td>{{ row.ratio }}×</td>
+                                <td class="gold">{{ money(row.frozen) }}</td>
                             </tr>
                             <tr v-if="!slowMovers.length">
-                                <td colspan="6" class="empty">محصول کندفروشی یافت نشد ✓</td>
+                                <td colspan="6" class="gs-empty">محصول کندفروشی یافت نشد ✓</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </section>
         </section>
 
-        <!-- ================= تفکیک دسته ================= -->
+        <!-- ============ تفکیک دسته ============ -->
         <section v-show="pane === 'category'">
-            <div class="gs-grid">
-                <div class="gs-card">
-                    <h3 class="gs-card-title">📊 درآمد به تفکیک دسته</h3>
-                    <GsChart type="doughnut" :labels="categoryLabels" :datasets="[{ data: categoryRevenues }]" :height="260" />
-                </div>
-                <div class="gs-card">
-                    <h3 class="gs-card-title">💰 سود به تفکیک دسته</h3>
-                    <GsChart type="doughnut" :labels="categoryLabels" :datasets="[{ data: categoryProfits }]" :height="260" />
-                </div>
+            <div class="gs-grid-2">
+                <section class="gs-card">
+                    <div class="gs-card-head">
+                        <h3 class="gs-card-title"><PieChart class="ic" :size="17" /> درآمد به تفکیک دسته</h3>
+                    </div>
+                    <GsChart type="doughnut" :labels="categoryLabels" :datasets="[{ data: categoryRevenues }]" :height="270" />
+                </section>
+                <section class="gs-card">
+                    <div class="gs-card-head">
+                        <h3 class="gs-card-title"><Coins class="ic" :size="17" /> سود به تفکیک دسته</h3>
+                    </div>
+                    <GsChart type="doughnut" :labels="categoryLabels" :datasets="[{ data: categoryProfits }]" :height="270" />
+                </section>
             </div>
 
-            <div class="gs-card">
-                <h3 class="gs-card-title">جدول دسته‌بندی‌ها</h3>
-                <p class="gs-hint">مناسب فروشگاه کنسول، گیم، لوازم جانبی، موبایل و دیجیتال — از دستهٔ آیتم‌ها خوانده می‌شود.</p>
+            <section class="gs-card">
+                <div class="gs-card-head">
+                    <h3 class="gs-card-title"><Table class="ic" :size="17" /> جدول دسته‌ها</h3>
+                </div>
                 <div class="gs-table-wrap">
                     <table class="gs-table">
                         <thead>
                             <tr>
                                 <th>دسته</th>
-                                <th>تعداد کالا</th>
-                                <th>کل فروش</th>
+                                <th>SKU</th>
+                                <th>تعداد فروش</th>
                                 <th>درآمد</th>
                                 <th>سود</th>
                                 <th>حاشیه</th>
@@ -294,162 +247,116 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="c in categoryRows" :key="c.name">
-                                <td class="strong">{{ c.name }}</td>
-                                <td>{{ fa(c.count) }}</td>
-                                <td>{{ fa(c.qty) }}</td>
-                                <td class="gold">{{ money(c.revenue) }}</td>
-                                <td :class="c.profit >= 0 ? 'ok' : 'bad'">{{ money(c.profit) }}</td>
-                                <td>{{ fa(c.margin) }}٪</td>
+                            <tr v-for="row in categoryRows" :key="row.name">
+                                <td class="strong">{{ row.name }}</td>
+                                <td>{{ faInt(row.count) }}</td>
+                                <td>{{ faInt(row.qty) }}</td>
+                                <td class="gold">{{ money(row.revenue) }}</td>
+                                <td :class="row.profit >= 0 ? 'ok' : 'bad'">{{ money(row.profit) }}</td>
+                                <td>{{ percent(row.margin) }}</td>
                                 <td>
-                                    <div class="rk-bar">
-                                        <div class="rk-bar-fill" :style="{ width: c.share + '%' }"></div>
-                                        <span>{{ fa(c.share) }}٪</span>
+                                    <div class="share-bar">
+                                        <div class="share-fill" :style="{ width: row.share + '%' }"></div>
+                                        <span>{{ faInt(row.share) }}٪</span>
                                     </div>
                                 </td>
                             </tr>
                             <tr v-if="!categoryRows.length">
-                                <td colspan="7" class="empty">دسته‌بندی‌ای ثبت نشده</td>
+                                <td colspan="7" class="gs-empty">دسته‌بندی‌ای ثبت نشده</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </section>
         </section>
-
     </AppLayout>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
-import { Link, router } from '@inertiajs/vue3'
+import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import JalaliDateInput from '@/Components/JalaliDateInput.vue'
+import StatHero from '@/Components/Stats/StatHero.vue'
+import RangeFilter from '@/Components/Stats/RangeFilter.vue'
+import Podium3D from '@/Components/Stats/Podium3D.vue'
 import GsChart from '@/Components/GsChart.vue'
+import Bar3D from '@/Components/Stats/Bar3D.vue'
+import { Package, Wrench, Snowflake, PieChart, Trophy, Table, Coins } from '@lucide/vue'
+import { faInt, money, percent } from '@/Utils/format'
 
 const props = defineProps({
-    from:     { type: String, default: '' },
-    to:       { type: String, default: '' },
+    from: { type: String, default: '' },
+    to: { type: String, default: '' },
     paidOnly: { type: Boolean, default: true },
-    range:    { type: String, default: 'month' },
-    kpi:      { type: Object, default: () => ({}) },
+    range: { type: String, default: 'month' },
+    kpi: { type: Object, default: () => ({}) },
     products: { type: Array, default: () => [] },
     services: { type: Array, default: () => [] },
-    stock:    { type: Object, default: () => ({}) },
-    funnel:   { type: Array, default: () => [] },
+    stock: { type: Object, default: () => ({}) },
+    funnel: { type: Array, default: () => [] },
 })
 
-/* ─── State ─── */
-const pane     = ref('product')
-const sort     = ref('profit')
+const pane = ref('product')
+const sort = ref('profit')
 const category = ref('')
-const limit    = ref(10)
-
-const range    = ref(props.range)
-const paidOnly = ref(props.paidOnly)
-const from     = ref(props.from)
-const to       = ref(props.to)
-
-const ranges = [
-    { id: 'today', label: 'امروز' },
-    { id: 'week',  label: 'هفته' },
-    { id: 'month', label: 'ماه' },
-    { id: 'year',  label: 'سال' },
-]
-
-/* ─── Helpers ─── */
-function fa(n)    { return Number(n || 0).toLocaleString('fa-IR') }
-function money(n) { return fa(Math.round(Number(n || 0))) + ' تومان' }
+const limit = ref(10)
 
 const query = computed(() => ({
-    from: from.value || undefined,
-    to: to.value || undefined,
-    paid_only: paidOnly.value ? 1 : 0,
-    range: range.value,
+    from: props.from || undefined,
+    to: props.to || undefined,
+    paid_only: props.paidOnly ? 1 : 0,
+    range: props.range,
 }))
 
-function setRange(id) {
-    range.value = id
-    from.value = ''
-    to.value = ''
-    apply()
-}
-
-function apply() {
-    router.get(route('stats.ranking'), {
-        from: from.value || undefined,
-        to: to.value || undefined,
-        paid_only: paidOnly.value ? 1 : 0,
-        range: range.value,
-    }, { preserveState: true, replace: true })
-}
-
-function reload() {
-    router.reload({ preserveScroll: true })
-}
-
-/* ─── سورت ─── */
 const sortLabel = computed(() => ({
-    qty: 'تعداد فروش',
-    revenue: 'درآمد ریالی',
-    profit: 'سود مطلق',
-    margin: 'حاشیه سود',
-    avg_sell: 'قیمت فروش',
+    qty: 'تعداد فروش', revenue: 'درآمد ریالی', profit: 'سود مطلق', margin: 'حاشیهٔ سود', avg_sell: 'قیمت فروش',
 }[sort.value] || 'سود'))
 
 const sortColor = computed(() => ({
-    qty: '#c9a84c',
-    revenue: '#c9a84c',
-    profit: '#4caf7d',
-    margin: '#4c8fe0',
-    avg_sell: '#8b5cf6',
-}[sort.value] || '#4caf7d'))
+    qty: '#e3bd5c', revenue: '#e3bd5c', profit: '#45d68b', margin: '#9f7bf6', avg_sell: '#5b9df0',
+}[sort.value] || '#45d68b'))
 
 const categories = computed(() => {
-    const set = new Set(props.products.map(p => p.category).filter(Boolean))
+    const set = new Set(props.products.map((p) => p.category).filter(Boolean))
     return [...set].sort()
 })
 
-/* ─── محصولات: فیلتر + سورت + محدودیت ─── */
+/* ─── محصولات ─── */
 const rankedProducts = computed(() => {
     let arr = [...props.products]
-    if (category.value) {
-        arr = arr.filter(p => p.category === category.value)
-    }
+    if (category.value) arr = arr.filter((p) => p.category === category.value)
     const key = sort.value
     arr.sort((a, b) => (Number(b[key]) || 0) - (Number(a[key]) || 0))
-    if (limit.value > 0) {
-        arr = arr.slice(0, limit.value)
-    }
+    if (limit.value > 0) arr = arr.slice(0, limit.value)
     return arr
 })
 
-const top5       = computed(() => rankedProducts.value.slice(0, 5))
-const topNames   = computed(() => top5.value.map(p => p.name))
-const topValues  = computed(() => top5.value.map(p => p[sort.value] ?? 0))
-const topRevenues = computed(() => top5.value.map(p => p.revenue))
-const topProfits  = computed(() => top5.value.map(p => p.profit))
+const podiumProducts = computed(() => rankedProducts.value.slice(0, 3).map((p) => ({
+    name: p.name, value: p.profit, sub: 'سود',
+})))
+
+const top5 = computed(() => rankedProducts.value.slice(0, 5))
+const topNames = computed(() => top5.value.map((p) => p.name))
+const topValues = computed(() => top5.value.map((p) => p[sort.value] ?? 0))
 
 /* ─── سرویس‌ها ─── */
-const rankedServices = computed(() =>
-    [...props.services].sort((a, b) => (b.revenue || 0) - (a.revenue || 0)))
+const rankedServices = computed(() => [...props.services].sort((a, b) => (b.revenue || 0) - (a.revenue || 0)))
 
-const topService = computed(() => rankedServices.value[0] ?? null)
-const top5Services   = computed(() => rankedServices.value.slice(0, 5))
-const topServiceNames    = computed(() => top5Services.value.map(s => s.name))
-const topServiceRevenues = computed(() => top5Services.value.map(s => s.revenue))
-const topServiceNets     = computed(() => top5Services.value.map(s => s.net))
+const podiumServices = computed(() => rankedServices.value.slice(0, 3).map((s) => ({
+    name: s.name, value: s.revenue, sub: 'درآمد',
+})))
 
-/* ─── کندفروش: موجودی ≥ ۳ برابر فروش بازه ─── */
+const top5Services = computed(() => rankedServices.value.slice(0, 5))
+const topServiceNames = computed(() => top5Services.value.map((s) => s.name))
+const topServiceRevenues = computed(() => top5Services.value.map((s) => s.revenue))
+
+/* ─── کندفروش ─── */
 const slowMovers = computed(() => {
     const stockMap = props.stock || {}
     return props.products
-        .map(p => {
-            const stock = stockMap[p.item_id] ?? p.stock ?? 0
-            return { ...p, stock }
-        })
-        .filter(p => p.stock > 0 && p.qty > 0 && p.stock >= p.qty * 3)
-        .map(p => ({
+        .map((p) => ({ ...p, stock: stockMap[p.item_id] ?? p.stock ?? 0 }))
+        .filter((p) => p.stock > 0 && p.qty > 0 && p.stock >= p.qty * 3)
+        .map((p) => ({
             ...p,
             ratio: p.qty > 0 ? (p.stock / p.qty).toFixed(1) : '—',
             frozen: (p.stock || 0) * (p.avg_sell || 0),
@@ -457,88 +364,83 @@ const slowMovers = computed(() => {
         .sort((a, b) => b.frozen - a.frozen)
 })
 
-/* ─── تفکیک دسته ─── */
+/* ─── دسته‌ها ─── */
 const categoryRows = computed(() => {
     const map = {}
     const totalRevenue = props.products.reduce((s, p) => s + (p.revenue || 0), 0) || 1
-    props.products.forEach(p => {
+    props.products.forEach((p) => {
         const cat = p.category || 'بدون دسته'
         if (!map[cat]) map[cat] = { name: cat, count: 0, qty: 0, revenue: 0, cogs: 0, profit: 0 }
         map[cat].count++
-        map[cat].qty     += p.qty || 0
+        map[cat].qty += p.qty || 0
         map[cat].revenue += p.revenue || 0
-        map[cat].cogs    += p.cogs || 0
-        map[cat].profit  += p.profit || 0
+        map[cat].cogs += p.cogs || 0
+        map[cat].profit += p.profit || 0
     })
     return Object.values(map)
-        .map(c => ({
+        .map((c) => ({
             ...c,
             revenue: Math.round(c.revenue),
-            profit:  Math.round(c.profit),
-            margin:  c.revenue > 0 ? Math.round(c.profit / c.revenue * 100) : 0,
-            share:   Math.round(c.revenue / totalRevenue * 100),
+            profit: Math.round(c.profit),
+            margin: c.revenue > 0 ? Math.round(c.profit / c.revenue * 100) : 0,
+            share: Math.round(c.revenue / totalRevenue * 100),
         }))
         .sort((a, b) => b.revenue - a.revenue)
 })
 
-const categoryLabels   = computed(() => categoryRows.value.map(c => c.name))
-const categoryRevenues = computed(() => categoryRows.value.map(c => c.revenue))
-const categoryProfits  = computed(() => categoryRows.value.map(c => c.profit))
+const categoryLabels = computed(() => categoryRows.value.map((c) => c.name))
+const categoryRevenues = computed(() => categoryRows.value.map((c) => c.revenue))
+const categoryProfits = computed(() => categoryRows.value.map((c) => c.profit))
 
 function medalClass(i) {
-    return i === 0 ? 'rk-gold' : i === 1 ? 'rk-silver' : i === 2 ? 'rk-bronze' : ''
+    return i === 0 ? 'rank-gold' : i === 1 ? 'rank-silver' : i === 2 ? 'rank-bronze' : ''
 }
 </script>
 
 <style scoped>
-.gs-toolbar  { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
-.gs-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: .75rem; margin-bottom: 1rem; }
-.gs-num      { font-size: 1.25rem; font-weight: 800; color: var(--gs-gold); }
-.rk-small    { font-size: 1rem; }
-.gs-grid     { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
-@media (max-width: 900px) { .gs-grid { grid-template-columns: 1fr; } }
-.gs-card-title { margin: 0 0 .75rem; font-size: .95rem; }
-.gs-hint       { font-size: .78rem; color: var(--gs-text-secondary); margin: 0 0 .75rem; }
-.gs-table-wrap { overflow-x: auto; }
-.strong { font-weight: 700; }
-.gold   { color: var(--gs-gold); font-weight: 700; }
-.ok     { color: var(--gs-success); font-weight: 700; }
-.bad    { color: var(--gs-error); font-weight: 700; }
-.empty  { text-align: center; color: var(--gs-text-muted); padding: 1.2rem !important; }
+.mb { margin-bottom: 1rem; }
 
-/* ─── نوار سورت ─── */
 .rk-toolbar {
-    display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;
-    margin-bottom: 1rem; padding: .75rem 1rem;
-    background: var(--gs-bg-elevated);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 1rem 0;
+    padding: 0.8rem 1rem;
+    background: var(--gs-bg-card);
     border: 1px solid var(--gs-border);
-    border-radius: 10px;
+    border-radius: var(--gs-radius);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
-.rk-toolbar-group { display: flex; flex-direction: column; gap: .3rem; }
-.rk-label { font-size: .72rem; color: var(--gs-text-muted); }
-.rk-select { min-width: 170px; cursor: pointer; }
-.rk-limit { min-width: 70px; }
+.rk-field { display: flex; flex-direction: column; gap: 0.3rem; }
+.rk-field .gs-select { min-width: 180px; }
+.rk-label { font-size: 0.7rem; color: var(--gs-text-muted); font-weight: 600; }
 
-/* ─── جدول مدال‌دار ─── */
-.rk-rank {
-    font-weight: 800; font-size: .9rem; width: 40px; text-align: center;
+.gs-tabs { margin-bottom: 1rem; }
+
+.rank-cell {
+    font-weight: 800;
+    font-size: 0.9rem;
+    width: 46px;
+    text-align: center;
     color: var(--gs-gold);
 }
-.rk-gold   { background: rgba(201, 168, 76, .12); }
-.rk-silver { background: rgba(192, 192, 192, .08); }
-.rk-bronze { background: rgba(205, 127, 50, .07); }
+.rank-gold { background: rgba(227, 189, 92, 0.12); }
+.rank-silver { background: rgba(192, 192, 192, 0.08); }
+.rank-bronze { background: rgba(205, 127, 50, 0.08); }
 
-/* ─── نوار سهم ─── */
-.rk-bar {
-    display: flex; align-items: center; gap: .4rem; min-width: 110px;
+.share-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 110px;
 }
-.rk-bar-fill {
+.share-fill {
     height: 6px;
-    background: linear-gradient(90deg, var(--gs-gold-dark), var(--gs-gold-light));
-    border-radius: 4px; min-width: 4px;
-    transition: width .3s ease;
+    border-radius: 4px;
+    background: var(--gs-gold-grad);
+    min-width: 4px;
+    transition: width 0.4s var(--gs-ease-spring);
 }
-.rk-bar span { font-size: .75rem; color: var(--gs-text-muted); white-space: nowrap; }
-
-.gs-date { width: 155px; }
+.share-bar span { font-size: 0.72rem; color: var(--gs-text-muted); white-space: nowrap; }
 </style>
