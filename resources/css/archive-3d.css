@@ -1,0 +1,414 @@
+/* ==========================================================================
+   GameStore · Archive 3D Engine
+   --------------------------------------------------------------------------
+   مسیر فایل:  resources/css/archive-3d.css
+   نحوهٔ فعال‌سازی: در فایل resources/css/app.css بلافاصله بعد از خط
+   @import "tailwindcss";  این خط را اضافه کنید:
+
+       @import "./archive-3d.css";
+
+   نکته: طبق استاندارد CSS تمام @import ها باید بالای فایل باشند.
+   این فایل هیچ توکنی را بازنویسی نمی‌کند و فقط روی متغیرهای --gs-* موجود
+   شما سوار می‌شود، پس با تم روشن/تاریک پروژه ۱۰۰٪ سازگار است.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1) توکن‌های اختصاصی لایهٔ سه‌بعدی
+   -------------------------------------------------------------------------- */
+:root {
+  --a3d-perspective: 1400px;
+  --a3d-tilt-x: 0deg;
+  --a3d-tilt-y: 0deg;
+  --a3d-pointer-x: 50%;
+  --a3d-pointer-y: 50%;
+  --a3d-lift: 0px;
+  --a3d-scale: 1;
+  --a3d-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --a3d-glass: color-mix(in srgb, var(--gs-bg-card-strong) 72%, transparent);
+}
+
+/* --------------------------------------------------------------------------
+   2) صحنهٔ سه‌بعدی (Perspective Stage)
+   -------------------------------------------------------------------------- */
+.a3d-stage {
+  perspective: var(--a3d-perspective);
+  perspective-origin: 50% 40%;
+}
+
+.a3d-layer {
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* عمق دادن به فرزندان — روی هر المنت داخل کارت */
+.a3d-z-10 { transform: translateZ(10px); }
+.a3d-z-20 { transform: translateZ(20px); }
+.a3d-z-30 { transform: translateZ(30px); }
+.a3d-z-45 { transform: translateZ(45px); }
+.a3d-z-60 { transform: translateZ(60px); }
+.a3d-z-80 { transform: translateZ(80px); }
+
+/* --------------------------------------------------------------------------
+   3) کارت تیلت‌شونده (هستهٔ افکت v-tilt)
+   -------------------------------------------------------------------------- */
+.a3d-tilt {
+  position: relative;
+  transform-style: preserve-3d;
+  transform:
+    perspective(var(--a3d-perspective))
+    rotateX(var(--a3d-tilt-x))
+    rotateY(var(--a3d-tilt-y))
+    translateZ(var(--a3d-lift))
+    scale(var(--a3d-scale));
+  transition: transform 0.55s var(--a3d-spring), box-shadow 0.45s ease;
+  will-change: transform;
+}
+
+.a3d-tilt[data-tilting="true"] {
+  transition: transform 0.08s linear, box-shadow 0.45s ease;
+}
+
+/* درخشش دنبال‌کنندهٔ نشانگر (Glare / Specular highlight) */
+.a3d-glare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  background: radial-gradient(
+    420px circle at var(--a3d-pointer-x) var(--a3d-pointer-y),
+    color-mix(in srgb, var(--gs-gold-light) 26%, transparent),
+    transparent 62%
+  );
+  mix-blend-mode: soft-light;
+  z-index: 3;
+}
+
+.a3d-tilt:hover .a3d-glare,
+.a3d-tilt:focus-within .a3d-glare { opacity: 1; }
+
+/* --------------------------------------------------------------------------
+   4) قاب هولوگرافیک متحرک
+   -------------------------------------------------------------------------- */
+.a3d-holo {
+  position: relative;
+  isolation: isolate;
+  border-radius: var(--gs-radius-lg);
+  background: var(--a3d-glass);
+  border: 1px solid var(--gs-border);
+  backdrop-filter: blur(18px) saturate(1.35);
+  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+  box-shadow: var(--gs-shadow-sm);
+  overflow: hidden;
+}
+
+.a3d-holo::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--a3d-angle, 0deg),
+    transparent 0%,
+    color-mix(in srgb, var(--gs-gold) 70%, transparent) 12%,
+    transparent 26%,
+    transparent 55%,
+    color-mix(in srgb, var(--gs-accent) 55%, transparent) 68%,
+    transparent 84%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.a3d-holo:hover::before,
+.a3d-holo:focus-within::before {
+  opacity: 1;
+  animation: a3d-spin-border 3.2s linear infinite;
+}
+
+@property --a3d-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes a3d-spin-border {
+  to { --a3d-angle: 360deg; }
+}
+
+/* هالهٔ رنگی زیر کارت */
+.a3d-aura::after {
+  content: '';
+  position: absolute;
+  inset: 12% 8% -18% 8%;
+  border-radius: 50%;
+  background: var(--a3d-aura-color, var(--gs-gold-glow));
+  filter: blur(46px);
+  opacity: 0;
+  transform: translateZ(-60px);
+  transition: opacity 0.5s ease;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.a3d-aura:hover::after { opacity: 0.55; }
+
+/* --------------------------------------------------------------------------
+   5) پس‌زمینهٔ صحنه: کف مشبک پرسپکتیو + مه + ذرات
+   -------------------------------------------------------------------------- */
+.a3d-scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: inherit;
+}
+
+.a3d-grid-floor {
+  position: absolute;
+  left: 50%;
+  bottom: -42%;
+  width: 260%;
+  height: 118%;
+  translate: -50% 0;
+  background-image:
+    linear-gradient(to right, var(--gs-grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--gs-grid-line) 1px, transparent 1px);
+  background-size: 62px 62px;
+  transform: perspective(560px) rotateX(74deg);
+  transform-origin: 50% 100%;
+  animation: a3d-grid-scroll 9s linear infinite;
+  -webkit-mask-image: linear-gradient(to top, #000 4%, transparent 78%);
+  mask-image: linear-gradient(to top, #000 4%, transparent 78%);
+  opacity: 0.85;
+}
+
+@keyframes a3d-grid-scroll {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 0 62px, 0 62px; }
+}
+
+.a3d-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(58px);
+  opacity: 0.42;
+  will-change: transform;
+}
+
+.a3d-orb--gold   { background: radial-gradient(circle, var(--gs-gold) 0%, transparent 68%); }
+.a3d-orb--blue   { background: radial-gradient(circle, var(--gs-accent) 0%, transparent 68%); }
+.a3d-orb--violet { background: radial-gradient(circle, var(--gs-accent-3) 0%, transparent 68%); }
+
+@keyframes a3d-float-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(26px, -34px, 0) scale(1.12); }
+}
+@keyframes a3d-float-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.06); }
+  50%      { transform: translate3d(-32px, 22px, 0) scale(0.94); }
+}
+
+.a3d-float-a { animation: a3d-float-a 13s ease-in-out infinite; }
+.a3d-float-b { animation: a3d-float-b 17s ease-in-out infinite; }
+
+/* ذرات شناور */
+.a3d-dust {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: var(--gs-gold-light);
+  opacity: 0;
+  animation: a3d-dust-rise linear infinite;
+}
+
+@keyframes a3d-dust-rise {
+  0%   { opacity: 0; transform: translateY(0) scale(0.6); }
+  12%  { opacity: 0.9; }
+  88%  { opacity: 0.55; }
+  100% { opacity: 0; transform: translateY(-260px) scale(1.25); }
+}
+
+/* --------------------------------------------------------------------------
+   6) مکعب سه‌بعدی «هستهٔ بایگانی» (واقعی، ۶ وجه)
+   -------------------------------------------------------------------------- */
+.a3d-cube {
+  position: relative;
+  width: var(--cube-size, 74px);
+  height: var(--cube-size, 74px);
+  transform-style: preserve-3d;
+  animation: a3d-cube-spin 16s linear infinite;
+}
+
+.a3d-cube__face {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--gs-border-hover);
+  background: color-mix(in srgb, var(--gs-gold) 8%, transparent);
+  box-shadow: inset 0 0 24px color-mix(in srgb, var(--gs-gold) 16%, transparent);
+  display: grid;
+  place-items: center;
+  font-size: 1.25rem;
+  color: var(--gs-gold);
+  backdrop-filter: blur(2px);
+}
+
+.a3d-cube__face--front  { transform: translateZ(calc(var(--cube-size, 74px) / 2)); }
+.a3d-cube__face--back   { transform: rotateY(180deg) translateZ(calc(var(--cube-size, 74px) / 2)); }
+.a3d-cube__face--right  { transform: rotateY(90deg)  translateZ(calc(var(--cube-size, 74px) / 2)); }
+.a3d-cube__face--left   { transform: rotateY(-90deg) translateZ(calc(var(--cube-size, 74px) / 2)); }
+.a3d-cube__face--top    { transform: rotateX(90deg)  translateZ(calc(var(--cube-size, 74px) / 2)); }
+.a3d-cube__face--bottom { transform: rotateX(-90deg) translateZ(calc(var(--cube-size, 74px) / 2)); }
+
+@keyframes a3d-cube-spin {
+  0%   { transform: rotateX(-22deg) rotateY(0deg); }
+  100% { transform: rotateX(-22deg) rotateY(360deg); }
+}
+
+/* --------------------------------------------------------------------------
+   7) ورود صحنه‌ای المنت‌ها (Scroll / Mount Reveal)
+   -------------------------------------------------------------------------- */
+.a3d-reveal {
+  opacity: 0;
+  transform: perspective(1100px) translateY(28px) rotateX(-12deg) scale(0.97);
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--a3d-delay, 0ms);
+}
+
+.a3d-reveal.is-visible {
+  opacity: 1;
+  transform: perspective(1100px) translateY(0) rotateX(0deg) scale(1);
+}
+
+/* --------------------------------------------------------------------------
+   8) دکمهٔ سه‌بعدی با عمق فیزیکی
+   -------------------------------------------------------------------------- */
+.a3d-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.58rem 1.05rem;
+  border-radius: 12px;
+  border: 1px solid var(--gs-border);
+  background: var(--gs-bg-elevated);
+  color: var(--gs-text-primary);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transition: transform 0.22s var(--a3d-spring), box-shadow 0.22s ease,
+              background 0.22s ease, border-color 0.22s ease, color 0.22s ease;
+  box-shadow: 0 4px 0 -1px color-mix(in srgb, var(--gs-gold-dark) 45%, transparent),
+              0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.a3d-btn:hover:not(:disabled) {
+  transform: translateY(-3px) translateZ(12px);
+  border-color: var(--gs-border-hover);
+  box-shadow: 0 7px 0 -1px color-mix(in srgb, var(--gs-gold-dark) 55%, transparent),
+              0 16px 34px rgba(0, 0, 0, 0.45);
+}
+
+.a3d-btn:active:not(:disabled) {
+  transform: translateY(1px) translateZ(0);
+  box-shadow: 0 2px 0 -1px color-mix(in srgb, var(--gs-gold-dark) 45%, transparent),
+              0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.a3d-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.a3d-btn--gold {
+  background: var(--gs-gold-grad);
+  color: #14100a;
+  border-color: transparent;
+}
+
+.a3d-btn--danger {
+  background: var(--gs-error-soft);
+  color: var(--gs-error);
+  border-color: color-mix(in srgb, var(--gs-error) 32%, transparent);
+  box-shadow: 0 4px 0 -1px color-mix(in srgb, var(--gs-error) 32%, transparent),
+              0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.a3d-btn--ghost {
+  background: transparent;
+  color: var(--gs-text-secondary);
+  box-shadow: none;
+}
+
+.a3d-btn--ghost:hover:not(:disabled) {
+  background: var(--gs-gold-muted);
+  color: var(--gs-gold);
+  box-shadow: none;
+}
+
+.a3d-btn--sm { padding: 0.4rem 0.7rem; font-size: 0.72rem; border-radius: 10px; }
+
+/* --------------------------------------------------------------------------
+   9) اسکلت لودینگ درخشان
+   -------------------------------------------------------------------------- */
+.a3d-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--gs-bg-elevated);
+  border-radius: 12px;
+}
+
+.a3d-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--gs-gold) 12%, transparent),
+    transparent
+  );
+  animation: a3d-shimmer 1.5s infinite;
+}
+
+@keyframes a3d-shimmer {
+  100% { transform: translateX(-100%); }
+}
+
+/* --------------------------------------------------------------------------
+   10) احترام کامل به تنظیم کاهش حرکت سیستم‌عامل
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .a3d-grid-floor,
+  .a3d-cube,
+  .a3d-float-a,
+  .a3d-float-b,
+  .a3d-dust,
+  .a3d-skeleton::after,
+  .a3d-holo:hover::before {
+    animation: none !important;
+  }
+
+  .a3d-tilt {
+    transform: none !important;
+    transition: box-shadow 0.3s ease !important;
+  }
+
+  .a3d-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

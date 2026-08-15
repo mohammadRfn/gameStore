@@ -17,6 +17,7 @@ use App\Http\Controllers\StatsController;
 use App\Http\Controllers\StockMovementController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ArchiveController;
+use Inertia\Inertia;
 
 // ============================================================
 // Auth
@@ -104,7 +105,10 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('archives')->name('archives.')->group(function () {
         Route::get('/', [ArchiveController::class, 'index'])->name('index');
+        Route::get('panel', fn() => Inertia::render('Archive/Index'))
+            ->name('panel');
 
+        Route::get('/', [ArchiveController::class, 'index'])->name('index');
         Route::get('export/invoices', [ArchiveController::class, 'exportInvoices'])->name('export.invoices');
         Route::get('export/requests', [ArchiveController::class, 'exportRequests'])->name('export.requests');
         Route::get('export/service-jobs', [ArchiveController::class, 'exportServiceJobs'])->name('export.service-jobs');

@@ -105,9 +105,10 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { Link, usePage } from '@inertiajs/vue3'
-import { Sun, Moon } from 'lucide-vue-next'
+import { Link, router, usePage } from '@inertiajs/vue3'
+import { Sun, Moon, icons } from 'lucide-vue-next'
 import { useTheme } from '@/Composables/useTheme'
+import { label } from 'three/tsl'
 
 const page = usePage()
 
@@ -142,6 +143,7 @@ const quickActions = [
     { label: 'انبار', icon: '📦', route: 'items.index' },
     { label: 'گزارشات', icon: '📊', route: 'stats.daily' },
     { label: 'سرویس', icon: '🔧', route: 'service-jobs.index' },
+    { label: 'آرشیو', icon: '🧾', route: 'archives.panel'},
 ]
 
 // Sidebar Groups
@@ -181,6 +183,12 @@ const sidebarGroups = [
         items: [
             { label: 'روزانه', icon: '📅', route: 'stats.daily' },
             { label: 'ماهانه', icon: '📆', route: 'stats.monthly' },
+        ],
+    },
+    {
+        title: 'بایگانی',
+        items: [
+            { label: 'آرشیو اسناد', icon: '🗄', route: 'archives.panel' },
         ],
     },
 ]
