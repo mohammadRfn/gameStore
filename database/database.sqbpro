@@ -1,1 +1,279 @@
-<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="database.sqlite" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="3"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="5816"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><table title="archived_records" custom_title="0" dock_id="1" table="4,16:mainarchived_records"/><dock_state state="000000ff00000000fd00000001000000020000043c000002b6fc0100000001fb000000160064006f0063006b00420072006f007700730065003101000000000000043c0000011800ffffff000002690000000000000004000000040000000800000008fc00000000"/><default_encoding codec=""/><browse_table_settings><table schema="main" name="archive_actions" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="29"/><column index="2" value="116"/><column index="3" value="76"/><column index="4" value="62"/><column index="5" value="43"/><column index="6" value="54"/><column index="7" value="46"/><column index="8" value="82"/><column index="9" value="68"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="archived_records" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="29"/><column index="2" value="76"/><column index="3" value="80"/><column index="4" value="62"/><column index="5" value="65"/><column index="6" value="97"/><column index="7" value="77"/><column index="8" value="98"/><column index="9" value="31"/><column index="10" value="98"/><column index="11" value="84"/><column index="12" value="50"/><column index="13" value="112"/><column index="14" value="116"/><column index="15" value="89"/><column index="16" value="92"/><column index="17" value="90"/><column index="18" value="76"/><column index="19" value="74"/><column index="20" value="152"/><column index="21" value="91"/><column index="22" value="46"/><column index="23" value="92"/><column index="24" value="68"/><column index="25" value="68"/><column index="26" value="72"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table></browse_table_settings></tab_browse><tab_sql><sql name="SQL 1*">ALTER TABLE order_items ADD COLUMN cost_price NUMERIC NOT NULL DEFAULT 0;</sql><current_tab id="0"/></tab_sql></sqlb_project>
+<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="database.sqlite" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="1"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="13391"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><table title="archive_actions" custom_title="0" dock_id="1" table="4,15:mainarchive_actions"/><dock_state state="000000ff00000000fd00000001000000020000043c000002b6fc0100000001fb000000160064006f0063006b00420072006f007700730065003101000000000000043c0000011800ffffff000002690000000000000004000000040000000800000008fc00000000"/><default_encoding codec=""/><browse_table_settings><table schema="main" name="archive_actions" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="29"/><column index="2" value="116"/><column index="3" value="93"/><column index="4" value="62"/><column index="5" value="54"/><column index="6" value="54"/><column index="7" value="195"/><column index="8" value="156"/><column index="9" value="156"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="backup_files" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="29"/><column index="2" value="94"/><column index="3" value="67"/><column index="4" value="74"/><column index="5" value="60"/><column index="6" value="87"/><column index="7" value="31"/><column index="8" value="82"/><column index="9" value="83"/><column index="10" value="88"/><column index="11" value="88"/><column index="12" value="63"/><column index="13" value="71"/><column index="14" value="67"/><column index="15" value="49"/><column index="16" value="58"/><column index="17" value="43"/><column index="18" value="91"/><column index="19" value="68"/><column index="20" value="72"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="backup_run_events" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="29"/><column index="2" value="94"/><column index="3" value="35"/><column index="4" value="35"/><column index="5" value="57"/><column index="6" value="81"/><column index="7" value="68"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table></browse_table_settings></tab_browse><tab_sql><sql name="SQL 1*">-- =====================================================================
+--  Game Store | Backup &amp; Restore Module  (SQLite / Laravel 12 / NativePHP)
+--  فایل: database/sql/2026_01_20_backup_module.sqlite.sql
+--
+--  اجرا:
+--     sqlite3 database/database.sqlite &lt; database/sql/2026_01_20_backup_module.sqlite.sql
+--  یا:
+--     php artisan db:sql-file  (اگر دستور سفارشی دارید)
+--
+--  نکات طراحی:
+--   * کاملاً هماهنگ با بقیه‌ی جداول پروژه (id INTEGER PK AUTOINCREMENT،
+--     created_at/updated_at/deleted_at به‌صورت datetime متنی، FK به users/shops).
+--   * SQLite با تعریف کلید خارجی مشکلی ندارد ولی برای فعال بودن آن باید
+--     PRAGMA foreign_keys = ON در کانکشن ست شود (Laravel به‌صورت پیش‌فرض
+--     در config/database.php با foreign_key_constraints =&gt; true این کار را می‌کند).
+--   * از CHECK Constraint برای enum ها استفاده شده تا داده‌ی نامعتبر وارد نشود.
+--   * تمام JSON ها به‌صورت TEXT ذخیره می‌شوند (SQLite JSON1 روی TEXT کار می‌کند).
+--
+--  توجه: BEGIN/COMMIT از این نسخه حذف شده تا با ابزارهایی که خودشان
+--  به‌صورت خودکار تراکنش باز می‌کنند (GUI ها، artisan command ها و...)
+--  تداخل (nested transaction) پیش نیاید. اجرای دستورات پشت‌سرهم و
+--  idempotent (IF NOT EXISTS / OR IGNORE) است، پس نبود تراکنش مشکلی
+--  در یکپارچگی داده ایجاد نمی‌کند.
+-- =====================================================================
+
+PRAGMA foreign_keys = ON;
+
+-- پاک‌سازی جداول نیمه‌ساخته‌ای که ممکن است از یک اجرای ناموفق قبلی
+-- (با تعریف قدیمی و رفرنس به shops) باقی مانده باشند.
+-- اگر این جداول از قبل با داده‌ی واقعی داری، این چند خط را کامنت کن.
+DROP TABLE IF EXISTS backup_run_events;
+DROP TABLE IF EXISTS backup_files;
+DROP TABLE IF EXISTS backup_run_entities;
+DROP TABLE IF EXISTS backup_runs;
+DROP TABLE IF EXISTS backup_settings;
+
+-- ---------------------------------------------------------------------
+-- 1) backup_settings : تنظیمات ماژول بکاپ (key/value، قابل تفکیک به ازای فروشگاه)
+--    مثال کلیدها: export_root_path, import_root_path, include_media,
+--                 csv_delimiter, retention_copies, auto_backup_enabled ...
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS backup_settings (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    shop_id       INTEGER NULL,
+    &quot;key&quot;         TEXT    NOT NULL,
+    &quot;value&quot;       TEXT    NULL,
+    value_type    TEXT    NOT NULL DEFAULT 'string'
+                  CHECK (value_type IN ('string', 'integer', 'boolean', 'json', 'path')),
+    &quot;group&quot;       TEXT    NOT NULL DEFAULT 'general',
+    is_locked     INTEGER NOT NULL DEFAULT 0 CHECK (is_locked IN (0, 1)),
+    description   TEXT    NULL,
+    updated_by    INTEGER NULL REFERENCES users (id) ON UPDATE CASCADE ON DELETE SET NULL,
+    created_at    DATETIME NULL,
+    updated_at    DATETIME NULL
+);
+
+-- در SQLite مقدار NULL در UNIQUE یکتا محسوب نمی‌شود؛ با COALESCE مشکل حل می‌شود.
+CREATE UNIQUE INDEX IF NOT EXISTS backup_settings_scope_key_unique
+    ON backup_settings (COALESCE(shop_id, 0), &quot;key&quot;);
+CREATE INDEX IF NOT EXISTS backup_settings_group_index
+    ON backup_settings (&quot;group&quot;);
+
+
+-- ---------------------------------------------------------------------
+-- 2) backup_runs : هر بار اجرای بکاپ/بازیابی (Export یا Import)
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS backup_runs (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    uuid              TEXT    NOT NULL,
+    shop_id           INTEGER NULL,
+
+    direction         TEXT    NOT NULL CHECK (direction IN ('export', 'import')),
+    -- full = دیتابیس + تصاویر ، database = فقط CSV ، media = فقط تصاویر
+    mode              TEXT    NOT NULL DEFAULT 'full'
+                      CHECK (mode IN ('full', 'database', 'media')),
+    -- استراتژی درج هنگام ایمپورت
+    strategy          TEXT    NULL
+                      CHECK (strategy IN ('merge', 'replace', 'skip_existing', 'fail_on_conflict')),
+    status            TEXT    NOT NULL DEFAULT 'pending'
+                      CHECK (status IN ('pending', 'running', 'completed', 'partial', 'failed', 'canceled')),
+    is_dry_run        INTEGER NOT NULL DEFAULT 0 CHECK (is_dry_run IN (0, 1)),
+    is_auto           INTEGER NOT NULL DEFAULT 0 CHECK (is_auto IN (0, 1)),
+    is_safety_copy    INTEGER NOT NULL DEFAULT 0 CHECK (is_safety_copy IN (0, 1)),
+
+    label             TEXT    NULL,               -- نام قابل‌فهم برای کاربر
+    format            TEXT    NOT NULL DEFAULT 'csv' CHECK (format IN ('csv')),
+    root_path         TEXT    NULL,               -- دایرکتوری انتخابی کاربر روی سیستم
+    run_path          TEXT    NULL,               -- دایرکتوری ساخته‌شده‌ی همین اجرا
+    manifest_path     TEXT    NULL,
+    archive_path      TEXT    NULL,               -- در صورت zip شدن خروجی
+
+    options_json      TEXT    NULL,               -- گزینه‌های اجرا
+    filters_json      TEXT    NULL,               -- فیلترها (بازه تاریخ، فروشگاه، موجودیت‌ها)
+    summary_json      TEXT    NULL,               -- خلاصه‌ی نهایی برای نمایش سریع
+    entities_json     TEXT    NULL,               -- لیست موجودیت‌های انتخاب‌شده
+
+    total_entities    INTEGER NOT NULL DEFAULT 0,
+    total_rows        INTEGER NOT NULL DEFAULT 0,
+    inserted_rows     INTEGER NOT NULL DEFAULT 0,
+    updated_rows      INTEGER NOT NULL DEFAULT 0,
+    skipped_rows      INTEGER NOT NULL DEFAULT 0,
+    failed_rows       INTEGER NOT NULL DEFAULT 0,
+    total_files       INTEGER NOT NULL DEFAULT 0,
+    missing_files     INTEGER NOT NULL DEFAULT 0,
+    total_bytes       INTEGER NOT NULL DEFAULT 0,
+
+    checksum          TEXT    NULL,               -- sha256 مانیفست/کل خروجی
+    app_version       TEXT    NULL,
+    schema_version    TEXT    NULL,               -- آخرین migration اعمال‌شده
+    db_driver         TEXT    NULL,
+    hostname          TEXT    NULL,
+    os_family         TEXT    NULL,
+
+    started_at        DATETIME NULL,
+    finished_at       DATETIME NULL,
+    duration_ms       INTEGER  NULL,
+
+    error_code        TEXT    NULL,
+    error_message     TEXT    NULL,
+    error_trace       TEXT    NULL,
+
+    created_by        INTEGER NULL REFERENCES users (id) ON UPDATE CASCADE ON DELETE SET NULL,
+    created_at        DATETIME NULL,
+    updated_at        DATETIME NULL,
+    deleted_at        DATETIME NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS backup_runs_uuid_unique       ON backup_runs (uuid);
+CREATE INDEX IF NOT EXISTS backup_runs_direction_status_index   ON backup_runs (direction, status);
+CREATE INDEX IF NOT EXISTS backup_runs_shop_created_index       ON backup_runs (shop_id, created_at);
+CREATE INDEX IF NOT EXISTS backup_runs_started_at_index         ON backup_runs (started_at);
+CREATE INDEX IF NOT EXISTS backup_runs_deleted_at_index         ON backup_runs (deleted_at);
+
+
+-- ---------------------------------------------------------------------
+-- 3) backup_run_entities : جزئیات هر جدول/موجودیت در یک اجرا
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS backup_run_entities (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    backup_run_id   INTEGER NOT NULL REFERENCES backup_runs (id) ON UPDATE CASCADE ON DELETE CASCADE,
+
+    entity_key      TEXT    NOT NULL,             -- items, invoices, ...
+    table_name      TEXT    NOT NULL,
+    group_name      TEXT    NULL,                 -- 20_sales, 30_services, ...
+    display_name    TEXT    NULL,                 -- نام فارسی برای گزارش
+
+    relative_path   TEXT    NULL,                 -- database/20_sales/invoices.csv
+    absolute_path   TEXT    NULL,
+
+    status          TEXT    NOT NULL DEFAULT 'pending'
+                    CHECK (status IN ('pending', 'running', 'completed', 'partial', 'failed', 'skipped')),
+
+    row_count       INTEGER NOT NULL DEFAULT 0,   -- تعداد سطرهای فایل
+    processed_rows  INTEGER NOT NULL DEFAULT 0,
+    inserted_rows   INTEGER NOT NULL DEFAULT 0,
+    updated_rows    INTEGER NOT NULL DEFAULT 0,
+    skipped_rows    INTEGER NOT NULL DEFAULT 0,
+    failed_rows     INTEGER NOT NULL DEFAULT 0,
+    bytes           INTEGER NOT NULL DEFAULT 0,
+
+    columns_json    TEXT    NULL,                 -- ستون‌های واقعی فایل
+    checksum        TEXT    NULL,                 -- sha256 فایل CSV
+    error_message   TEXT    NULL,
+    meta_json       TEXT    NULL,
+
+    started_at      DATETIME NULL,
+    finished_at     DATETIME NULL,
+    duration_ms     INTEGER  NULL,
+    created_at      DATETIME NULL,
+    updated_at      DATETIME NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS backup_run_entities_run_entity_unique
+    ON backup_run_entities (backup_run_id, entity_key);
+CREATE INDEX IF NOT EXISTS backup_run_entities_status_index
+    ON backup_run_entities (status);
+
+
+-- ---------------------------------------------------------------------
+-- 4) backup_files : مانیفست فایل‌های تصویری (خروجی یا ورودی)
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS backup_files (
+    id              INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    backup_run_id   INTEGER NOT NULL REFERENCES backup_runs (id) ON UPDATE CASCADE ON DELETE CASCADE,
+
+    entity_key      TEXT    NULL,                 -- items / order_items / invoices
+    model_type      TEXT    NULL,                 -- App\Models\Item
+    model_id        INTEGER NULL,
+    column_name     TEXT    NULL,                 -- image_path / receipt_image_path
+
+    disk            TEXT    NOT NULL DEFAULT 'public',
+    storage_path    TEXT    NULL,                 -- مسیر داخل دیسک: images/items/x.jpg
+    relative_path   TEXT    NOT NULL,             -- media/items/12/x.jpg
+    absolute_path   TEXT    NULL,
+
+    original_name   TEXT    NULL,
+    extension       TEXT    NULL,
+    mime_type       TEXT    NULL,
+    size_bytes      INTEGER NOT NULL DEFAULT 0,
+    sha256          TEXT    NULL,
+
+    direction       TEXT    NOT NULL DEFAULT 'export' CHECK (direction IN ('export', 'import')),
+    status          TEXT    NOT NULL DEFAULT 'copied'
+                    CHECK (status IN ('copied', 'skipped', 'duplicated', 'missing', 'failed', 'relinked')),
+    error_message   TEXT    NULL,
+
+    created_at      DATETIME NULL,
+    updated_at      DATETIME NULL
+);
+
+CREATE INDEX IF NOT EXISTS backup_files_run_status_index   ON backup_files (backup_run_id, status);
+CREATE INDEX IF NOT EXISTS backup_files_sha256_index       ON backup_files (sha256);
+CREATE INDEX IF NOT EXISTS backup_files_model_index        ON backup_files (model_type, model_id);
+CREATE INDEX IF NOT EXISTS backup_files_storage_path_index ON backup_files (storage_path);
+
+
+-- ---------------------------------------------------------------------
+-- 5) backup_run_events : لاگ ساختاریافته‌ی هر اجرا (Audit Trail)
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS backup_run_events (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    backup_run_id   INTEGER NOT NULL REFERENCES backup_runs (id) ON UPDATE CASCADE ON DELETE CASCADE,
+    level           TEXT    NOT NULL DEFAULT 'info'
+                    CHECK (level IN ('debug', 'info', 'warning', 'error', 'critical')),
+    code            TEXT    NULL,                 -- entity.started / file.missing / ...
+    message         TEXT    NOT NULL,
+    context_json    TEXT    NULL,
+    created_at      DATETIME NULL
+);
+
+CREATE INDEX IF NOT EXISTS backup_run_events_run_level_index ON backup_run_events (backup_run_id, level);
+CREATE INDEX IF NOT EXISTS backup_run_events_created_index   ON backup_run_events (created_at);
+
+
+-- ---------------------------------------------------------------------
+-- 6) مقادیر پیش‌فرض تنظیمات (idempotent)
+-- ---------------------------------------------------------------------
+INSERT OR IGNORE INTO backup_settings (shop_id, &quot;key&quot;, &quot;value&quot;, value_type, &quot;group&quot;, description, created_at, updated_at)
+VALUES
+ (NULL, 'export_root_path',      NULL,        'path',    'paths',    'دایرکتوری پیش‌فرض ذخیره خروجی روی سیستم کاربر', datetime('now'), datetime('now')),
+ (NULL, 'import_root_path',      NULL,        'path',    'paths',    'دایرکتوری پیش‌فرض خواندن فایل‌های ورودی',        datetime('now'), datetime('now')),
+ (NULL, 'include_media',         '1',         'boolean', 'export',   'کپی تصاویر همراه خروجی',                        datetime('now'), datetime('now')),
+ (NULL, 'include_soft_deleted',  '1',         'boolean', 'export',   'شامل کردن رکوردهای soft-delete شده',            datetime('now'), datetime('now')),
+ (NULL, 'csv_delimiter',         ',',         'string',  'csv',      'جداکننده ستون‌های CSV',                          datetime('now'), datetime('now')),
+ (NULL, 'csv_enclosure',         '&quot;',         'string',  'csv',      'کاراکتر محصورکننده',                             datetime('now'), datetime('now')),
+ (NULL, 'csv_null_marker',       '\N',        'string',  'csv',      'نشانگر مقدار NULL برای تفکیک از رشته خالی',      datetime('now'), datetime('now')),
+ (NULL, 'csv_bom',               '1',         'boolean', 'csv',      'افزودن BOM برای نمایش صحیح فارسی در Excel',      datetime('now'), datetime('now')),
+ (NULL, 'chunk_size',            '1000',      'integer', 'export',   'اندازه chunk خواندن رکوردها',                    datetime('now'), datetime('now')),
+ (NULL, 'retention_copies',      '10',        'integer', 'retention','تعداد نسخه‌های نگهداری‌شده در پوشه خروجی',        datetime('now'), datetime('now')),
+ (NULL, 'auto_safety_backup',    '1',         'boolean', 'import',   'گرفتن بکاپ ایمنی خودکار قبل از هر ایمپورت',      datetime('now'), datetime('now')),
+ (NULL, 'default_import_strategy','merge',    'string',  'import',   'استراتژی پیش‌فرض ایمپورت',                       datetime('now'), datetime('now')),
+ (NULL, 'verify_checksums',      '1',         'boolean', 'import',   'اعتبارسنجی sha256 فایل‌ها هنگام ایمپورت',        datetime('now'), datetime('now'));
+
+PRAGMA optimize;
+
+-- =====================================================================
+-- کوئری‌های کاربردی گزارش‌گیری
+-- =====================================================================
+-- آخرین وضعیت اجراها:
+-- SELECT id, uuid, direction, mode, status, total_rows, total_files,
+--        ROUND(total_bytes / 1048576.0, 2) AS mb, duration_ms, run_path, started_at
+-- FROM backup_runs WHERE deleted_at IS NULL ORDER BY id DESC LIMIT 20;
+--
+-- جزئیات یک اجرا:
+-- SELECT entity_key, status, row_count, inserted_rows, updated_rows, skipped_rows, failed_rows
+-- FROM backup_run_entities WHERE backup_run_id = ? ORDER BY id;
+--
+-- فایل‌های گم‌شده:
+-- SELECT entity_key, storage_path FROM backup_files WHERE backup_run_id = ? AND status = 'missing';
+--
+-- آخرین بکاپ موفق:
+-- SELECT * FROM backup_runs WHERE direction='export' AND status='completed'
+--   AND deleted_at IS NULL ORDER BY finished_at DESC LIMIT 1;
+--
+-- حذف نسخه‌های قدیمی از دیتابیس (فایل‌ها توسط سرویس retention پاک می‌شوند):
+-- DELETE FROM backup_runs WHERE id IN (
+--   SELECT id FROM backup_runs WHERE direction='export' ORDER BY id DESC LIMIT -1 OFFSET 50
+-- );
+-- =====================================================================</sql><current_tab id="0"/></tab_sql></sqlb_project>

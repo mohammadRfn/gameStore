@@ -18,10 +18,23 @@ use App\Http\Controllers\StockMovementController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ArchiveController;
 use Inertia\Inertia;
+use App\Http\Controllers\BackupController;
 
 // ============================================================
 // Auth
 // ============================================================
+
+/*
+|--------------------------------------------------------------------------
+|  مسیرهای ماژول پشتیبان‌گیری  —  این بلاک را داخل routes/web.php
+|  و درون گروه middleware('auth') موجود پروژه اضافه کنید.
+|--------------------------------------------------------------------------
+|  use App\Http\Controllers\BackupController;
+*/
+
+
+
+
 Route::middleware('guest')->group(function () {
     Route::get('login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('login', [AuthController::class, 'login'])->name('login.store');
@@ -141,7 +154,39 @@ Route::middleware('auth')->group(function () {
             ->whereNumber('archivedRecordId')
             ->name('destroy');
     });
+    Route::prefix('backups')->name('backups.')->group(function () {
 
+        // ---- داشبورد و متادیتا -------------------------------------------------
+        Route::get('panel', fn() => Inertia::render('Backup/Index'))->name('panel');
+        Route::get('overview', [BackupController::class, 'overview'])->name('overview');
+        Route::get('entities', [BackupController::class, 'entities'])->name('entities');
+
+        // ---- بخش خروجی (Export) ------------------------------------------------
+        Route::prefix('export')->name('export.')->group(function () {
+            Route::post('validate-path', [BackupController::class, 'validateDestination'])->name('validate-path');
+            Route::post('/', [BackupController::class, 'export'])->name('run');
+            Route::post('database', [BackupController::class, 'exportDatabase'])->name('database');
+            Route::post('media', [BackupController::class, 'exportMedia'])->name('media');
+            Route::get('entity/{entityKey}.csv', [BackupController::class, 'downloadEntityCsv'])->name('entity-csv');
+        });
+
+        // ---- بخش ورودی (Import) ------------------------------------------------
+        Route::prefix('import')->name('import.')->group(function () {
+            Route::post('inspect', [BackupController::class, 'inspect'])->name('inspect');
+            Route::post('dry-run', [BackupController::class, 'dryRun'])->name('dry-run');
+            Route::post('/', [BackupController::class, 'import'])->name('run');
+            Route::post('upload', [BackupController::class, 'upload'])->name('upload');
+        });
+
+        // ---- تاریخچه -----------------------------------------------------------
+        Route::get('/', [BackupController::class, 'index'])->name('index');
+        Route::get('settings', [BackupController::class, 'settings'])->name('settings.show');
+        Route::put('settings', [BackupController::class, 'updateSettings'])->name('settings.update');
+        Route::get('{runId}', [BackupController::class, 'show'])->whereNumber('runId')->name('show');
+        Route::get('{runId}/files', [BackupController::class, 'files'])->whereNumber('runId')->name('files');
+        Route::get('{runId}/log', [BackupController::class, 'downloadLog'])->whereNumber('runId')->name('log');
+        Route::delete('{runId}', [BackupController::class, 'destroy'])->whereNumber('runId')->name('destroy');
+    });
     // Monthly Sales
     Route::resource('monthly-sales', MonthlySaleController::class)->only(['index', 'store']);
 

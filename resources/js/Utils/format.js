@@ -33,15 +33,20 @@ export function compactMoney(n) {
 }
 
 function trimNum(v) {
-    const s = v.toFixed(v >= 100 ? 0 : v >= 10 ? 1 : 1)
-    const cleaned = parseFloat(s)
-    return toFaDigits(cleaned.toLocaleString('en-US', { maximumFractionDigits: 1 }))
+    const s = v.toFixed(v >= 100 ? 0 : v >= 10 ? 1 : 1);
+    const cleaned = parseFloat(s);
+    return toFaDigits(
+        cleaned.toLocaleString("en-US", { maximumFractionDigits: 1 }),
+    );
 }
 
 /** درصد با ارقام فارسی */
 export function percent(n) {
-    const v = Number(n || 0)
-    return toFaDigits(v.toLocaleString('en-US', { maximumFractionDigits: 1 })) + '٪'
+    const v = Number(n || 0);
+    return (
+        toFaDigits(v.toLocaleString("en-US", { maximumFractionDigits: 1 })) +
+        "٪"
+    );
 }
 
 const JALALI_MONTHS = [
@@ -61,31 +66,27 @@ const JALALI_MONTHS = [
 
 /** تبدیل تاریخ میلادی ISO (YYYY-MM-DD) به جلالی '۱۴۰۳/۰۵/۲۱' */
 export function jalali(iso) {
-    if (!iso) return "";
-    const [y, m, d] = String(iso).split("-").map(Number);
-    if (!y || !m || !d) return "";
-    const j = toJalaali(y, m, d);
-    return fa(j.jy) + "/" + pad(j.jm) + "/" + pad(j.jd);
+    if (!iso) return ''
+    const [y, m, d] = String(iso).split('-').map(Number)
+    if (!y || !m || !d) return ''
+    const j = toJalaali(y, m, d)
+    return toFaDigits(String(j.jy)) + '/' + pad(j.jm) + '/' + pad(j.jd)
 }
-
 /** تبدیل تاریخ میلادی به جلالی طولانی '۲۱ مرداد ۱۴۰۳' */
 export function jalaliLong(iso) {
-    if (!iso) return "";
-    const [y, m, d] = String(iso).split("-").map(Number);
-    if (!y || !m || !d) return "";
-    const j = toJalaali(y, m, d);
-    return fa(j.jd) + " " + JALALI_MONTHS[j.jm - 1] + " " + fa(j.jy);
+    if (!iso) return ''
+    const [y, m, d] = String(iso).split('-').map(Number)
+    if (!y || !m || !d) return ''
+    const j = toJalaali(y, m, d)
+    return toFaDigits(String(j.jd)) + ' ' + JALALI_MONTHS[j.jm - 1] + ' ' + toFaDigits(String(j.jy))
 }
 
 function pad(n) {
-    return FA_DIGITS[n]
-        ? n
-              .toString()
-              .split("")
-              .map((d) => FA_DIGITS[d] || d)
-              .join("")
-              .padStart(2, "۰")
-        : String(n);
+    return String(n)
+        .padStart(2, "0")
+        .split("")
+        .map((d) => FA_DIGITS[d])
+        .join("");
 }
 
 /** برچسب بازهٔ انتخابی */
