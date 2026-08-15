@@ -16,6 +16,7 @@ use App\Http\Controllers\ServiceTypeController;
 use App\Http\Controllers\StatsController;
 use App\Http\Controllers\StockMovementController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ArchiveController;
 
 // ============================================================
 // Auth
@@ -99,6 +100,43 @@ Route::middleware('auth')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('invoices/{invoiceId}/adjustments', [InvoiceAdjustmentController::class, 'store'])->name('invoice-adjustments.store');
     Route::delete('invoices/{invoiceId}/adjustments/{adjustmentId}', [InvoiceAdjustmentController::class, 'destroy'])->name('invoice-adjustments.destroy');
+
+
+    Route::prefix('archives')->name('archives.')->group(function () {
+        Route::get('/', [ArchiveController::class, 'index'])->name('index');
+
+        Route::get('export/invoices', [ArchiveController::class, 'exportInvoices'])->name('export.invoices');
+        Route::get('export/requests', [ArchiveController::class, 'exportRequests'])->name('export.requests');
+        Route::get('export/service-jobs', [ArchiveController::class, 'exportServiceJobs'])->name('export.service-jobs');
+        Route::get('export/all', [ArchiveController::class, 'exportAll'])->name('export.all');
+
+        Route::get('{archivedRecordId}', [ArchiveController::class, 'show'])
+            ->whereNumber('archivedRecordId')->name('show');
+
+        Route::post('sync-paid', [ArchiveController::class, 'syncPaidCopies'])->name('sync-paid');
+
+        Route::post('{sourceType}/{sourceId}/copy', [ArchiveController::class, 'copy'])
+            ->whereIn('sourceType', ['invoice', 'request', 'service-job'])
+            ->whereNumber('sourceId')
+            ->name('copy');
+
+        Route::post('{sourceType}/{sourceId}/transfer', [ArchiveController::class, 'transfer'])
+            ->whereIn('sourceType', ['invoice', 'request', 'service-job'])
+            ->whereNumber('sourceId')
+            ->name('transfer');
+
+        Route::post('{archivedRecordId}/transfer', [ArchiveController::class, 'transferArchiveRecord'])
+            ->whereNumber('archivedRecordId')
+            ->name('records.transfer');
+
+        Route::post('{archivedRecordId}/restore', [ArchiveController::class, 'restore'])
+            ->whereNumber('archivedRecordId')
+            ->name('restore');
+
+        Route::delete('{archivedRecordId}', [ArchiveController::class, 'destroy'])
+            ->whereNumber('archivedRecordId')
+            ->name('destroy');
+    });
 
     // Monthly Sales
     Route::resource('monthly-sales', MonthlySaleController::class)->only(['index', 'store']);
