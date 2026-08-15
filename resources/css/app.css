@@ -558,6 +558,8 @@ select.gs-select {
    Filter bar
    ============================================================ */
 .gs-filter {
+  position: relative;
+  z-index: 30;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -584,6 +586,7 @@ select.gs-select {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .gs-kpi {
@@ -631,7 +634,7 @@ select.gs-select {
    Layout helpers
    ============================================================ */
 .gs-grid { display: grid; gap: 1rem; grid-template-columns: 1fr 1fr; }
-.gs-grid-2 { display: grid; gap: 1rem; grid-template-columns: 1.5fr 1fr; }
+.gs-grid-2 { display: grid; gap: 1rem; grid-template-columns: 1.5fr 1fr; margin-bottom: 1.25rem; }
 .gs-grid-3 { display: grid; gap: 1rem; grid-template-columns: repeat(3, 1fr); }
 .gs-grid-4 { display: grid; gap: 1rem; grid-template-columns: repeat(4, 1fr); }
 .gs-stack { display: flex; flex-direction: column; gap: 1rem; }
