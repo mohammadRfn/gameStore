@@ -65,6 +65,7 @@ function onLeave() {
 <style scoped>
 .tilt3d {
     position: relative;
+    height: 100%;
     transform-style: preserve-3d;
     will-change: transform;
     transition: transform 0.16s ease-out;

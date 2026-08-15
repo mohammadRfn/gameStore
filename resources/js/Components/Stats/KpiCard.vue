@@ -114,6 +114,9 @@ const areaPoints = computed(() => {
 <style scoped>
 .gs-kpi {
     min-height: 148px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 .gs-kpi-icon.tone-gold { color: var(--gs-gold); background: var(--gs-gold-muted); border-color: var(--gs-border); }
 .gs-kpi-icon.tone-blue { color: var(--gs-accent); background: var(--gs-info-soft); border-color: rgba(91,157,240,0.2); }
