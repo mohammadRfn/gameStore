@@ -1,14 +1,8 @@
 <template>
     <form class="gs-filter" @submit.prevent="apply">
         <div class="gs-filter-ranges">
-            <button
-                v-for="r in ranges"
-                :key="r.id"
-                type="button"
-                class="gs-btn"
-                :class="range === r.id ? 'gs-btn-primary' : 'gs-btn-ghost'"
-                @click="setRange(r.id)"
-            >
+            <button v-for="r in ranges" :key="r.id" type="button" class="gs-btn"
+                :class="range === r.id ? 'gs-btn-primary' : 'gs-btn-ghost'" @click="setRange(r.id)">
                 {{ r.label }}
             </button>
         </div>
@@ -28,13 +22,8 @@
             اعمال
         </button>
 
-        <button
-            v-if="from || to"
-            type="button"
-            class="gs-btn gs-btn-ghost"
-            title="پاک کردن بازهٔ دستی"
-            @click="clearDates"
-        >
+        <button v-if="from || to" type="button" class="gs-btn gs-btn-ghost" title="پاک کردن بازهٔ دستی"
+            @click="clearDates">
             <X :size="15" />
         </button>
     </form>
@@ -49,7 +38,7 @@ import JalaliDateInput from '@/Components/JalaliDateInput.vue'
 const props = defineProps({
     from: { type: String, default: '' },
     to: { type: String, default: '' },
-    paidOnly: { type: Boolean, default: true },
+    paidOnly: { type: Boolean, default: false },
     range: { type: String, default: 'month' },
     routeName: { type: String, default: 'stats.index' },
 })

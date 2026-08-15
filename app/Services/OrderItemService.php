@@ -56,6 +56,7 @@ class OrderItemService
                 'quantity'          => $data['quantity'],
                 'price'             => $item->sale_price,
                 'total_price'       => $totalPrice,
+                'cost_price'        => $item->purchase_price,
                 'deduct_from_stock' => $item->tracks_stock
                     ? (array_key_exists('deduct_from_stock', $data) ? (bool) $data['deduct_from_stock'] : true)
                     : false,

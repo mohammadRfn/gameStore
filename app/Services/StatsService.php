@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Customer;
 use App\Models\DailyItemStat;
 use App\Models\Invoice;
 use App\Models\Item;
@@ -33,11 +34,12 @@ class StatsService
         $daily    = $this->dailySeries($fromAt, $toAt, $paidOnly);
         $stock    = $this->stockSnapshot($products->pluck('item_id')->filter()->all());
 
-        $nowKpi  = $this->kpiFromRows($products, $services, $invoices);
+        $nowKpi  = $this->kpiFromRows($products, $services, $invoices, $this->newCustomersCount($fromAt, $toAt));
         $prevKpi = $this->kpiFromRows(
             $this->productRows($prevFrom, $prevTo, $paidOnly),
             $this->serviceRows($prevFrom, $prevTo, $paidOnly),
             $this->invoiceRows($prevFrom, $prevTo),
+            $this->newCustomersCount($prevFrom, $prevTo),
         );
 
         return [
@@ -150,11 +152,11 @@ class StatsService
                 order_items.item_id as item_id,
                 order_items.product_name as name,
                 categories.name as category,
-                SUM(order_items.quantity) as qty,
+               SUM(order_items.quantity) as qty,
                 SUM(order_items.total_price) as revenue,
-                SUM(order_items.quantity * COALESCE(items.purchase_price, 0)) as cogs,
+                SUM(order_items.quantity * COALESCE(NULLIF(order_items.cost_price, 0), items.purchase_price, 0)) as cogs,
                 AVG(order_items.price) as avg_sell,
-                AVG(COALESCE(items.purchase_price, 0)) as avg_buy
+                AVG(COALESCE(NULLIF(order_items.cost_price, 0), items.purchase_price, 0)) as avg_buy
             ')
             ->get();
 
@@ -296,7 +298,7 @@ class StatsService
             });
         }
         $itemByDay = $itemQuery
-            ->selectRaw('DATE(invoices.created_at) as d, SUM(order_items.total_price) as revenue, SUM(order_items.quantity * COALESCE(items.purchase_price, 0)) as cogs')
+            ->selectRaw('DATE(invoices.created_at) as d, SUM(order_items.total_price) as revenue, SUM(order_items.quantity * COALESCE(NULLIF(order_items.cost_price, 0), items.purchase_price, 0)) as cogs')
             ->groupBy('d')
             ->get()
             ->keyBy('d');
@@ -364,14 +366,16 @@ class StatsService
             'older' => ['label' => 'بیش از ۳۰ روز', 'count' => 0, 'amount' => 0.0],
         ];
 
+        $amountSql = $this->invoiceAmountSql();
+
         Invoice::query()
             ->where('is_returned', false)
             ->where('payment_status', '!=', Invoice::PAYMENT_PAID)
-            ->select(['id', 'invoice_number', 'total_amount', 'created_at'])
+            ->selectRaw("id, invoice_number, created_at, {$amountSql} as amount")
             ->chunkById(500, function ($invoices) use (&$buckets, $today) {
                 foreach ($invoices as $invoice) {
                     $days   = $invoice->created_at->startOfDay()->diffInDays($today);
-                    $amount = (float) $invoice->total_amount;
+                    $amount = (float) $invoice->amount;
 
                     $key = $days <= 7 ? 'week' : ($days <= 30 ? 'month' : 'older');
 
@@ -384,18 +388,21 @@ class StatsService
     }
     public function monthlyBreakdown(Carbon $from, Carbon $to): array
     {
+        $amountSql = $this->invoiceAmountSql();
+
         return Invoice::query()
             ->where('is_returned', false)
             ->whereBetween('created_at', [$from, $to])
-            ->get(['total_amount', 'created_at', 'payment_status'])
+            ->selectRaw("created_at, payment_status, {$amountSql} as amount")
+            ->get()
             ->groupBy(fn($invoice) => $invoice->created_at->format('Y-m'))
             ->map(fn($group, $ym) => [
                 'period'    => $ym,
                 'count'     => $group->count(),
-                'billed'    => (float) $group->sum('total_amount'),
+                'billed'    => (float) $group->sum('amount'),
                 'collected' => (float) $group
                     ->where('payment_status', Invoice::PAYMENT_PAID)
-                    ->sum('total_amount'),
+                    ->sum('amount'),
             ])
             ->values()
             ->all();
@@ -467,6 +474,12 @@ class StatsService
         $services = ServiceJob::query()
             ->whereNotIn('status', [ServiceJob::STATUS_CANCELED])
             ->whereBetween('completed_at', [$from, $to])
+            ->where(function ($q) use ($paidOnly) {
+                $q->whereNull('invoice_id')
+                    ->orWhereHas('invoice', function ($invoice) use ($paidOnly) {
+                        $this->applyInvoiceFilters($invoice, $paidOnly);
+                    });
+            })
             ->get(['completed_at', 'final_price']);
 
         foreach ($orders as $order) {
@@ -514,7 +527,12 @@ class StatsService
         return "COALESCE({$table}.total_amount, 0)";
     }
 
-    private function kpiFromRows(Collection $products, Collection $services, Collection $invoices): array
+    private function newCustomersCount(Carbon $from, Carbon $to): int
+    {
+        return Customer::query()->whereBetween('created_at', [$from, $to])->count();
+    }
+
+    private function kpiFromRows(Collection $products, Collection $services, Collection $invoices, int $newCustomers = 0): array
     {
         $productRevenue = (float) $products->sum('revenue');
         $productCogs    = (float) $products->sum('cogs');
@@ -551,7 +569,7 @@ class StatsService
             'invoice_count'    => $invoices->count(),
             'paid_count'       => $paid->count(),
             'unique_customers' => $invoices->pluck('customer')->filter()->unique()->count(),
-            'new_customers'    => 0,
+            'new_customers'    => $newCustomers,
             'avg_ticket'       => $invoices->count() ? round($billed / max($active->count(), 1), 0) : 0,
         ];
     }
@@ -604,9 +622,11 @@ class StatsService
 
     private function categoryRows(Collection $products): Collection
     {
+        $totalRevenue = (float) $products->sum('revenue');
+
         return $products
             ->groupBy(fn($row) => $row['category'] ?? 'بدون دسته')
-            ->map(function ($group, $category) {
+            ->map(function ($group, $category) use ($totalRevenue) {
                 $qty = (int) $group->sum('qty');
                 $revenue = (float) $group->sum('revenue');
                 $cogs = (float) $group->sum('cogs');
@@ -615,11 +635,13 @@ class StatsService
                 return [
                     'name'     => $category,
                     'category' => $category,
+                    'count'    => $group->count(),
                     'qty'      => $qty,
                     'revenue'  => round($revenue, 0),
                     'cogs'     => round($cogs, 0),
                     'profit'   => round($profit, 0),
                     'margin'   => $revenue > 0 ? round($profit / $revenue * 100, 1) : 0,
+                    'share'    => $totalRevenue > 0 ? round($revenue / $totalRevenue * 100) : 0,
                 ];
             })
             ->values();

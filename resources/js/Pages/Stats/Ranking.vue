@@ -290,10 +290,11 @@ const props = defineProps({
     paidOnly: { type: Boolean, default: true },
     range: { type: String, default: 'month' },
     kpi: { type: Object, default: () => ({}) },
-    products: { type: Array, default: () => [] },
+     products: { type: Array, default: () => [] },
     services: { type: Array, default: () => [] },
     stock: { type: Object, default: () => ({}) },
     funnel: { type: Array, default: () => [] },
+    rankings: { type: Object, default: () => ({}) },
 })
 
 const pane = ref('product')
@@ -340,7 +341,12 @@ const topNames = computed(() => top5.value.map((p) => p.name))
 const topValues = computed(() => top5.value.map((p) => p[sort.value] ?? 0))
 
 /* ─── سرویس‌ها ─── */
-const rankedServices = computed(() => [...props.services].sort((a, b) => (b.revenue || 0) - (a.revenue || 0)))
+const rankedServices = computed(() => {
+    const fromServer = props.rankings?.services?.top_revenue
+    return fromServer?.length
+        ? fromServer
+        : [...props.services].sort((a, b) => (b.revenue || 0) - (a.revenue || 0))
+})
 
 const podiumServices = computed(() => rankedServices.value.slice(0, 3).map((s) => ({
     name: s.name, value: s.revenue, sub: 'درآمد',
@@ -366,6 +372,9 @@ const slowMovers = computed(() => {
 
 /* ─── دسته‌ها ─── */
 const categoryRows = computed(() => {
+    const fromServer = props.rankings?.categories?.top_revenue
+    if (fromServer?.length) return fromServer
+
     const map = {}
     const totalRevenue = props.products.reduce((s, p) => s + (p.revenue || 0), 0) || 1
     props.products.forEach((p) => {

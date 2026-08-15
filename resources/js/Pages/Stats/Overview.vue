@@ -1,10 +1,7 @@
 <template>
     <AppLayout>
-        <StatHero
-            title="نمای کلی گزارشات"
-            subtitle="درآمد کالا + سرویس، روند روزانه و وضعیت وصول — در یک نگاه"
-            :from="from" :to="to" :range="range"
-        >
+        <StatHero title="نمای کلی گزارشات" subtitle="درآمد کالا + سرویس، روند روزانه و وضعیت وصول — در یک نگاه"
+            :from="from" :to="to" :range="range">
             <template #actions>
                 <Link :href="route('stats.index', query)" class="gs-btn gs-btn-soft">مرکز گزارشات</Link>
                 <Link :href="route('stats.products', query)" class="gs-btn gs-btn-soft">کالا</Link>
@@ -12,33 +9,39 @@
             </template>
         </StatHero>
 
-        <RangeFilter
-            :from="from" :to="to" :paid-only="paidOnly" :range="range"
-            route-name="stats.overview" class="mb"
-        />
+        <RangeFilter :from="from" :to="to" :paid-only="paidOnly" :range="range" route-name="stats.overview"
+            class="mb" />
 
         <div class="gs-kpi-grid gs-stagger">
-            <KpiCard label="درآمد کل" :value="compactMoney(kpi.gross)" :delta="compare.gross" :icon="Wallet" tone="gold" :spark="dailyTotals" />
-            <KpiCard label="سود خالص" :value="compactMoney(kpi.net_profit)" :delta="compare.net_profit" :icon="TrendingUp" tone="green" :spark="dailyProfits" />
-            <KpiCard label="وصول‌شده" :value="compactMoney(kpi.collected)" :delta="compare.collected" :icon="Banknote" tone="green" />
-            <KpiCard label="معوق" :value="compactMoney(kpi.outstanding)" :delta="compare.outstanding" :invert="true" :icon="Clock" tone="red" />
+            <KpiCard label="درآمد کل" :value="compactMoney(kpi.gross)" :delta="compare.gross" :icon="Wallet" tone="gold"
+                :spark="dailyTotals" />
+            <KpiCard label="سود خالص" :value="compactMoney(kpi.net_profit)" :delta="compare.net_profit"
+                :icon="TrendingUp" tone="green" :spark="dailyProfits" />
+            <KpiCard label="وصول‌شده" :value="compactMoney(kpi.collected)" :delta="compare.collected" :icon="Banknote"
+                tone="green" />
+            <KpiCard label="معوق" :value="compactMoney(kpi.outstanding)" :delta="compare.outstanding" :invert="true"
+                :icon="Clock" tone="red" />
+            <KpiCard label="مشتریان جدید" :value="faInt(kpi.new_customers)" :icon="UserPlus" tone="gold" />
         </div>
 
         <div class="gs-grid-2">
             <section class="gs-card">
                 <div class="gs-card-head">
-                    <h3 class="gs-card-title"><BarChart3 class="ic" :size="17" /> روند روزانهٔ درآمد</h3>
+                    <h3 class="gs-card-title">
+                        <BarChart3 class="ic" :size="17" /> روند روزانهٔ درآمد
+                    </h3>
                 </div>
-                <GsChart type="bar" :stacked="true" :labels="dailyLabels"
-                    :datasets="[
-                        { label: 'کالا', data: dailyProducts, color: '#e3bd5c' },
-                        { label: 'سرویس', data: dailyServices, color: '#5b9df0' },
-                    ]" :height="280" />
+                <GsChart type="bar" :stacked="true" :labels="dailyLabels" :datasets="[
+                    { label: 'کالا', data: dailyProducts, color: '#e3bd5c' },
+                    { label: 'سرویس', data: dailyServices, color: '#5b9df0' },
+                ]" :height="280" />
             </section>
 
             <section class="gs-card">
                 <div class="gs-card-head">
-                    <h3 class="gs-card-title"><PieChart class="ic" :size="17" /> ترکیب درآمد</h3>
+                    <h3 class="gs-card-title">
+                        <PieChart class="ic" :size="17" /> ترکیب درآمد
+                    </h3>
                 </div>
                 <GsChart type="doughnut" :labels="['سود کالا', 'بهای تمام‌شده', 'درآمد سرویس']"
                     :datasets="[{ data: mixData }]" :height="280" />
@@ -48,18 +51,21 @@
         <div class="gs-grid-2">
             <section class="gs-card">
                 <div class="gs-card-head">
-                    <h3 class="gs-card-title"><Activity class="ic" :size="17" /> سود کالا در برابر سرویس</h3>
+                    <h3 class="gs-card-title">
+                        <Activity class="ic" :size="17" /> سود کالا در برابر سرویس
+                    </h3>
                 </div>
-                <GsChart type="line" :labels="dailyLabels"
-                    :datasets="[
-                        { label: 'سود کالا', data: dailyProfits, color: '#45d68b' },
-                        { label: 'درآمد سرویس', data: dailyServices, color: '#5b9df0' },
-                    ]" :height="250" />
+                <GsChart type="line" :labels="dailyLabels" :datasets="[
+                    { label: 'سود کالا', data: dailyProfits, color: '#45d68b' },
+                    { label: 'درآمد سرویس', data: dailyServices, color: '#5b9df0' },
+                ]" :height="250" />
             </section>
 
             <section class="gs-card">
                 <div class="gs-card-head">
-                    <h3 class="gs-card-title"><CreditCard class="ic" :size="17" /> روش پرداخت</h3>
+                    <h3 class="gs-card-title">
+                        <CreditCard class="ic" :size="17" /> روش پرداخت
+                    </h3>
                 </div>
                 <GsChart type="doughnut" :labels="paymentLabels" :datasets="[{ data: paymentData }]" :height="250" />
             </section>
@@ -68,7 +74,9 @@
         <div class="gs-grid-2">
             <section class="gs-card">
                 <div class="gs-card-head">
-                    <h3 class="gs-card-title"><Hourglass class="ic" :size="17" /> سن مطالبات</h3>
+                    <h3 class="gs-card-title">
+                        <Hourglass class="ic" :size="17" /> سن مطالبات
+                    </h3>
                 </div>
                 <div class="aging-list">
                     <div v-for="b in aging" :key="b.label" class="aging-item">
@@ -87,7 +95,9 @@
 
             <section class="gs-card">
                 <div class="gs-card-head">
-                    <h3 class="gs-card-title"><CalendarDays class="ic" :size="17" /> فروش روزهای هفته</h3>
+                    <h3 class="gs-card-title">
+                        <CalendarDays class="ic" :size="17" /> فروش روزهای هفته
+                    </h3>
                 </div>
                 <div class="heatmap">
                     <div v-for="h in heatmap" :key="h.label" class="heat-cell" :style="heatStyle(h.amount)">
@@ -110,7 +120,7 @@ import RangeFilter from '@/Components/Stats/RangeFilter.vue'
 import KpiCard from '@/Components/Stats/KpiCard.vue'
 import GsChart from '@/Components/GsChart.vue'
 import {
-    Wallet, TrendingUp, Banknote, Clock, BarChart3, PieChart, Activity, CreditCard, Hourglass, CalendarDays,
+    Wallet, TrendingUp, Banknote, Clock, BarChart3, PieChart, Activity, CreditCard, Hourglass, CalendarDays, UserPlus,
 } from '@lucide/vue'
 import { faInt, compactMoney } from '@/Utils/format'
 
@@ -163,22 +173,60 @@ function heatStyle(amount) {
 </script>
 
 <style scoped>
-.mb { margin-bottom: 1rem; }
+.mb {
+    margin-bottom: 1rem;
+}
 
 /* Aging */
-.aging-list { display: flex; flex-direction: column; gap: 1.1rem; }
-.aging-item { display: flex; flex-direction: column; gap: 0.35rem; }
-.aging-top { display: flex; align-items: center; justify-content: space-between; }
-.aging-label { font-size: 0.8rem; font-weight: 600; color: var(--gs-text-secondary); }
-.aging-amount { font-size: 0.85rem; font-weight: 800; color: var(--gs-error); font-variant-numeric: tabular-nums; }
-.aging-bar { height: 8px; border-radius: 999px; background: var(--gs-bg-soft); overflow: hidden; }
+.aging-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+}
+
+.aging-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.aging-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.aging-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--gs-text-secondary);
+}
+
+.aging-amount {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--gs-error);
+    font-variant-numeric: tabular-nums;
+}
+
+.aging-bar {
+    height: 8px;
+    border-radius: 999px;
+    background: var(--gs-bg-soft);
+    overflow: hidden;
+}
+
 .aging-fill {
     height: 100%;
     border-radius: 999px;
     background: linear-gradient(90deg, var(--gs-warning), var(--gs-error));
     transition: width 0.6s var(--gs-ease-spring);
 }
-.aging-count { font-size: 0.72rem; color: var(--gs-text-muted); }
+
+.aging-count {
+    font-size: 0.72rem;
+    color: var(--gs-text-muted);
+}
 
 /* Heatmap */
 .heatmap {
@@ -188,6 +236,7 @@ function heatStyle(amount) {
     height: 100%;
     align-items: stretch;
 }
+
 .heat-cell {
     display: flex;
     flex-direction: column;
@@ -201,12 +250,32 @@ function heatStyle(amount) {
     min-height: 120px;
     transition: transform 0.2s ease;
 }
-.heat-cell:hover { transform: translateY(-3px); }
-.heat-day { font-size: 0.68rem; color: var(--gs-text-secondary); font-weight: 600; }
-.heat-amount { font-size: 0.68rem; color: var(--gs-gold); font-weight: 700; white-space: nowrap; }
-.heat-count { font-size: 0.62rem; color: var(--gs-text-muted); }
+
+.heat-cell:hover {
+    transform: translateY(-3px);
+}
+
+.heat-day {
+    font-size: 0.68rem;
+    color: var(--gs-text-secondary);
+    font-weight: 600;
+}
+
+.heat-amount {
+    font-size: 0.68rem;
+    color: var(--gs-gold);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.heat-count {
+    font-size: 0.62rem;
+    color: var(--gs-text-muted);
+}
 
 @media (max-width: 720px) {
-    .heatmap { grid-template-columns: repeat(4, 1fr); }
+    .heatmap {
+        grid-template-columns: repeat(4, 1fr);
+    }
 }
 </style>
