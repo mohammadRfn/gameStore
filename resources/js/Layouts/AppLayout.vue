@@ -145,6 +145,7 @@ const quickActions = [
     { label: 'سرویس', icon: '🔧', route: 'service-jobs.index' },
     { label: 'آرشیو', icon: '🧾', route: 'archives.panel' },
     { label: 'بکاپ', icon: '♛', route: 'backups.panel' },
+    { label: 'تنظیمات', icon: '⚙️', route: 'settings.index' },
 ]
 
 // Sidebar Groups
@@ -196,6 +197,12 @@ const sidebarGroups = [
         title: 'امنیت داده',
         items: [
             { label: 'مرکز بکاپ', icon: '♛', route: 'backups.panel' },
+        ],
+    },
+    {
+        title: 'سیستم',
+        items: [
+            { label: 'تنظیمات', icon: '⚙️', route: 'settings.index' },
         ],
     },
 ]

@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "./archive-3d.css"; 
 @import "./backup-royal.css";
+@import "./settings-3d.css"; 
 /* ============================================================
    فونت وزیرمتن (Vazirmatn) — آفلاین — همهٔ وزن‌ها
    مسیر نسبی است؛ Vite از resources/fonts/Vazirmatn فایل‌ها را می‌سازد
