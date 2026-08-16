@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AppSettingsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ArchiveController;
 use Inertia\Inertia;
 use App\Http\Controllers\BackupController;
+use App\Http\Controllers\StoreProfileController;
 
 // ============================================================
 // Auth
@@ -154,6 +156,43 @@ Route::middleware('auth')->group(function () {
             ->whereNumber('archivedRecordId')
             ->name('destroy');
     });
+
+
+    // ---------------- Store Profiles ----------------
+    Route::get('store-profiles', [StoreProfileController::class, 'index'])->name('store-profiles.index');
+    Route::get('store-profiles/search', [StoreProfileController::class, 'search'])->name('store-profiles.search');
+    Route::get('store-profiles/{id}', [StoreProfileController::class, 'show'])->name('store-profiles.show');
+    Route::post('store-profiles', [StoreProfileController::class, 'store'])->name('store-profiles.store');
+    Route::put('store-profiles/{id}', [StoreProfileController::class, 'update'])->name('store-profiles.update');
+    Route::delete('store-profiles/{id}', [StoreProfileController::class, 'destroy'])->name('store-profiles.destroy');
+    Route::post('store-profiles/{id}/primary', [StoreProfileController::class, 'setPrimary'])->name('store-profiles.primary');
+
+    // ---------------- App Settings ----------------
+    Route::get('settings', [AppSettingsController::class, 'index'])->name('settings.index');
+    Route::get('settings/{key}', [AppSettingsController::class, 'show'])->name('settings.show');
+    Route::put('settings/{key}', [AppSettingsController::class, 'update'])->name('settings.update');
+    Route::post('settings/bulk-update', [AppSettingsController::class, 'bulkUpdate'])->name('settings.bulk');
+    Route::post('settings/{key}/reset', [AppSettingsController::class, 'reset'])->name('settings.reset');
+    Route::post('settings/{key}/toggle-lock', [AppSettingsController::class, 'toggleLock'])->name('settings.toggle-lock');
+    Route::post('settings/sync', [AppSettingsController::class, 'sync'])->name('settings.sync');
+
+
+/*
+|--------------------------------------------------------------------------
+| JSON API (Electron renderer / local API) — Sanctum or same-session auth
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth:sanctum')->prefix('api')->group(function () {
+    Route::get('store-profiles', [StoreProfileController::class, 'index']);
+    Route::post('store-profiles', [StoreProfileController::class, 'store']);
+    Route::put('store-profiles/{id}', [StoreProfileController::class, 'update']);
+    Route::delete('store-profiles/{id}', [StoreProfileController::class, 'destroy']);
+
+    Route::get('settings', [AppSettingsController::class, 'index']);
+    Route::put('settings/{key}', [AppSettingsController::class, 'update']);
+    Route::post('settings/bulk-update', [AppSettingsController::class, 'bulkUpdate']);
+    Route::post('settings/sync', [AppSettingsController::class, 'sync']);
+});
     Route::prefix('backups')->name('backups.')->group(function () {
 
         // ---- داشبورد و متادیتا -------------------------------------------------

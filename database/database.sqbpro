@@ -1,279 +1,216 @@
-<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="database.sqlite" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="1"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="13391"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><table title="archive_actions" custom_title="0" dock_id="1" table="4,15:mainarchive_actions"/><dock_state state="000000ff00000000fd00000001000000020000043c000002b6fc0100000001fb000000160064006f0063006b00420072006f007700730065003101000000000000043c0000011800ffffff000002690000000000000004000000040000000800000008fc00000000"/><default_encoding codec=""/><browse_table_settings><table schema="main" name="archive_actions" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="29"/><column index="2" value="116"/><column index="3" value="93"/><column index="4" value="62"/><column index="5" value="54"/><column index="6" value="54"/><column index="7" value="195"/><column index="8" value="156"/><column index="9" value="156"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="backup_files" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="29"/><column index="2" value="94"/><column index="3" value="67"/><column index="4" value="74"/><column index="5" value="60"/><column index="6" value="87"/><column index="7" value="31"/><column index="8" value="82"/><column index="9" value="83"/><column index="10" value="88"/><column index="11" value="88"/><column index="12" value="63"/><column index="13" value="71"/><column index="14" value="67"/><column index="15" value="49"/><column index="16" value="58"/><column index="17" value="43"/><column index="18" value="91"/><column index="19" value="68"/><column index="20" value="72"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="backup_run_events" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="29"/><column index="2" value="94"/><column index="3" value="35"/><column index="4" value="35"/><column index="5" value="57"/><column index="6" value="81"/><column index="7" value="68"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table></browse_table_settings></tab_browse><tab_sql><sql name="SQL 1*">-- =====================================================================
---  Game Store | Backup &amp; Restore Module  (SQLite / Laravel 12 / NativePHP)
---  فایل: database/sql/2026_01_20_backup_module.sqlite.sql
---
---  اجرا:
---     sqlite3 database/database.sqlite &lt; database/sql/2026_01_20_backup_module.sqlite.sql
---  یا:
---     php artisan db:sql-file  (اگر دستور سفارشی دارید)
---
---  نکات طراحی:
---   * کاملاً هماهنگ با بقیه‌ی جداول پروژه (id INTEGER PK AUTOINCREMENT،
---     created_at/updated_at/deleted_at به‌صورت datetime متنی، FK به users/shops).
---   * SQLite با تعریف کلید خارجی مشکلی ندارد ولی برای فعال بودن آن باید
---     PRAGMA foreign_keys = ON در کانکشن ست شود (Laravel به‌صورت پیش‌فرض
---     در config/database.php با foreign_key_constraints =&gt; true این کار را می‌کند).
---   * از CHECK Constraint برای enum ها استفاده شده تا داده‌ی نامعتبر وارد نشود.
---   * تمام JSON ها به‌صورت TEXT ذخیره می‌شوند (SQLite JSON1 روی TEXT کار می‌کند).
---
---  توجه: BEGIN/COMMIT از این نسخه حذف شده تا با ابزارهایی که خودشان
---  به‌صورت خودکار تراکنش باز می‌کنند (GUI ها، artisan command ها و...)
---  تداخل (nested transaction) پیش نیاید. اجرای دستورات پشت‌سرهم و
---  idempotent (IF NOT EXISTS / OR IGNORE) است، پس نبود تراکنش مشکلی
---  در یکپارچگی داده ایجاد نمی‌کند.
+<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="database.sqlite" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="0"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="13391"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><table title="setting_groups" custom_title="0" dock_id="1" table="4,14:mainsetting_groups"/><dock_state state="000000ff00000000fd00000001000000020000043c000002b6fc0100000001fb000000160064006f0063006b00420072006f007700730065003101000000000000043c0000011800ffffff000002690000000000000004000000040000000800000008fc00000000"/><default_encoding codec=""/><browse_table_settings><table schema="main" name="app_settings" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="29"/><column index="2" value="60"/><column index="3" value="257"/><column index="4" value="109"/><column index="5" value="70"/><column index="6" value="109"/><column index="7" value="60"/><column index="8" value="73"/><column index="9" value="80"/><column index="10" value="296"/><column index="11" value="76"/><column index="12" value="156"/><column index="13" value="156"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="archive_actions" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="29"/><column index="2" value="116"/><column index="3" value="93"/><column index="4" value="62"/><column index="5" value="54"/><column index="6" value="54"/><column index="7" value="195"/><column index="8" value="156"/><column index="9" value="156"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="setting_groups" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="29"/><column index="2" value="101"/><column index="3" value="117"/><column index="4" value="31"/><column index="5" value="70"/><column index="6" value="67"/><column index="7" value="156"/><column index="8" value="156"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table></browse_table_settings></tab_browse><tab_sql><sql name="SQL 1*">-- =====================================================================
+--  GameStore — Enterprise Settings Module
+--  SQLite Schema (Laravel 12 + Electron local deployment)
+--  بدون هیچ وابستگی به جدول shops
 -- =====================================================================
 
 PRAGMA foreign_keys = ON;
 
--- پاک‌سازی جداول نیمه‌ساخته‌ای که ممکن است از یک اجرای ناموفق قبلی
--- (با تعریف قدیمی و رفرنس به shops) باقی مانده باشند.
--- اگر این جداول از قبل با داده‌ی واقعی داری، این چند خط را کامنت کن.
-DROP TABLE IF EXISTS backup_run_events;
-DROP TABLE IF EXISTS backup_files;
-DROP TABLE IF EXISTS backup_run_entities;
-DROP TABLE IF EXISTS backup_runs;
-DROP TABLE IF EXISTS backup_settings;
-
--- ---------------------------------------------------------------------
--- 1) backup_settings : تنظیمات ماژول بکاپ (key/value، قابل تفکیک به ازای فروشگاه)
---    مثال کلیدها: export_root_path, import_root_path, include_media,
---                 csv_delimiter, retention_copies, auto_backup_enabled ...
--- ---------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS backup_settings (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    shop_id       INTEGER NULL,
-    &quot;key&quot;         TEXT    NOT NULL,
-    &quot;value&quot;       TEXT    NULL,
-    value_type    TEXT    NOT NULL DEFAULT 'string'
-                  CHECK (value_type IN ('string', 'integer', 'boolean', 'json', 'path')),
-    &quot;group&quot;       TEXT    NOT NULL DEFAULT 'general',
-    is_locked     INTEGER NOT NULL DEFAULT 0 CHECK (is_locked IN (0, 1)),
-    description   TEXT    NULL,
-    updated_by    INTEGER NULL REFERENCES users (id) ON UPDATE CASCADE ON DELETE SET NULL,
-    created_at    DATETIME NULL,
-    updated_at    DATETIME NULL
+-- =====================================================================
+-- 1) SETTING GROUPS — organizational units for settings
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS setting_groups (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    code        VARCHAR(50)  NOT NULL UNIQUE,          -- 'invoice', 'security', ...
+    label       VARCHAR(100) NOT NULL,                 -- Persian label
+    icon        VARCHAR(20)  NULL,
+    description TEXT         NULL,
+    sort_order  INTEGER      NOT NULL DEFAULT 0,
+    created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-
--- در SQLite مقدار NULL در UNIQUE یکتا محسوب نمی‌شود؛ با COALESCE مشکل حل می‌شود.
-CREATE UNIQUE INDEX IF NOT EXISTS backup_settings_scope_key_unique
-    ON backup_settings (COALESCE(shop_id, 0), &quot;key&quot;);
-CREATE INDEX IF NOT EXISTS backup_settings_group_index
-    ON backup_settings (&quot;group&quot;);
-
-
--- ---------------------------------------------------------------------
--- 2) backup_runs : هر بار اجرای بکاپ/بازیابی (Export یا Import)
--- ---------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS backup_runs (
-    id                INTEGER PRIMARY KEY AUTOINCREMENT,
-    uuid              TEXT    NOT NULL,
-    shop_id           INTEGER NULL,
-
-    direction         TEXT    NOT NULL CHECK (direction IN ('export', 'import')),
-    -- full = دیتابیس + تصاویر ، database = فقط CSV ، media = فقط تصاویر
-    mode              TEXT    NOT NULL DEFAULT 'full'
-                      CHECK (mode IN ('full', 'database', 'media')),
-    -- استراتژی درج هنگام ایمپورت
-    strategy          TEXT    NULL
-                      CHECK (strategy IN ('merge', 'replace', 'skip_existing', 'fail_on_conflict')),
-    status            TEXT    NOT NULL DEFAULT 'pending'
-                      CHECK (status IN ('pending', 'running', 'completed', 'partial', 'failed', 'canceled')),
-    is_dry_run        INTEGER NOT NULL DEFAULT 0 CHECK (is_dry_run IN (0, 1)),
-    is_auto           INTEGER NOT NULL DEFAULT 0 CHECK (is_auto IN (0, 1)),
-    is_safety_copy    INTEGER NOT NULL DEFAULT 0 CHECK (is_safety_copy IN (0, 1)),
-
-    label             TEXT    NULL,               -- نام قابل‌فهم برای کاربر
-    format            TEXT    NOT NULL DEFAULT 'csv' CHECK (format IN ('csv')),
-    root_path         TEXT    NULL,               -- دایرکتوری انتخابی کاربر روی سیستم
-    run_path          TEXT    NULL,               -- دایرکتوری ساخته‌شده‌ی همین اجرا
-    manifest_path     TEXT    NULL,
-    archive_path      TEXT    NULL,               -- در صورت zip شدن خروجی
-
-    options_json      TEXT    NULL,               -- گزینه‌های اجرا
-    filters_json      TEXT    NULL,               -- فیلترها (بازه تاریخ، فروشگاه، موجودیت‌ها)
-    summary_json      TEXT    NULL,               -- خلاصه‌ی نهایی برای نمایش سریع
-    entities_json     TEXT    NULL,               -- لیست موجودیت‌های انتخاب‌شده
-
-    total_entities    INTEGER NOT NULL DEFAULT 0,
-    total_rows        INTEGER NOT NULL DEFAULT 0,
-    inserted_rows     INTEGER NOT NULL DEFAULT 0,
-    updated_rows      INTEGER NOT NULL DEFAULT 0,
-    skipped_rows      INTEGER NOT NULL DEFAULT 0,
-    failed_rows       INTEGER NOT NULL DEFAULT 0,
-    total_files       INTEGER NOT NULL DEFAULT 0,
-    missing_files     INTEGER NOT NULL DEFAULT 0,
-    total_bytes       INTEGER NOT NULL DEFAULT 0,
-
-    checksum          TEXT    NULL,               -- sha256 مانیفست/کل خروجی
-    app_version       TEXT    NULL,
-    schema_version    TEXT    NULL,               -- آخرین migration اعمال‌شده
-    db_driver         TEXT    NULL,
-    hostname          TEXT    NULL,
-    os_family         TEXT    NULL,
-
-    started_at        DATETIME NULL,
-    finished_at       DATETIME NULL,
-    duration_ms       INTEGER  NULL,
-
-    error_code        TEXT    NULL,
-    error_message     TEXT    NULL,
-    error_trace       TEXT    NULL,
-
-    created_by        INTEGER NULL REFERENCES users (id) ON UPDATE CASCADE ON DELETE SET NULL,
-    created_at        DATETIME NULL,
-    updated_at        DATETIME NULL,
-    deleted_at        DATETIME NULL
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS backup_runs_uuid_unique       ON backup_runs (uuid);
-CREATE INDEX IF NOT EXISTS backup_runs_direction_status_index   ON backup_runs (direction, status);
-CREATE INDEX IF NOT EXISTS backup_runs_shop_created_index       ON backup_runs (shop_id, created_at);
-CREATE INDEX IF NOT EXISTS backup_runs_started_at_index         ON backup_runs (started_at);
-CREATE INDEX IF NOT EXISTS backup_runs_deleted_at_index         ON backup_runs (deleted_at);
-
-
--- ---------------------------------------------------------------------
--- 3) backup_run_entities : جزئیات هر جدول/موجودیت در یک اجرا
--- ---------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS backup_run_entities (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    backup_run_id   INTEGER NOT NULL REFERENCES backup_runs (id) ON UPDATE CASCADE ON DELETE CASCADE,
-
-    entity_key      TEXT    NOT NULL,             -- items, invoices, ...
-    table_name      TEXT    NOT NULL,
-    group_name      TEXT    NULL,                 -- 20_sales, 30_services, ...
-    display_name    TEXT    NULL,                 -- نام فارسی برای گزارش
-
-    relative_path   TEXT    NULL,                 -- database/20_sales/invoices.csv
-    absolute_path   TEXT    NULL,
-
-    status          TEXT    NOT NULL DEFAULT 'pending'
-                    CHECK (status IN ('pending', 'running', 'completed', 'partial', 'failed', 'skipped')),
-
-    row_count       INTEGER NOT NULL DEFAULT 0,   -- تعداد سطرهای فایل
-    processed_rows  INTEGER NOT NULL DEFAULT 0,
-    inserted_rows   INTEGER NOT NULL DEFAULT 0,
-    updated_rows    INTEGER NOT NULL DEFAULT 0,
-    skipped_rows    INTEGER NOT NULL DEFAULT 0,
-    failed_rows     INTEGER NOT NULL DEFAULT 0,
-    bytes           INTEGER NOT NULL DEFAULT 0,
-
-    columns_json    TEXT    NULL,                 -- ستون‌های واقعی فایل
-    checksum        TEXT    NULL,                 -- sha256 فایل CSV
-    error_message   TEXT    NULL,
-    meta_json       TEXT    NULL,
-
-    started_at      DATETIME NULL,
-    finished_at     DATETIME NULL,
-    duration_ms     INTEGER  NULL,
-    created_at      DATETIME NULL,
-    updated_at      DATETIME NULL
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS backup_run_entities_run_entity_unique
-    ON backup_run_entities (backup_run_id, entity_key);
-CREATE INDEX IF NOT EXISTS backup_run_entities_status_index
-    ON backup_run_entities (status);
-
-
--- ---------------------------------------------------------------------
--- 4) backup_files : مانیفست فایل‌های تصویری (خروجی یا ورودی)
--- ---------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS backup_files (
-    id              INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    backup_run_id   INTEGER NOT NULL REFERENCES backup_runs (id) ON UPDATE CASCADE ON DELETE CASCADE,
-
-    entity_key      TEXT    NULL,                 -- items / order_items / invoices
-    model_type      TEXT    NULL,                 -- App\Models\Item
-    model_id        INTEGER NULL,
-    column_name     TEXT    NULL,                 -- image_path / receipt_image_path
-
-    disk            TEXT    NOT NULL DEFAULT 'public',
-    storage_path    TEXT    NULL,                 -- مسیر داخل دیسک: images/items/x.jpg
-    relative_path   TEXT    NOT NULL,             -- media/items/12/x.jpg
-    absolute_path   TEXT    NULL,
-
-    original_name   TEXT    NULL,
-    extension       TEXT    NULL,
-    mime_type       TEXT    NULL,
-    size_bytes      INTEGER NOT NULL DEFAULT 0,
-    sha256          TEXT    NULL,
-
-    direction       TEXT    NOT NULL DEFAULT 'export' CHECK (direction IN ('export', 'import')),
-    status          TEXT    NOT NULL DEFAULT 'copied'
-                    CHECK (status IN ('copied', 'skipped', 'duplicated', 'missing', 'failed', 'relinked')),
-    error_message   TEXT    NULL,
-
-    created_at      DATETIME NULL,
-    updated_at      DATETIME NULL
-);
-
-CREATE INDEX IF NOT EXISTS backup_files_run_status_index   ON backup_files (backup_run_id, status);
-CREATE INDEX IF NOT EXISTS backup_files_sha256_index       ON backup_files (sha256);
-CREATE INDEX IF NOT EXISTS backup_files_model_index        ON backup_files (model_type, model_id);
-CREATE INDEX IF NOT EXISTS backup_files_storage_path_index ON backup_files (storage_path);
-
-
--- ---------------------------------------------------------------------
--- 5) backup_run_events : لاگ ساختاریافته‌ی هر اجرا (Audit Trail)
--- ---------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS backup_run_events (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    backup_run_id   INTEGER NOT NULL REFERENCES backup_runs (id) ON UPDATE CASCADE ON DELETE CASCADE,
-    level           TEXT    NOT NULL DEFAULT 'info'
-                    CHECK (level IN ('debug', 'info', 'warning', 'error', 'critical')),
-    code            TEXT    NULL,                 -- entity.started / file.missing / ...
-    message         TEXT    NOT NULL,
-    context_json    TEXT    NULL,
-    created_at      DATETIME NULL
-);
-
-CREATE INDEX IF NOT EXISTS backup_run_events_run_level_index ON backup_run_events (backup_run_id, level);
-CREATE INDEX IF NOT EXISTS backup_run_events_created_index   ON backup_run_events (created_at);
-
-
--- ---------------------------------------------------------------------
--- 6) مقادیر پیش‌فرض تنظیمات (idempotent)
--- ---------------------------------------------------------------------
-INSERT OR IGNORE INTO backup_settings (shop_id, &quot;key&quot;, &quot;value&quot;, value_type, &quot;group&quot;, description, created_at, updated_at)
-VALUES
- (NULL, 'export_root_path',      NULL,        'path',    'paths',    'دایرکتوری پیش‌فرض ذخیره خروجی روی سیستم کاربر', datetime('now'), datetime('now')),
- (NULL, 'import_root_path',      NULL,        'path',    'paths',    'دایرکتوری پیش‌فرض خواندن فایل‌های ورودی',        datetime('now'), datetime('now')),
- (NULL, 'include_media',         '1',         'boolean', 'export',   'کپی تصاویر همراه خروجی',                        datetime('now'), datetime('now')),
- (NULL, 'include_soft_deleted',  '1',         'boolean', 'export',   'شامل کردن رکوردهای soft-delete شده',            datetime('now'), datetime('now')),
- (NULL, 'csv_delimiter',         ',',         'string',  'csv',      'جداکننده ستون‌های CSV',                          datetime('now'), datetime('now')),
- (NULL, 'csv_enclosure',         '&quot;',         'string',  'csv',      'کاراکتر محصورکننده',                             datetime('now'), datetime('now')),
- (NULL, 'csv_null_marker',       '\N',        'string',  'csv',      'نشانگر مقدار NULL برای تفکیک از رشته خالی',      datetime('now'), datetime('now')),
- (NULL, 'csv_bom',               '1',         'boolean', 'csv',      'افزودن BOM برای نمایش صحیح فارسی در Excel',      datetime('now'), datetime('now')),
- (NULL, 'chunk_size',            '1000',      'integer', 'export',   'اندازه chunk خواندن رکوردها',                    datetime('now'), datetime('now')),
- (NULL, 'retention_copies',      '10',        'integer', 'retention','تعداد نسخه‌های نگهداری‌شده در پوشه خروجی',        datetime('now'), datetime('now')),
- (NULL, 'auto_safety_backup',    '1',         'boolean', 'import',   'گرفتن بکاپ ایمنی خودکار قبل از هر ایمپورت',      datetime('now'), datetime('now')),
- (NULL, 'default_import_strategy','merge',    'string',  'import',   'استراتژی پیش‌فرض ایمپورت',                       datetime('now'), datetime('now')),
- (NULL, 'verify_checksums',      '1',         'boolean', 'import',   'اعتبارسنجی sha256 فایل‌ها هنگام ایمپورت',        datetime('now'), datetime('now'));
-
-PRAGMA optimize;
+CREATE INDEX IF NOT EXISTS idx_setting_groups_sort ON setting_groups (sort_order);
 
 -- =====================================================================
--- کوئری‌های کاربردی گزارش‌گیری
+-- 2) APP SETTINGS — registry-driven key/value store (enterprise)
 -- =====================================================================
--- آخرین وضعیت اجراها:
--- SELECT id, uuid, direction, mode, status, total_rows, total_files,
---        ROUND(total_bytes / 1048576.0, 2) AS mb, duration_ms, run_path, started_at
--- FROM backup_runs WHERE deleted_at IS NULL ORDER BY id DESC LIMIT 20;
---
--- جزئیات یک اجرا:
--- SELECT entity_key, status, row_count, inserted_rows, updated_rows, skipped_rows, failed_rows
--- FROM backup_run_entities WHERE backup_run_id = ? ORDER BY id;
---
--- فایل‌های گم‌شده:
--- SELECT entity_key, storage_path FROM backup_files WHERE backup_run_id = ? AND status = 'missing';
---
--- آخرین بکاپ موفق:
--- SELECT * FROM backup_runs WHERE direction='export' AND status='completed'
---   AND deleted_at IS NULL ORDER BY finished_at DESC LIMIT 1;
---
--- حذف نسخه‌های قدیمی از دیتابیس (فایل‌ها توسط سرویس retention پاک می‌شوند):
--- DELETE FROM backup_runs WHERE id IN (
---   SELECT id FROM backup_runs WHERE direction='export' ORDER BY id DESC LIMIT -1 OFFSET 50
--- );
--- =====================================================================</sql><current_tab id="0"/></tab_sql></sqlb_project>
+CREATE TABLE IF NOT EXISTS app_settings (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id       INTEGER      NULL,
+    setting_key    VARCHAR(100) NOT NULL UNIQUE,       -- 'invoice.prefix'
+    setting_value  TEXT         NULL,
+    value_type     VARCHAR(20)  NOT NULL DEFAULT 'string',  -- string|integer|float|boolean|json|select
+    default_value  TEXT         NULL,                  -- fallback when value is NULL
+    is_locked      BOOLEAN      NOT NULL DEFAULT 0,    -- system-critical: not editable
+    is_autoload    BOOLEAN      NOT NULL DEFAULT 0,    -- eager-loaded into cache
+    is_encrypted   BOOLEAN      NOT NULL DEFAULT 0,    -- secrets stored encrypted
+    description    TEXT         NULL,
+    updated_by     INTEGER      NULL,
+    created_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (group_id)   REFERENCES setting_groups (id) ON DELETE SET NULL,
+    FOREIGN KEY (updated_by) REFERENCES users (id)        ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_app_settings_group   ON app_settings (group_id);
+CREATE INDEX IF NOT EXISTS idx_app_settings_autoload ON app_settings (is_autoload);
+CREATE INDEX IF NOT EXISTS idx_app_settings_locked  ON app_settings (is_locked);
+
+-- =====================================================================
+-- 3) STORE PROFILES — رها از جدول shops، کاملاً مستقل
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS store_profiles (
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    legal_name         VARCHAR(255) NOT NULL,
+    brand_name         VARCHAR(255) NULL,
+    slug               VARCHAR(255) NOT NULL UNIQUE,
+    tax_id             VARCHAR(50)  NULL,              -- شناسه / کد اقتصادی
+    registration_no    VARCHAR(50)  NULL,              -- شماره ثبت شرکت
+    founding_date      DATE         NULL,              -- تاریخ تأسیس
+    phone              VARCHAR(50)  NULL,
+    secondary_phone    VARCHAR(50)  NULL,
+    email              VARCHAR(255) NULL,
+    website            VARCHAR(255) NULL,
+    instagram          VARCHAR(255) NULL,
+    telegram           VARCHAR(255) NULL,
+    address_street     VARCHAR(255) NULL,
+    address_city       VARCHAR(100) NULL,
+    address_province   VARCHAR(100) NULL,
+    address_postal     VARCHAR(20)  NULL,
+    address_country    VARCHAR(100) NOT NULL DEFAULT 'Iran',
+    owner_first_name   VARCHAR(100) NULL,
+    owner_last_name    VARCHAR(100) NULL,
+    owner_national_id  VARCHAR(20)  NULL,
+    owner_phone        VARCHAR(50)  NULL,
+    owner_email        VARCHAR(255) NULL,
+    currency_code      VARCHAR(3)   NOT NULL DEFAULT 'IRR',
+    currency_symbol    VARCHAR(10)  NOT NULL DEFAULT 'تومان',
+    fiscal_year_start  INTEGER      NOT NULL DEFAULT 1,
+    logo_path          VARCHAR(500) NULL,
+    cover_path         VARCHAR(500) NULL,
+    receipt_footer     VARCHAR(500) NULL,              -- متن چاپی پایین رسید
+    working_hours      JSON         NULL,              -- {&quot;mon&quot;:&quot;09-20&quot;,...}
+    is_primary         BOOLEAN      NOT NULL DEFAULT 0,
+    status             VARCHAR(20)  NOT NULL DEFAULT 'active',  -- active|inactive|pending
+    created_at         DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at         DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_store_profiles_slug    ON store_profiles (slug);
+CREATE INDEX IF NOT EXISTS idx_store_profiles_status  ON store_profiles (status);
+CREATE INDEX IF NOT EXISTS idx_store_profiles_primary ON store_profiles (is_primary);
+
+-- =====================================================================
+-- 4) AUTO-UPDATED_AT TRIGGERS (SQLite has no ON UPDATE CURRENT_TIMESTAMP)
+-- =====================================================================
+CREATE TRIGGER IF NOT EXISTS trg_setting_groups_updated
+AFTER UPDATE ON setting_groups
+FOR EACH ROW BEGIN
+    UPDATE setting_groups SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_app_settings_updated
+AFTER UPDATE ON app_settings
+FOR EACH ROW BEGIN
+    UPDATE app_settings SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_store_profiles_updated
+AFTER UPDATE ON store_profiles
+FOR EACH ROW BEGIN
+    UPDATE store_profiles SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+END;
+
+-- =====================================================================
+-- 5) SEED — enterprise defaults (idempotent)
+-- =====================================================================
+INSERT OR IGNORE INTO setting_groups (code, label, icon, sort_order) VALUES
+('general',      'تنظیمات عمومی',   '⚙️', 1),
+('store',        'مشخصات فروشگاه', '🏪', 2),
+('invoice',      'فاکتور و رسید',   '🧾', 3),
+('inventory',    'انبارداری',       '📦', 4),
+('notification', 'اعلان‌ها',         '🔔', 5),
+('backup',       'پشتیبان‌گیری',    '💾', 6),
+('security',     'امنیت',           '🔐', 7),
+('electron',     'اپ دسکتاپ',       '🖥️', 8);
+
+INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
+SELECT 'general.app_name', 'GameStore Pro', 'string', 'GameStore Pro', 0, 1, 'نام نمایشی برنامه' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'general.app_name');
+INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
+SELECT 'general.timezone', 'Asia/Tehran', 'select', 'Asia/Tehran', 0, 1, 'منطقه زمانی' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'general.timezone');
+INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
+SELECT 'general.currency_code', 'IRR', 'string', 'IRR', 0, 1, 'کد ارز' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'general.currency_code');
+INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
+SELECT 'invoice.prefix', 'INV-', 'string', 'INV-', 0, 1, 'پیشوند شماره فاکتور' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'invoice.prefix');
+INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
+SELECT 'invoice.start_number', '1001', 'integer', '1001', 0, 0, 'شماره شروع فاکتور' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'invoice.start_number');
+INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
+SELECT 'invoice.tax_rate', '9', 'integer', '9', 1, 1, 'نرخ مالیات بر ارزش افزوده — قفل‌شده' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'invoice.tax_rate');
+INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
+SELECT 'invoice.auto_deduct_stock', '1', 'boolean', '1', 0, 1, 'کسر خودکار موجودی در صدور فاکتور' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'invoice.auto_deduct_stock');
+INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
+SELECT 'invoice.receipt_width_mm', '80', 'integer', '80', 0, 0, 'عرض رسید حرارتی برای چاپگر (Electron)' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'invoice.receipt_width_mm');
+INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
+SELECT 'inventory.low_stock_threshold', '5', 'integer', '5', 0, 1, 'آستانه هشدار موجودی کم' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'inventory.low_stock_threshold');
+INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
+SELECT 'inventory.allow_negative_stock', '0', 'boolean', '0', 1, 0, 'مجاز بودن موجودی منفی — قفل‌شده' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'inventory.allow_negative_stock');
+INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
+SELECT 'backup.auto_enabled', '1', 'boolean', '1', 0, 1, 'فعال‌بودن پشتیبان‌گیری خودکار' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'backup.auto_enabled');
+INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
+SELECT 'backup.retention_days', '30', 'integer', '30', 0, 0, 'مدت نگهداری نسخه‌های پشتیبان' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'backup.retention_days');
+INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
+SELECT 'security.session_timeout_minutes', '60', 'integer', '60', 0, 0, 'زمان انقضای نشست کاربر' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'security.session_timeout_minutes');
+INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
+SELECT 'security.max_login_attempts', '5', 'integer', '5', 1, 0, 'حداکثر تلاش ناموفق ورود — قفل‌شده' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'security.max_login_attempts');
+INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
+SELECT 'electron.printer_name', '', 'string', '', 0, 0, 'نام چاپگر رسید حرارتی در ویندوز' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'electron.printer_name');
+INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
+SELECT 'electron.minimize_to_tray', '1', 'boolean', '1', 0, 1, 'کوچک‌سازی به سینی سیستم' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'electron.minimize_to_tray');
+
+-- Link settings to their groups
+UPDATE app_settings SET group_id = (SELECT id FROM setting_groups WHERE code = SUBSTR(setting_key, 1, INSTR(setting_key, '.') - 1))
+WHERE group_id IS NULL;
+
+-- =====================================================================
+-- 6) ENTERPRISE QUERIES (بدون shops)
+-- =====================================================================
+
+-- 6.1 All settings grouped, for the settings UI
+SELECT g.code AS group_code, g.label AS group_label, g.sort_order,
+       a.setting_key, a.setting_value, a.value_type, a.is_locked, a.is_autoload
+FROM app_settings a
+LEFT JOIN setting_groups g ON g.id = a.group_id
+ORDER BY g.sort_order, a.setting_key;
+
+-- 6.2 Typed access (used by SettingsService::get('invoice.prefix'))
+SELECT setting_value, value_type, default_value
+FROM app_settings WHERE setting_key = 'invoice.prefix' LIMIT 1;
+
+-- 6.3 Autoload set → warmed into cache on boot (fast path for Electron)
+SELECT setting_key, setting_value, value_type FROM app_settings WHERE is_autoload = 1;
+
+-- 6.4 Locked (system) settings — never editable via UI
+SELECT * FROM app_settings WHERE is_locked = 1;
+
+-- 6.5 Primary store profile (بدون join با shops)
+SELECT *
+FROM store_profiles
+WHERE is_primary = 1 AND status = 'active'
+LIMIT 1;
+
+-- 6.6 Store profile used as invoice/shop header for receipts (PDF + thermal)
+SELECT legal_name, brand_name, phone, email, address_street, address_city,
+       address_province, address_postal, tax_id, currency_code, currency_symbol,
+       logo_path, receipt_footer, working_hours
+FROM store_profiles
+WHERE is_primary = 1 AND status = 'active'
+LIMIT 1;
+
+-- 6.7 Slug uniqueness guard (before insert/update)
+SELECT id FROM store_profiles WHERE slug = ? LIMIT 1;
+
+-- 6.8 Low-stock items using the threshold setting (coordinated with items/stock)
+SELECT i.id, i.name, COALESCE(SUM(CASE WHEN sm.movement_type IN ('in','adjust_in') THEN sm.quantity
+                                       WHEN sm.movement_type IN ('out','adjust_out') THEN -sm.quantity ELSE 0 END), 0) AS stock
+FROM items i
+LEFT JOIN stock_movements sm ON sm.item_id = i.id AND sm.deleted_at IS NULL
+GROUP BY i.id
+HAVING stock &lt;= (SELECT CAST(setting_value AS INTEGER) FROM app_settings WHERE setting_key = 'inventory.low_stock_threshold')
+ORDER BY stock ASC;
+
+-- 6.9 Next invoice number proposal (coordinated with invoices.invoice_number)
+SELECT MAX(CAST(REPLACE(invoice_number, 'INV-', '') AS INTEGER)) + 1 AS next_number
+FROM invoices WHERE invoice_number LIKE 'INV-%' AND deleted_at IS NULL;
+
+-- 6.10 Settings update with audit (respects the lock flag)
+UPDATE app_settings
+SET setting_value = ?, updated_by = ?, updated_at = CURRENT_TIMESTAMP
+WHERE setting_key = ? AND is_locked = 0;</sql><current_tab id="0"/></tab_sql></sqlb_project>
