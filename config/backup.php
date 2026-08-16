@@ -162,25 +162,6 @@ return [
             'optional'     => false,
         ],
 
-        'plans' => [
-            'table'        => 'plans',
-            'model'        => null,
-            'group'        => '00_core',
-            'label'        => 'پلن‌ها',
-            'natural_key'  => ['code'],
-            'soft_deletes' => false,
-            'optional'     => true,
-        ],
-
-        'shops' => [
-            'table'        => 'shops',
-            'model'        => null,
-            'group'        => '00_core',
-            'label'        => 'فروشگاه‌ها',
-            'natural_key'  => ['slug'],
-            'soft_deletes' => true,
-            'optional'     => true,
-        ],
 
         'categories' => [
             'table'        => 'categories',
@@ -254,7 +235,7 @@ return [
             'model'        => ServiceType::class,
             'group'        => '40_services',
             'label'        => 'انواع خدمات',
-            'natural_key'  => ['shop_id', 'name'],
+            'natural_key'  => [ 'name'],
             'soft_deletes' => true,
         ],
 
@@ -309,7 +290,7 @@ return [
             'model'        => MonthlySale::class,
             'group'        => '60_analytics',
             'label'        => 'فروش ماهانه',
-            'natural_key'  => ['year', 'month', 'shop_id'],
+            'natural_key'  => ['year', 'month'],
             'soft_deletes' => true,
         ],
 
