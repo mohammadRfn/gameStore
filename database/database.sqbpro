@@ -1,216 +1,119 @@
-<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="database.sqlite" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="0"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="13391"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><table title="setting_groups" custom_title="0" dock_id="1" table="4,14:mainsetting_groups"/><dock_state state="000000ff00000000fd00000001000000020000043c000002b6fc0100000001fb000000160064006f0063006b00420072006f007700730065003101000000000000043c0000011800ffffff000002690000000000000004000000040000000800000008fc00000000"/><default_encoding codec=""/><browse_table_settings><table schema="main" name="app_settings" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="29"/><column index="2" value="60"/><column index="3" value="257"/><column index="4" value="109"/><column index="5" value="70"/><column index="6" value="109"/><column index="7" value="60"/><column index="8" value="73"/><column index="9" value="80"/><column index="10" value="296"/><column index="11" value="76"/><column index="12" value="156"/><column index="13" value="156"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="archive_actions" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="29"/><column index="2" value="116"/><column index="3" value="93"/><column index="4" value="62"/><column index="5" value="54"/><column index="6" value="54"/><column index="7" value="195"/><column index="8" value="156"/><column index="9" value="156"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="setting_groups" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="29"/><column index="2" value="101"/><column index="3" value="117"/><column index="4" value="31"/><column index="5" value="70"/><column index="6" value="67"/><column index="7" value="156"/><column index="8" value="156"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table></browse_table_settings></tab_browse><tab_sql><sql name="SQL 1*">-- =====================================================================
---  GameStore — Enterprise Settings Module
---  SQLite Schema (Laravel 12 + Electron local deployment)
---  بدون هیچ وابستگی به جدول shops
--- =====================================================================
+<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="database.sqlite" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="3"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="13391"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><table title="app_settings" custom_title="0" dock_id="1" table="4,12:mainapp_settings"/><dock_state state="000000ff00000000fd00000001000000020000000000000000fc0100000001fb000000160064006f0063006b00420072006f00770073006500310100000000ffffffff0000011300ffffff000000000000000000000004000000040000000800000008fc00000000"/><default_encoding codec=""/><browse_table_settings/></tab_browse><tab_sql><sql name="SQL 1*">-- ═══════════════════════════════════════════════════════════════════════════════
+-- GameStore · Enterprise Cache Cleaner · SQLite SQL
+-- هماهنگ با ساختار app_settings / setting_groups فعلی پروژه
+-- ═══════════════════════════════════════════════════════════════════════════════
 
-PRAGMA foreign_keys = ON;
-
--- =====================================================================
--- 1) SETTING GROUPS — organizational units for settings
--- =====================================================================
-CREATE TABLE IF NOT EXISTS setting_groups (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    code        VARCHAR(50)  NOT NULL UNIQUE,          -- 'invoice', 'security', ...
-    label       VARCHAR(100) NOT NULL,                 -- Persian label
-    icon        VARCHAR(20)  NULL,
-    description TEXT         NULL,
-    sort_order  INTEGER      NOT NULL DEFAULT 0,
-    created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+-- 1) جدول تاریخچه عملیات پاکسازی کش
+CREATE TABLE IF NOT EXISTS cache_maintenance_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    operation TEXT NOT NULL DEFAULT 'clear',
+    status TEXT NOT NULL DEFAULT 'pending',
+    is_dry_run INTEGER NOT NULL DEFAULT 0,
+    targets_json TEXT DEFAULT NULL,
+    options_json TEXT DEFAULT NULL,
+    before_metrics_json TEXT DEFAULT NULL,
+    after_metrics_json TEXT DEFAULT NULL,
+    summary_json TEXT DEFAULT NULL,
+    errors_json TEXT DEFAULT NULL,
+    console_output TEXT DEFAULT NULL,
+    user_id INTEGER DEFAULT NULL REFERENCES users(id) ON DELETE SET NULL,
+    started_at TEXT DEFAULT NULL,
+    finished_at TEXT DEFAULT NULL,
+    duration_ms INTEGER DEFAULT NULL,
+    created_at TEXT DEFAULT NULL,
+    updated_at TEXT DEFAULT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_setting_groups_sort ON setting_groups (sort_order);
 
--- =====================================================================
--- 2) APP SETTINGS — registry-driven key/value store (enterprise)
--- =====================================================================
-CREATE TABLE IF NOT EXISTS app_settings (
-    id             INTEGER PRIMARY KEY AUTOINCREMENT,
-    group_id       INTEGER      NULL,
-    setting_key    VARCHAR(100) NOT NULL UNIQUE,       -- 'invoice.prefix'
-    setting_value  TEXT         NULL,
-    value_type     VARCHAR(20)  NOT NULL DEFAULT 'string',  -- string|integer|float|boolean|json|select
-    default_value  TEXT         NULL,                  -- fallback when value is NULL
-    is_locked      BOOLEAN      NOT NULL DEFAULT 0,    -- system-critical: not editable
-    is_autoload    BOOLEAN      NOT NULL DEFAULT 0,    -- eager-loaded into cache
-    is_encrypted   BOOLEAN      NOT NULL DEFAULT 0,    -- secrets stored encrypted
-    description    TEXT         NULL,
-    updated_by     INTEGER      NULL,
-    created_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (group_id)   REFERENCES setting_groups (id) ON DELETE SET NULL,
-    FOREIGN KEY (updated_by) REFERENCES users (id)        ON DELETE SET NULL
-);
-CREATE INDEX IF NOT EXISTS idx_app_settings_group   ON app_settings (group_id);
-CREATE INDEX IF NOT EXISTS idx_app_settings_autoload ON app_settings (is_autoload);
-CREATE INDEX IF NOT EXISTS idx_app_settings_locked  ON app_settings (is_locked);
+CREATE INDEX IF NOT EXISTS idx_cache_maintenance_runs_operation ON cache_maintenance_runs(operation);
+CREATE INDEX IF NOT EXISTS idx_cache_maintenance_runs_status ON cache_maintenance_runs(status);
+CREATE INDEX IF NOT EXISTS idx_cache_maintenance_runs_dry_run ON cache_maintenance_runs(is_dry_run);
+CREATE INDEX IF NOT EXISTS idx_cache_maintenance_runs_started_at ON cache_maintenance_runs(started_at);
+CREATE INDEX IF NOT EXISTS idx_cache_maintenance_runs_finished_at ON cache_maintenance_runs(finished_at);
+CREATE INDEX IF NOT EXISTS idx_cache_maintenance_runs_operation_status ON cache_maintenance_runs(operation, status);
+CREATE INDEX IF NOT EXISTS idx_cache_maintenance_runs_user_created ON cache_maintenance_runs(user_id, created_at);
 
--- =====================================================================
--- 3) STORE PROFILES — رها از جدول shops، کاملاً مستقل
--- =====================================================================
-CREATE TABLE IF NOT EXISTS store_profiles (
-    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
-    legal_name         VARCHAR(255) NOT NULL,
-    brand_name         VARCHAR(255) NULL,
-    slug               VARCHAR(255) NOT NULL UNIQUE,
-    tax_id             VARCHAR(50)  NULL,              -- شناسه / کد اقتصادی
-    registration_no    VARCHAR(50)  NULL,              -- شماره ثبت شرکت
-    founding_date      DATE         NULL,              -- تاریخ تأسیس
-    phone              VARCHAR(50)  NULL,
-    secondary_phone    VARCHAR(50)  NULL,
-    email              VARCHAR(255) NULL,
-    website            VARCHAR(255) NULL,
-    instagram          VARCHAR(255) NULL,
-    telegram           VARCHAR(255) NULL,
-    address_street     VARCHAR(255) NULL,
-    address_city       VARCHAR(100) NULL,
-    address_province   VARCHAR(100) NULL,
-    address_postal     VARCHAR(20)  NULL,
-    address_country    VARCHAR(100) NOT NULL DEFAULT 'Iran',
-    owner_first_name   VARCHAR(100) NULL,
-    owner_last_name    VARCHAR(100) NULL,
-    owner_national_id  VARCHAR(20)  NULL,
-    owner_phone        VARCHAR(50)  NULL,
-    owner_email        VARCHAR(255) NULL,
-    currency_code      VARCHAR(3)   NOT NULL DEFAULT 'IRR',
-    currency_symbol    VARCHAR(10)  NOT NULL DEFAULT 'تومان',
-    fiscal_year_start  INTEGER      NOT NULL DEFAULT 1,
-    logo_path          VARCHAR(500) NULL,
-    cover_path         VARCHAR(500) NULL,
-    receipt_footer     VARCHAR(500) NULL,              -- متن چاپی پایین رسید
-    working_hours      JSON         NULL,              -- {&quot;mon&quot;:&quot;09-20&quot;,...}
-    is_primary         BOOLEAN      NOT NULL DEFAULT 0,
-    status             VARCHAR(20)  NOT NULL DEFAULT 'active',  -- active|inactive|pending
-    created_at         DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at         DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-CREATE INDEX IF NOT EXISTS idx_store_profiles_slug    ON store_profiles (slug);
-CREATE INDEX IF NOT EXISTS idx_store_profiles_status  ON store_profiles (status);
-CREATE INDEX IF NOT EXISTS idx_store_profiles_primary ON store_profiles (is_primary);
+-- 2) گروه تنظیمات نگهداری سیستم
+INSERT OR IGNORE INTO setting_groups (code, label, icon, description, sort_order, created_at, updated_at)
+VALUES ('maintenance', 'نگهداری سیستم', '🧹', 'پاکسازی کش، بهینه‌سازی و سلامت اجرای محلی برنامه', 9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
--- =====================================================================
--- 4) AUTO-UPDATED_AT TRIGGERS (SQLite has no ON UPDATE CURRENT_TIMESTAMP)
--- =====================================================================
-CREATE TRIGGER IF NOT EXISTS trg_setting_groups_updated
-AFTER UPDATE ON setting_groups
-FOR EACH ROW BEGIN
-    UPDATE setting_groups SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
-END;
+-- 3) تنظیمات مربوط به Cache Cleaner
+INSERT OR IGNORE INTO app_settings
+(group_id, setting_key, setting_value, value_type, default_value, is_locked, is_autoload, is_encrypted, description, updated_by, created_at, updated_at)
+SELECT id, 'maintenance.cache.default_targets',
+       '[&quot;app&quot;,&quot;settings&quot;,&quot;config&quot;,&quot;route&quot;,&quot;view&quot;,&quot;event&quot;,&quot;compiled&quot;,&quot;optimize&quot;,&quot;bootstrap&quot;,&quot;framework_files&quot;,&quot;expired_database_cache&quot;]',
+       'json',
+       '[&quot;app&quot;,&quot;settings&quot;,&quot;config&quot;,&quot;route&quot;,&quot;view&quot;,&quot;event&quot;,&quot;compiled&quot;,&quot;optimize&quot;,&quot;bootstrap&quot;,&quot;framework_files&quot;,&quot;expired_database_cache&quot;]',
+       0, 0, 0, 'Targetهای پیش‌فرض پاکسازی کش', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM setting_groups WHERE code = 'maintenance';
 
-CREATE TRIGGER IF NOT EXISTS trg_app_settings_updated
-AFTER UPDATE ON app_settings
-FOR EACH ROW BEGIN
-    UPDATE app_settings SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
-END;
+INSERT OR IGNORE INTO app_settings
+(group_id, setting_key, setting_value, value_type, default_value, is_locked, is_autoload, is_encrypted, description, updated_by, created_at, updated_at)
+SELECT id, 'maintenance.cache.warm_after_clear', '0', 'boolean', '0', 0, 0, 0, 'گرم‌سازی خودکار بعد از پاکسازی', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM setting_groups WHERE code = 'maintenance';
 
-CREATE TRIGGER IF NOT EXISTS trg_store_profiles_updated
-AFTER UPDATE ON store_profiles
-FOR EACH ROW BEGIN
-    UPDATE store_profiles SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
-END;
+INSERT OR IGNORE INTO app_settings
+(group_id, setting_key, setting_value, value_type, default_value, is_locked, is_autoload, is_encrypted, description, updated_by, created_at, updated_at)
+SELECT id, 'maintenance.cache.warm_config', '0', 'boolean', '0', 0, 0, 0, 'بازسازی config cache بعد از پاکسازی', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM setting_groups WHERE code = 'maintenance';
 
--- =====================================================================
--- 5) SEED — enterprise defaults (idempotent)
--- =====================================================================
-INSERT OR IGNORE INTO setting_groups (code, label, icon, sort_order) VALUES
-('general',      'تنظیمات عمومی',   '⚙️', 1),
-('store',        'مشخصات فروشگاه', '🏪', 2),
-('invoice',      'فاکتور و رسید',   '🧾', 3),
-('inventory',    'انبارداری',       '📦', 4),
-('notification', 'اعلان‌ها',         '🔔', 5),
-('backup',       'پشتیبان‌گیری',    '💾', 6),
-('security',     'امنیت',           '🔐', 7),
-('electron',     'اپ دسکتاپ',       '🖥️', 8);
+INSERT OR IGNORE INTO app_settings
+(group_id, setting_key, setting_value, value_type, default_value, is_locked, is_autoload, is_encrypted, description, updated_by, created_at, updated_at)
+SELECT id, 'maintenance.cache.warm_views', '1', 'boolean', '1', 0, 0, 0, 'کامپایل مجدد viewها بعد از پاکسازی', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM setting_groups WHERE code = 'maintenance';
 
-INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
-SELECT 'general.app_name', 'GameStore Pro', 'string', 'GameStore Pro', 0, 1, 'نام نمایشی برنامه' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'general.app_name');
-INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
-SELECT 'general.timezone', 'Asia/Tehran', 'select', 'Asia/Tehran', 0, 1, 'منطقه زمانی' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'general.timezone');
-INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
-SELECT 'general.currency_code', 'IRR', 'string', 'IRR', 0, 1, 'کد ارز' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'general.currency_code');
-INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
-SELECT 'invoice.prefix', 'INV-', 'string', 'INV-', 0, 1, 'پیشوند شماره فاکتور' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'invoice.prefix');
-INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
-SELECT 'invoice.start_number', '1001', 'integer', '1001', 0, 0, 'شماره شروع فاکتور' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'invoice.start_number');
-INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
-SELECT 'invoice.tax_rate', '9', 'integer', '9', 1, 1, 'نرخ مالیات بر ارزش افزوده — قفل‌شده' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'invoice.tax_rate');
-INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
-SELECT 'invoice.auto_deduct_stock', '1', 'boolean', '1', 0, 1, 'کسر خودکار موجودی در صدور فاکتور' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'invoice.auto_deduct_stock');
-INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
-SELECT 'invoice.receipt_width_mm', '80', 'integer', '80', 0, 0, 'عرض رسید حرارتی برای چاپگر (Electron)' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'invoice.receipt_width_mm');
-INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
-SELECT 'inventory.low_stock_threshold', '5', 'integer', '5', 0, 1, 'آستانه هشدار موجودی کم' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'inventory.low_stock_threshold');
-INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
-SELECT 'inventory.allow_negative_stock', '0', 'boolean', '0', 1, 0, 'مجاز بودن موجودی منفی — قفل‌شده' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'inventory.allow_negative_stock');
-INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
-SELECT 'backup.auto_enabled', '1', 'boolean', '1', 0, 1, 'فعال‌بودن پشتیبان‌گیری خودکار' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'backup.auto_enabled');
-INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
-SELECT 'backup.retention_days', '30', 'integer', '30', 0, 0, 'مدت نگهداری نسخه‌های پشتیبان' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'backup.retention_days');
-INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
-SELECT 'security.session_timeout_minutes', '60', 'integer', '60', 0, 0, 'زمان انقضای نشست کاربر' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'security.session_timeout_minutes');
-INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
-SELECT 'security.max_login_attempts', '5', 'integer', '5', 1, 0, 'حداکثر تلاش ناموفق ورود — قفل‌شده' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'security.max_login_attempts');
-INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
-SELECT 'electron.printer_name', '', 'string', '', 0, 0, 'نام چاپگر رسید حرارتی در ویندوز' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'electron.printer_name');
-INSERT OR IGNORE INTO app_settings (setting_key, setting_value, value_type, default_value, is_locked, is_autoload, description)
-SELECT 'electron.minimize_to_tray', '1', 'boolean', '1', 0, 1, 'کوچک‌سازی به سینی سیستم' WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE setting_key = 'electron.minimize_to_tray');
+INSERT OR IGNORE INTO app_settings
+(group_id, setting_key, setting_value, value_type, default_value, is_locked, is_autoload, is_encrypted, description, updated_by, created_at, updated_at)
+SELECT id, 'maintenance.cache.warm_settings', '1', 'boolean', '1', 0, 0, 0, 'گرم‌سازی کش تنظیمات بعد از پاکسازی', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM setting_groups WHERE code = 'maintenance';
 
--- Link settings to their groups
-UPDATE app_settings SET group_id = (SELECT id FROM setting_groups WHERE code = SUBSTR(setting_key, 1, INSTR(setting_key, '.') - 1))
-WHERE group_id IS NULL;
+INSERT OR IGNORE INTO app_settings
+(group_id, setting_key, setting_value, value_type, default_value, is_locked, is_autoload, is_encrypted, description, updated_by, created_at, updated_at)
+SELECT id, 'maintenance.cache.allow_log_cleanup', '0', 'boolean', '0', 0, 0, 0, 'اجازه حذف لاگ‌های قدیمی', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM setting_groups WHERE code = 'maintenance';
 
--- =====================================================================
--- 6) ENTERPRISE QUERIES (بدون shops)
--- =====================================================================
+INSERT OR IGNORE INTO app_settings
+(group_id, setting_key, setting_value, value_type, default_value, is_locked, is_autoload, is_encrypted, description, updated_by, created_at, updated_at)
+SELECT id, 'maintenance.cache.logs_older_than_days', '14', 'integer', '14', 0, 0, 0, 'حداقل سن لاگ برای حذف (روز)', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM setting_groups WHERE code = 'maintenance';
 
--- 6.1 All settings grouped, for the settings UI
-SELECT g.code AS group_code, g.label AS group_label, g.sort_order,
-       a.setting_key, a.setting_value, a.value_type, a.is_locked, a.is_autoload
-FROM app_settings a
-LEFT JOIN setting_groups g ON g.id = a.group_id
-ORDER BY g.sort_order, a.setting_key;
+INSERT OR IGNORE INTO app_settings
+(group_id, setting_key, setting_value, value_type, default_value, is_locked, is_autoload, is_encrypted, description, updated_by, created_at, updated_at)
+SELECT id, 'maintenance.cache.allow_session_cleanup', '0', 'boolean', '0', 0, 0, 0, 'اجازه حذف session فایل‌ها', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM setting_groups WHERE code = 'maintenance';
 
--- 6.2 Typed access (used by SettingsService::get('invoice.prefix'))
-SELECT setting_value, value_type, default_value
-FROM app_settings WHERE setting_key = 'invoice.prefix' LIMIT 1;
+INSERT OR IGNORE INTO app_settings
+(group_id, setting_key, setting_value, value_type, default_value, is_locked, is_autoload, is_encrypted, description, updated_by, created_at, updated_at)
+SELECT id, 'maintenance.cache.run_sqlite_vacuum', '0', 'boolean', '0', 0, 0, 0, 'اجرای VACUUM/ANALYZE SQLite بعد از پاکسازی', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM setting_groups WHERE code = 'maintenance';
 
--- 6.3 Autoload set → warmed into cache on boot (fast path for Electron)
-SELECT setting_key, setting_value, value_type FROM app_settings WHERE is_autoload = 1;
+INSERT OR IGNORE INTO app_settings
+(group_id, setting_key, setting_value, value_type, default_value, is_locked, is_autoload, is_encrypted, description, updated_by, created_at, updated_at)
+SELECT id, 'maintenance.cache.keep_history_days', '90', 'integer', '90', 0, 0, 0, 'مدت نگهداری تاریخچه پاکسازی کش (روز)', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM setting_groups WHERE code = 'maintenance';
 
--- 6.4 Locked (system) settings — never editable via UI
-SELECT * FROM app_settings WHERE is_locked = 1;
+-- 4) کوئری‌های گزارش و مانیتورینگ
 
--- 6.5 Primary store profile (بدون join با shops)
-SELECT *
-FROM store_profiles
-WHERE is_primary = 1 AND status = 'active'
-LIMIT 1;
+-- آخرین عملیات‌ها
+SELECT id, operation, status, is_dry_run, duration_ms, user_id, started_at, finished_at
+FROM cache_maintenance_runs
+ORDER BY id DESC
+LIMIT 20;
 
--- 6.6 Store profile used as invoice/shop header for receipts (PDF + thermal)
-SELECT legal_name, brand_name, phone, email, address_street, address_city,
-       address_province, address_postal, tax_id, currency_code, currency_symbol,
-       logo_path, receipt_footer, working_hours
-FROM store_profiles
-WHERE is_primary = 1 AND status = 'active'
-LIMIT 1;
+-- آخرین خطاها
+SELECT id, operation, status, errors_json, started_at
+FROM cache_maintenance_runs
+WHERE status IN ('failed', 'partial')
+ORDER BY id DESC
+LIMIT 20;
 
--- 6.7 Slug uniqueness guard (before insert/update)
-SELECT id FROM store_profiles WHERE slug = ? LIMIT 1;
+-- آمار موفقیت/خطا
+SELECT status, COUNT(*) AS total
+FROM cache_maintenance_runs
+GROUP BY status;
 
--- 6.8 Low-stock items using the threshold setting (coordinated with items/stock)
-SELECT i.id, i.name, COALESCE(SUM(CASE WHEN sm.movement_type IN ('in','adjust_in') THEN sm.quantity
-                                       WHEN sm.movement_type IN ('out','adjust_out') THEN -sm.quantity ELSE 0 END), 0) AS stock
-FROM items i
-LEFT JOIN stock_movements sm ON sm.item_id = i.id AND sm.deleted_at IS NULL
-GROUP BY i.id
-HAVING stock &lt;= (SELECT CAST(setting_value AS INTEGER) FROM app_settings WHERE setting_key = 'inventory.low_stock_threshold')
-ORDER BY stock ASC;
-
--- 6.9 Next invoice number proposal (coordinated with invoices.invoice_number)
-SELECT MAX(CAST(REPLACE(invoice_number, 'INV-', '') AS INTEGER)) + 1 AS next_number
-FROM invoices WHERE invoice_number LIKE 'INV-%' AND deleted_at IS NULL;
-
--- 6.10 Settings update with audit (respects the lock flag)
-UPDATE app_settings
-SET setting_value = ?, updated_by = ?, updated_at = CURRENT_TIMESTAMP
-WHERE setting_key = ? AND is_locked = 0;</sql><current_tab id="0"/></tab_sql></sqlb_project>
+-- حذف تاریخچه قدیمی بر اساس تنظیمات
+DELETE FROM cache_maintenance_runs
+WHERE created_at &lt; datetime('now', '-' || COALESCE((
+    SELECT setting_value FROM app_settings WHERE setting_key = 'maintenance.cache.keep_history_days'
+), '90') || ' days');
+</sql><current_tab id="0"/></tab_sql></sqlb_project>

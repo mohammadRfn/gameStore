@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ArchiveController;
 use Inertia\Inertia;
 use App\Http\Controllers\BackupController;
+use App\Http\Controllers\CacheMaintenanceController;
 use App\Http\Controllers\StoreProfileController;
 
 // ============================================================
@@ -156,6 +157,15 @@ Route::middleware('auth')->group(function () {
             ->whereNumber('archivedRecordId')
             ->name('destroy');
     });
+    Route::prefix('settings/cache')->name('settings.cache.')->group(function () {
+        Route::get('overview', [CacheMaintenanceController::class, 'overview'])->name('overview');
+        Route::get('targets',  [CacheMaintenanceController::class, 'targets'])->name('targets');
+        Route::post('clear',   [CacheMaintenanceController::class, 'clear'])->name('clear');
+        Route::post('optimize', [CacheMaintenanceController::class, 'optimize'])->name('optimize');
+        Route::get('runs',     [CacheMaintenanceController::class, 'index'])->name('runs.index');
+        Route::get('runs/{runId}', [CacheMaintenanceController::class, 'show'])
+            ->whereNumber('runId')->name('runs.show');
+    });
 
 
     // ---------------- Store Profiles ----------------
@@ -177,22 +187,22 @@ Route::middleware('auth')->group(function () {
     Route::post('settings/sync', [AppSettingsController::class, 'sync'])->name('settings.sync');
 
 
-/*
+    /*
 |--------------------------------------------------------------------------
 | JSON API (Electron renderer / local API) — Sanctum or same-session auth
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth:sanctum')->prefix('api')->group(function () {
-    Route::get('store-profiles', [StoreProfileController::class, 'index']);
-    Route::post('store-profiles', [StoreProfileController::class, 'store']);
-    Route::put('store-profiles/{id}', [StoreProfileController::class, 'update']);
-    Route::delete('store-profiles/{id}', [StoreProfileController::class, 'destroy']);
+    Route::middleware('auth:sanctum')->prefix('api')->group(function () {
+        Route::get('store-profiles', [StoreProfileController::class, 'index']);
+        Route::post('store-profiles', [StoreProfileController::class, 'store']);
+        Route::put('store-profiles/{id}', [StoreProfileController::class, 'update']);
+        Route::delete('store-profiles/{id}', [StoreProfileController::class, 'destroy']);
 
-    Route::get('settings', [AppSettingsController::class, 'index']);
-    Route::put('settings/{key}', [AppSettingsController::class, 'update']);
-    Route::post('settings/bulk-update', [AppSettingsController::class, 'bulkUpdate']);
-    Route::post('settings/sync', [AppSettingsController::class, 'sync']);
-});
+        Route::get('settings', [AppSettingsController::class, 'index']);
+        Route::put('settings/{key}', [AppSettingsController::class, 'update']);
+        Route::post('settings/bulk-update', [AppSettingsController::class, 'bulkUpdate']);
+        Route::post('settings/sync', [AppSettingsController::class, 'sync']);
+    });
     Route::prefix('backups')->name('backups.')->group(function () {
 
         // ---- داشبورد و متادیتا -------------------------------------------------
