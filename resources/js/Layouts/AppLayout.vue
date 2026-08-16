@@ -143,7 +143,8 @@ const quickActions = [
     { label: 'انبار', icon: '📦', route: 'items.index' },
     { label: 'گزارشات', icon: '📊', route: 'stats.daily' },
     { label: 'سرویس', icon: '🔧', route: 'service-jobs.index' },
-    { label: 'آرشیو', icon: '🧾', route: 'archives.panel'},
+    { label: 'آرشیو', icon: '🧾', route: 'archives.panel' },
+    { label: 'بکاپ', icon: '♛', route: 'backups.panel' },
 ]
 
 // Sidebar Groups
@@ -189,6 +190,12 @@ const sidebarGroups = [
         title: 'بایگانی',
         items: [
             { label: 'آرشیو اسناد', icon: '🗄', route: 'archives.panel' },
+        ],
+    },
+    {
+        title: 'امنیت داده',
+        items: [
+            { label: 'مرکز بکاپ', icon: '♛', route: 'backups.panel' },
         ],
     },
 ]
