@@ -17,6 +17,9 @@ use App\Models\ServiceJobServiceType;
 use App\Models\ServiceType;
 use App\Models\StockMovement;
 use App\Models\User;
+use App\Models\AppSetting;
+use App\Models\SettingGroup;
+use App\Models\StoreProfile;
 
 return [
 
@@ -111,6 +114,7 @@ return [
         'migrations', 'sessions', 'cache', 'cache_locks', 'jobs', 'job_batches',
         'failed_jobs', 'password_reset_tokens', 'personal_access_tokens',
         'backup_runs', 'backup_run_entities', 'backup_files', 'backup_run_events', 'backup_settings',
+        'cache_maintenance_runs',
     ],
 
     /*

@@ -125,7 +125,7 @@ class ArchiveService
             });
 
         ServiceRequest::query()
-            ->whereHas('invoice', fn (Builder $q) => $q->where('payment_status', Invoice::PAYMENT_PAID))
+            ->whereHas('invoice', fn(Builder $q) => $q->where('payment_status', Invoice::PAYMENT_PAID))
             ->pluck('id')
             ->each(function ($id) use (&$result, $actorId) {
                 $this->copyPaidToArchive(self::TYPE_REQUEST, (int) $id, $actorId, 'همگام‌سازی خودکار بایگانی');
@@ -133,7 +133,7 @@ class ArchiveService
             });
 
         ServiceJob::query()
-            ->whereHas('invoice', fn (Builder $q) => $q->where('payment_status', Invoice::PAYMENT_PAID))
+            ->whereHas('invoice', fn(Builder $q) => $q->where('payment_status', Invoice::PAYMENT_PAID))
             ->pluck('id')
             ->each(function ($id) use (&$result, $actorId) {
                 $this->copyPaidToArchive(self::TYPE_SERVICE_JOB, (int) $id, $actorId, 'همگام‌سازی خودکار بایگانی');
@@ -168,7 +168,7 @@ class ArchiveService
                 'customer_name'     => $customer['name'],
                 'title'             => $this->makeTitle($sourceType, $source, $invoice),
                 'payment_status'    => $invoice->payment_status,
-                'total_amount'      => $invoice->final_amount ?? $invoice->total_amount,
+                'total_amount'      => $this->resolveArchiveAmount($sourceType, $source, $invoice),
                 'paid_at'           => $invoice->paid_at,
                 'source_created_at' => $source->created_at,
                 'source_updated_at' => $source->updated_at,
@@ -442,5 +442,17 @@ class ArchiveService
             'reason'             => $reason,
             'payload_json'       => $payload,
         ]);
+    }
+    private function resolveArchiveAmount(string $sourceType, Model $source, Invoice $invoice): float
+    {
+        return match ($sourceType) {
+            self::TYPE_SERVICE_JOB => (float) (
+                $source->final_price
+                ?? $source->estimated_price
+                ?? 0
+            ),
+
+            default => (float) ($invoice->final_amount ?? $invoice->total_amount ?? 0),
+        };
     }
 }

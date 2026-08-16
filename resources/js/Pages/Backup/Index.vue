@@ -168,12 +168,12 @@
                   <input v-model="exportForm.label" class="backup-input" placeholder="مثلاً: پایان ماه، قبل از آپدیت، نسخه مشتری" />
                 </div>
                 <div class="backup-field">
-                  <label>از تاریخ میلادی</label>
-                  <input v-model="exportForm.from_date" type="date" class="backup-input" dir="ltr" />
+                  <label>از تاریخ</label>
+                  <JalaliDateInput v-model="exportForm.from_date" placeholder="از تاریخ" />
                 </div>
                 <div class="backup-field">
-                  <label>تا تاریخ میلادی</label>
-                  <input v-model="exportForm.to_date" type="date" class="backup-input" dir="ltr" />
+                  <label>تا تاریخ</label>
+                  <JalaliDateInput v-model="exportForm.to_date" placeholder="تا تاریخ" />
                 </div>
                 <label class="backup-switch">
                   <input v-model="exportForm.include_media" type="checkbox" :disabled="exportForm.mode === 'database'" />
@@ -526,7 +526,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
-
+import JalaliDateInput from '@/Components/JalaliDateInput.vue'
 import BackupConfirmDialog from '@/Components/Backup/BackupConfirmDialog.vue'
 import BackupEntityMatrix from '@/Components/Backup/BackupEntityMatrix.vue'
 import BackupOrbitScene from '@/Components/Backup/BackupOrbitScene.vue'

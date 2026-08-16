@@ -276,7 +276,7 @@ export function useArchiveApi() {
       serviceJobs: list.filter((r) => r.source_type === SOURCE_TYPES.SERVICE_JOB).length,
       copied: list.filter((r) => r.archive_status === ARCHIVE_STATUS.COPIED).length,
       transferred: list.filter((r) => r.archive_status === ARCHIVE_STATUS.TRANSFERRED).length,
-      amount: sum(() => true),
+      amount: sum((r) => r.source_type === SOURCE_TYPES.INVOICE),
     }
   })
 

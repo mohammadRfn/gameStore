@@ -106,21 +106,19 @@
 
       <label class="field">
         <span class="field-label">از تاریخ</span>
-        <input
-          :value="modelValue.from"
-          type="date"
-          class="field-input"
-          @change="update('from', $event.target.value)"
+        <JalaliDateInput
+          :model-value="modelValue.from"
+          placeholder="از تاریخ"
+          @update:model-value="update('from', $event)"
         />
       </label>
 
       <label class="field">
         <span class="field-label">تا تاریخ</span>
-        <input
-          :value="modelValue.to"
-          type="date"
-          class="field-input"
-          @change="update('to', $event.target.value)"
+        <JalaliDateInput
+          :model-value="modelValue.to"
+          placeholder="تا تاریخ"
+          @update:model-value="update('to', $event)"
         />
       </label>
 
@@ -139,7 +137,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { vReveal } from '@/Composables/useTilt'
-
+import JalaliDateInput from '@/Components/JalaliDateInput.vue'
 const props = defineProps({
   modelValue: { type: Object, required: true },
   counts: { type: Object, default: () => ({}) },
