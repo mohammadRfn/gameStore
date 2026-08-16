@@ -11,7 +11,7 @@ class StoreProfileService
 {
     public function getAll(): Collection
     {
-        return StoreProfile::with('shop')
+        return StoreProfile::query()
             ->orderBy('is_primary', 'desc')
             ->orderBy('updated_at', 'desc')
             ->get();
@@ -19,7 +19,7 @@ class StoreProfileService
 
     public function findById(int $id): StoreProfile
     {
-        return StoreProfile::with('shop')->findOrFail($id);
+        return StoreProfile::query()->findOrFail($id);
     }
 
     public function findPrimary(): ?StoreProfile
@@ -72,7 +72,7 @@ class StoreProfileService
 
             $profile->update($data);
 
-            return $profile->fresh('shop');
+            return $profile->fresh();
         });
     }
 
@@ -95,7 +95,7 @@ class StoreProfileService
             $profile = StoreProfile::findOrFail($id);
             $profile->update(['is_primary' => true, 'status' => 'active']);
 
-            return $profile->fresh('shop');
+            return $profile->fresh();
         });
     }
 

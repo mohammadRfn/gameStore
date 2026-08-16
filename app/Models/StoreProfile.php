@@ -3,14 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StoreProfile extends Model
 {
     protected $table = 'store_profiles';
 
     protected $fillable = [
-        'shop_id', 'legal_name', 'brand_name', 'slug',
+        'legal_name', 'brand_name', 'slug',
         'tax_id', 'registration_no', 'founding_date',
         'phone', 'secondary_phone', 'email', 'website', 'instagram', 'telegram',
         'address_street', 'address_city', 'address_province', 'address_postal', 'address_country',
@@ -27,10 +26,6 @@ class StoreProfile extends Model
         'is_primary'     => 'boolean',
     ];
 
-    public function shop(): BelongsTo
-    {
-        return $this->belongsTo(Shop::class, 'shop_id');
-    }
 
     public function scopePrimary($query)
     {
@@ -64,3 +59,4 @@ class StoreProfile extends Model
         return trim(($this->owner_first_name ?? '') . ' ' . ($this->owner_last_name ?? '')) ?: null;
     }
 }
+

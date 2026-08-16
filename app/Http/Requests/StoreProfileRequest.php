@@ -58,7 +58,6 @@ class StoreProfileRequest extends FormRequest
             'slug.required'        => 'شناسه (slug) فروشگاه الزامی است.',
             'slug.unique'          => 'این شناسه قبلاً ثبت شده است.',
             'slug.alpha_dash'      => 'شناسه فقط می‌تواند شامل حروف، عدد، خط تیره و زیرخط باشد.',
-            'shop_id.exists'       => 'فروشگاه انتخاب‌شده معتبر نیست.',
             'fiscal_year_start.between' => 'ماه شروع سال مالی باید بین ۱ تا ۱۲ باشد.',
         ];
     }
