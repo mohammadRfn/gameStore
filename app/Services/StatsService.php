@@ -404,7 +404,9 @@ class StatsService
                 'products' => round($rev, 0),
                 'cogs'     => round($cogs, 0),
                 'profit'   => round($rev - $cogs, 0),
-                'services' => round($svc, 0),
+                'services'        => round($svc, 0),
+                'service_parts'   => round($parts, 0),
+                'service_profit'  => round($svc - $parts, 0),
                 'total'    => round($rev + $svc, 0),
             ];
             $cursor->addDay();

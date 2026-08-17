@@ -127,12 +127,21 @@ function build() {
                     },
                     tooltip: {
                         rtl,
-                        callbacks: { label: (ctx) => ` ${ctx.label}: ${faInt(ctx.parsed)} تومان` },
+                        callbacks: {
+                            label: (ctx) => const props = defineProps({ /* ... */ unit: { type: String, default: 'money' } })
+
+                                function fmtValue(v) {
+                                    const n = Number(v) || 0
+                                    if (props.unit === 'count') return faInt(n) + ' مورد'
+                                    if (props.unit === 'percent') return percent(n)
+                                    return money(n) // «۱٬۲۵۰٬۰۰۰ تومان»
+                                }
+                            },
+                        },
                     },
                 },
-            },
-            plugins: [centerTextPlugin()],
-        })
+                plugins: [centerTextPlugin()],
+            })
         return
     }
 
@@ -188,7 +197,7 @@ function build() {
             interaction: { mode: 'index', intersect: false },
             plugins: {
                 legend: {
-                    display: datasets.length > 1 || props.type !== 'bar' ? datasets.length > 1 : false,
+                    display: datasets.length > 1 || props.type === 'line',
                     rtl,
                     position: 'bottom',
                     labels: { color: legendColor, usePointStyle: true, pointStyle: 'circle', padding: 14, font: { size: 11 } },
@@ -201,7 +210,14 @@ function build() {
                     titleColor: cssVar('--gs-text-primary', '#f4efe4'),
                     bodyColor: cssVar('--gs-text-secondary', '#a9a194'),
                     padding: 10,
-                    callbacks: { label: (ctx) => ` ${ctx.dataset.label || ''}: ${faInt(ctx.parsed.x ?? ctx.parsed.y)} تومان` },
+                    callbacks: {
+                        label: (ctx) => {
+                            // در نمودار عمودی مقدار روی y است و x فقط ایندکس دسته
+                            const v = horizontal ? ctx.parsed.x : ctx.parsed.y
+                            const name = ctx.dataset.label || ctx.label || ''
+                            return ` ${name}: ${fmtValue(v)}`
+                        },
+                    },
                 },
             },
             scales: {
@@ -275,6 +291,7 @@ watch(() => [props.labels, props.datasets, props.type, props.stacked], build, { 
     position: relative;
     width: 100%;
 }
+
 .gs-chart canvas {
     display: block;
 }
