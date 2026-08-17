@@ -3,7 +3,7 @@
         <input type="text" class="gs-input" readonly :value="displayValue" :placeholder="placeholder"
             @click="toggleOpen" />
         <Teleport to="body">
-            <div v-if="open" class="gs-card gs-jdate-popover" :style="popoverStyle">
+            <div v-if="open" ref="popoverRef" class="gs-card gs-jdate-popover" :style="popoverStyle">
                 <div class="gs-jdate-header">
                     <button type="button" class="gs-btn gs-btn-ghost gs-btn-sm" @click="prevMonth">›</button>
                     <span class="gs-jdate-title">{{ monthNames[viewMonth - 1] }} {{ toFa(viewYear) }}</span>
@@ -38,6 +38,7 @@ const emit = defineEmits(['update:modelValue'])
 
 const open = ref(false)
 const wrapperRef = ref(null)
+const popoverRef = ref(null)
 const popoverStyle = ref({})
 const monthNames = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند']
 const weekDays = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج']
@@ -111,8 +112,8 @@ function handleReposition() {
 
 function handleOutsideClick(e) {
     if (!open.value) return
-    const el = wrapperRef.value
-    if (el && el.contains(e.target)) return
+    if (wrapperRef.value && wrapperRef.value.contains(e.target)) return
+    if (popoverRef.value && popoverRef.value.contains(e.target)) return
     open.value = false
 }
 
