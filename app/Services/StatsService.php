@@ -323,6 +323,7 @@ class StatsService
         $end    = $to->copy()->startOfDay();
         $series = [];
 
+        // ── محصولات ─────────────────────────────────────────────
         $itemQuery = OrderItem::query()
             ->join('invoices', 'invoices.id', '=', 'order_items.invoice_id')
             ->leftJoin('items', 'items.id', '=', 'order_items.item_id')
@@ -330,18 +331,18 @@ class StatsService
             ->whereNull('invoices.deleted_at');
 
         if ($paidOnly) {
-            $itemQuery->where('invoices.payment_status', Invoice::PAYMENT_PAID)
+            $itemQuery
+                ->where('invoices.payment_status', Invoice::PAYMENT_PAID)
                 ->whereBetween('invoices.paid_at', [$from, $to]);
         } else {
             $itemQuery->where(function ($q) use ($from, $to) {
                 $q->where(function ($paid) use ($from, $to) {
                     $paid->where('invoices.payment_status', Invoice::PAYMENT_PAID)
                         ->whereBetween('invoices.paid_at', [$from, $to]);
-                })
-                    ->orWhere(function ($unpaid) use ($from, $to) {
-                        $unpaid->where('invoices.payment_status', '!=', Invoice::PAYMENT_PAID)
-                            ->whereBetween('invoices.created_at', [$from, $to]);
-                    });
+                })->orWhere(function ($unpaid) use ($from, $to) {
+                    $unpaid->where('invoices.payment_status', '!=', Invoice::PAYMENT_PAID)
+                        ->whereBetween('invoices.created_at', [$from, $to]);
+                });
             });
         }
 
@@ -349,20 +350,24 @@ class StatsService
 
         if (Schema::hasColumn('order_items', 'is_returned')) {
             $itemQuery->where(function ($q) {
-                $q->where('order_items.is_returned', false)->orWhereNull('order_items.is_returned');
+                $q->where('order_items.is_returned', false)
+                    ->orWhereNull('order_items.is_returned');
             });
         }
 
-        $dateColumn = $paidOnly
-            ? 'invoices.paid_at'
-            : 'COALESCE(CASE WHEN invoices.payment_status = "' . Invoice::PAYMENT_PAID . '" THEN invoices.paid_at ELSE invoices.created_at END, invoices.created_at)';
+        $dateExpr = $paidOnly
+            ? 'DATE(invoices.paid_at)'
+            : "DATE(CASE WHEN invoices.payment_status = '" . Invoice::PAYMENT_PAID . "' THEN invoices.paid_at ELSE invoices.created_at END)";
 
         $itemByDay = $itemQuery
-            ->selectRaw("DATE({$dateColumn}) as d, SUM(order_items.total_price) as revenue, SUM(order_items.quantity * COALESCE(NULLIF(order_items.cost_price, 0), items.purchase_price, 0)) as cogs")
+            ->selectRaw("{$dateExpr} as d,
+            SUM(order_items.total_price) as revenue,
+            SUM(order_items.quantity * COALESCE(NULLIF(order_items.cost_price, 0), items.purchase_price, 0)) as cogs")
             ->groupBy('d')
             ->get()
             ->keyBy('d');
 
+        // ── سرویس‌ها ────────────────────────────────────────────
         $svcQuery = ServiceJob::query()
             ->join('invoices', 'invoices.id', '=', 'service_jobs.invoice_id')
             ->whereNull('service_jobs.deleted_at')
@@ -370,51 +375,52 @@ class StatsService
             ->whereNotIn('service_jobs.status', [ServiceJob::STATUS_CANCELED]);
 
         if ($paidOnly) {
-            $svcQuery->where('invoices.payment_status', Invoice::PAYMENT_PAID)
+            $svcQuery
+                ->where('invoices.payment_status', Invoice::PAYMENT_PAID)
                 ->whereBetween('invoices.paid_at', [$from, $to]);
         } else {
             $svcQuery->where(function ($q) use ($from, $to) {
                 $q->where(function ($paid) use ($from, $to) {
                     $paid->where('invoices.payment_status', Invoice::PAYMENT_PAID)
                         ->whereBetween('invoices.paid_at', [$from, $to]);
-                })
-                    ->orWhere(function ($unpaid) use ($from, $to) {
-                        $unpaid->where('invoices.payment_status', '!=', Invoice::PAYMENT_PAID)
-                            ->whereBetween('invoices.created_at', [$from, $to]);
-                    });
+                })->orWhere(function ($unpaid) use ($from, $to) {
+                    $unpaid->where('invoices.payment_status', '!=', Invoice::PAYMENT_PAID)
+                        ->whereBetween('invoices.created_at', [$from, $to]);
+                });
             });
         }
 
         $this->applyInvoiceFilters($svcQuery, $paidOnly, 'invoices');
 
         $svcByDay = $svcQuery
-            ->selectRaw("DATE({$dateColumn}) as d, SUM(service_jobs.final_price) as revenue")
+            ->selectRaw("{$dateExpr} as d,
+            SUM(service_jobs.final_price) as revenue")
             ->groupBy('d')
             ->get()
             ->keyBy('d');
 
+        // ── ساخت سری زمانی ──────────────────────────────────────
         while ($cursor->lte($end)) {
-            $key = $cursor->toDateString();
-            $rev = (float) ($itemByDay[$key]->revenue ?? 0);
-            $cogs = (float) ($itemByDay[$key]->cogs ?? 0);
-            $svc = (float) ($svcByDay[$key]->revenue ?? 0);
+            $key  = $cursor->toDateString();
+            $rev  = (float) ($itemByDay[$key]->revenue ?? 0);
+            $cogs = (float) ($itemByDay[$key]->cogs    ?? 0);
+            $svc  = (float) ($svcByDay[$key]->revenue  ?? 0);
+
             $series[] = [
                 'date'     => $key,
                 'label'    => $cursor->format('m/d'),
-                'products' => round($rev, 0),
+                'products' => round($rev,  0),
                 'cogs'     => round($cogs, 0),
                 'profit'   => round($rev - $cogs, 0),
-                'services'        => round($svc, 0),
-                'service_parts'   => round($parts, 0),
-                'service_profit'  => round($svc - $parts, 0),
+                'services' => round($svc,  0),
                 'total'    => round($rev + $svc, 0),
             ];
+
             $cursor->addDay();
         }
 
         return $series;
     }
-
     public function paymentMix(Carbon $from, Carbon $to): array
     {
         $amount = $this->invoiceAmountSql();

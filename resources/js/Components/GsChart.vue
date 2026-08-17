@@ -128,20 +128,16 @@ function build() {
                     tooltip: {
                         rtl,
                         callbacks: {
-                            label: (ctx) => const props = defineProps({ /* ... */ unit: { type: String, default: 'money' } })
-
-                                function fmtValue(v) {
-                                    const n = Number(v) || 0
-                                    if (props.unit === 'count') return faInt(n) + ' مورد'
-                                    if (props.unit === 'percent') return percent(n)
-                                    return money(n) // «۱٬۲۵۰٬۰۰۰ تومان»
-                                }
+                            label: (ctx) => {
+                                const v = Number(ctx.parsed) || 0
+                                return ` ${ctx.label}: ${faInt(v)} تومان`
                             },
                         },
                     },
                 },
-                plugins: [centerTextPlugin()],
-            })
+            },
+            plugins: [centerTextPlugin()],
+        })
         return
     }
 
@@ -212,10 +208,10 @@ function build() {
                     padding: 10,
                     callbacks: {
                         label: (ctx) => {
-                            // در نمودار عمودی مقدار روی y است و x فقط ایندکس دسته
+                            // در نمودار عمودی مقدار روی y است؛ x فقط ایندکس دسته است (ریشهٔ باگ «۴ تومان»)
                             const v = horizontal ? ctx.parsed.x : ctx.parsed.y
                             const name = ctx.dataset.label || ctx.label || ''
-                            return ` ${name}: ${fmtValue(v)}`
+                            return ` ${name}: ${faInt(v)} تومان`
                         },
                     },
                 },
