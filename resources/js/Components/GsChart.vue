@@ -8,6 +8,7 @@
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { Chart, registerables } from 'chart.js'
 import { faInt } from '@/Utils/format'
+import { toJalaali } from 'jalaali-js'
 
 Chart.register(...registerables)
 Chart.defaults.font.family = "'Vazir', Tahoma, sans-serif"
@@ -26,6 +27,44 @@ let chart = null
 let themeObserver = null
 
 const PALETTE = ['#e3bd5c', '#5b9df0', '#45d68b', '#9f7bf6', '#f0b04c', '#f06a6a']
+
+/* ---------- تبدیل تاریخ میلادی به شمسی برای برچسب‌ها ---------- */
+
+const FA_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹']
+const JALALI_MONTHS = [
+    'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
+    'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند',
+]
+const DATE_RE = /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/
+
+function toFa(str) {
+    return String(str).replace(/[0-9]/g, (d) => FA_DIGITS[d])
+}
+
+/** اگر برچسب، تاریخ میلادی (YYYY-MM-DD) باشد آبجکت جلالی برمی‌گرداند، وگرنه null */
+function parseGregorianLabel(s) {
+    if (typeof s !== 'string') return null
+    const m = s.match(DATE_RE)
+    if (!m) return null
+    const y = +m[1], mo = +m[2], d = +m[3]
+    // سال‌های خارج از این بازه یعنی برچسب از قبل شمسی است؛ دست نمی‌زنیم
+    if (y < 1700 || y > 2200 || mo < 1 || mo > 12 || d < 1 || d > 31) return null
+    try { return toJalaali(y, mo, d) } catch { return null }
+}
+
+/** برچسب کوتاه محور: «۲۱ مرداد» */
+function jalaliTick(s) {
+    const j = parseGregorianLabel(s)
+    return j ? toFa(j.jd) + ' ' + JALALI_MONTHS[j.jm - 1] : null
+}
+
+/** عنوان کامل تولتیپ: «۲۱ مرداد ۱۴۰۳» */
+function jalaliFull(s) {
+    const j = parseGregorianLabel(s)
+    return j ? toFa(j.jd) + ' ' + JALALI_MONTHS[j.jm - 1] + ' ' + toFa(j.jy) : null
+}
+
+/* -------------------------------------------------------------- */
 
 function cssVar(name, fallback) {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
@@ -77,7 +116,7 @@ function build() {
     const legendColor = cssVar('--gs-text-secondary', '#a9a194')
     const rtl = true
 
-    // تیک محور دسته‌ای (برچسب‌ها) — برای هر دو جهت
+    // تیک محور دسته‌ای (برچسب‌ها) — تاریخ میلادی خودکار شمسی می‌شود
     const catTicks = () => ({
         color: tickColor,
         font: { size: 10 },
@@ -85,10 +124,12 @@ function build() {
         autoSkip: true,
         autoSkipPadding: 6,
         callback: function (val, i) {
-            const n = this.getLabelForValue(val)
+            const raw = this.getLabelForValue(val)
             const max = labels.length
             if (max > 16 && i % Math.ceil(max / 14) !== 0) return ''
-            return typeof n === 'string' && n.length > 12 ? n.slice(0, 11) + '…' : n
+            const fa = jalaliTick(raw)
+            if (fa) return fa // «۲۱ مرداد» به‌جای 2025-08-12
+            return typeof raw === 'string' && raw.length > 12 ? raw.slice(0, 11) + '…' : raw
         },
     })
 
@@ -98,6 +139,12 @@ function build() {
         font: { size: 10 },
         callback: (v) => short(v),
     })
+
+    // عنوان تولتیپ: اگر برچسب تاریخ بود، شمسیِ کامل نمایش بده
+    const tooltipTitle = (items) => {
+        const raw = items?.[0]?.label ?? ''
+        return jalaliFull(raw) || raw
+    }
 
     if (props.type === 'doughnut') {
         const ds = datasets[0] || { data: [], color: pal[0] }
@@ -128,9 +175,10 @@ function build() {
                     tooltip: {
                         rtl,
                         callbacks: {
+                            title: tooltipTitle,
                             label: (ctx) => {
                                 const v = Number(ctx.parsed) || 0
-                                return ` ${ctx.label}: ${faInt(v)} تومان`
+                                return ` ${jalaliFull(ctx.label) || ctx.label}: ${faInt(v)} تومان`
                             },
                         },
                     },
@@ -207,8 +255,9 @@ function build() {
                     bodyColor: cssVar('--gs-text-secondary', '#a9a194'),
                     padding: 10,
                     callbacks: {
+                        title: tooltipTitle,
                         label: (ctx) => {
-                            // در نمودار عمودی مقدار روی y است؛ x فقط ایندکس دسته است (ریشهٔ باگ «۴ تومان»)
+                            // در نمودار عمودی مقدار روی y است؛ x فقط ایندکس دسته است
                             const v = horizontal ? ctx.parsed.x : ctx.parsed.y
                             const name = ctx.dataset.label || ctx.label || ''
                             return ` ${name}: ${faInt(v)} تومان`
