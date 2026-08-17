@@ -1,31 +1,33 @@
 <template>
-    <div class="gs-jdate">
+    <div ref="wrapperRef" class="gs-jdate">
         <input type="text" class="gs-input" readonly :value="displayValue" :placeholder="placeholder"
             @click="toggleOpen" />
-        <div v-if="open" class="gs-card gs-jdate-popover">
-            <div class="gs-jdate-header">
-                <button type="button" class="gs-btn gs-btn-ghost gs-btn-sm" @click="prevMonth">›</button>
-                <span class="gs-jdate-title">{{ monthNames[viewMonth - 1] }} {{ toFa(viewYear) }}</span>
-                <button type="button" class="gs-btn gs-btn-ghost gs-btn-sm" @click="nextMonth">‹</button>
+        <Teleport to="body">
+            <div v-if="open" class="gs-card gs-jdate-popover" :style="popoverStyle">
+                <div class="gs-jdate-header">
+                    <button type="button" class="gs-btn gs-btn-ghost gs-btn-sm" @click="prevMonth">›</button>
+                    <span class="gs-jdate-title">{{ monthNames[viewMonth - 1] }} {{ toFa(viewYear) }}</span>
+                    <button type="button" class="gs-btn gs-btn-ghost gs-btn-sm" @click="nextMonth">‹</button>
+                </div>
+                <div class="gs-jdate-grid">
+                    <span v-for="d in weekDays" :key="d" class="gs-jdate-weekday">{{ d }}</span>
+                    <span v-for="n in leadingBlanks" :key="'b' + n" class="gs-jdate-blank"></span>
+                    <button v-for="day in daysInMonth" :key="day" type="button" class="gs-jdate-day"
+                        :class="{ active: isSelected(day) }" @click="pickDay(day)">
+                        {{ toFa(day) }}
+                    </button>
+                </div>
+                <div class="gs-jdate-footer">
+                    <button type="button" class="gs-btn gs-btn-ghost gs-btn-sm" @click="pickToday">امروز</button>
+                    <button type="button" class="gs-btn gs-btn-ghost gs-btn-sm" @click="clear">پاک کردن</button>
+                </div>
             </div>
-            <div class="gs-jdate-grid">
-                <span v-for="d in weekDays" :key="d" class="gs-jdate-weekday">{{ d }}</span>
-                <span v-for="n in leadingBlanks" :key="'b' + n" class="gs-jdate-blank"></span>
-                <button v-for="day in daysInMonth" :key="day" type="button" class="gs-jdate-day"
-                    :class="{ active: isSelected(day) }" @click="pickDay(day)">
-                    {{ toFa(day) }}
-                </button>
-            </div>
-            <div class="gs-jdate-footer">
-                <button type="button" class="gs-btn gs-btn-ghost gs-btn-sm" @click="pickToday">امروز</button>
-                <button type="button" class="gs-btn gs-btn-ghost gs-btn-sm" @click="clear">پاک کردن</button>
-            </div>
-        </div>
+        </Teleport>
     </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onBeforeUnmount, nextTick } from 'vue'
 import { toJalaali, toGregorian, jalaaliMonthLength } from 'jalaali-js'
 
 const props = defineProps({
@@ -35,6 +37,8 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const open = ref(false)
+const wrapperRef = ref(null)
+const popoverStyle = ref({})
 const monthNames = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند']
 const weekDays = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج']
 
@@ -78,7 +82,49 @@ const leadingBlanks = computed(() => {
     return (jsDay + 1) % 7 // shift so Saturday = 0
 })
 
-function toggleOpen() { open.value = !open.value }
+function toggleOpen() {
+    open.value = !open.value
+    if (open.value) nextTick(updatePopoverPosition)
+}
+
+function updatePopoverPosition() {
+    const el = wrapperRef.value
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const width = Math.max(rect.width, 260)
+    let right = window.innerWidth - rect.right
+    if (right + width > window.innerWidth) {
+        right = Math.max(8, window.innerWidth - width - 8)
+    }
+    popoverStyle.value = {
+        position: 'fixed',
+        top: `${rect.bottom + 4}px`,
+        right: `${right}px`,
+        width: `${width}px`,
+        zIndex: 1000,
+    }
+}
+
+function handleReposition() {
+    if (open.value) updatePopoverPosition()
+}
+
+function handleOutsideClick(e) {
+    if (!open.value) return
+    const el = wrapperRef.value
+    if (el && el.contains(e.target)) return
+    open.value = false
+}
+
+window.addEventListener('scroll', handleReposition, true)
+window.addEventListener('resize', handleReposition)
+document.addEventListener('mousedown', handleOutsideClick)
+
+onBeforeUnmount(() => {
+    window.removeEventListener('scroll', handleReposition, true)
+    window.removeEventListener('resize', handleReposition)
+    document.removeEventListener('mousedown', handleOutsideClick)
+})
 
 function prevMonth() {
     viewMonth.value--
@@ -123,11 +169,6 @@ function clear() {
 }
 
 .gs-jdate-popover {
-    position: absolute;
-    z-index: 40;
-    top: calc(100% + 4px);
-    right: 0;
-    width: 260px;
     padding: .75rem;
 }
 

@@ -6,6 +6,7 @@ use App\Exports\Concerns\FormatsArchiveExports;
 use App\Models\ArchivedRecord;
 use App\Services\ArchiveService;
 use Illuminate\Support\Collection;
+use Maatwebsite\Excel\Concerns\Export;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithEvents;
@@ -18,6 +19,7 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class ArchivedRequestsExport implements
+    Export,
     FromCollection,
     WithHeadings,
     WithMapping,

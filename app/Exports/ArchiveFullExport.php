@@ -2,13 +2,14 @@
 
 namespace App\Exports;
 
+use Maatwebsite\Excel\Concerns\Export;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 
 /**
  * یک فایل اکسل با سه شیت جداگانه (فاکتورها / درخواست‌ها / سرویس‌ها)
  * برای وقتی که کاربر بخواهد یک‌جا کل بایگانی را خروجی بگیرد.
  */
-class ArchiveFullExport implements WithMultipleSheets
+class ArchiveFullExport implements Export, WithMultipleSheets
 {
     public function __construct(
         protected array $filters = [],
