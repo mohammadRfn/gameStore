@@ -134,8 +134,23 @@ class StatsService
             ->leftJoin('categories', 'categories.id', '=', 'order_items.category_id')
             ->join('invoices', 'invoices.id', '=', 'order_items.invoice_id')
             ->whereNull('order_items.deleted_at')
-            ->whereNull('invoices.deleted_at')
-            ->whereBetween('invoices.created_at', [$from, $to]);
+            ->whereNull('invoices.deleted_at');
+
+        if ($paidOnly) {
+            $query->where('invoices.payment_status', Invoice::PAYMENT_PAID)
+                ->whereBetween('invoices.paid_at', [$from, $to]);
+        } else {
+            $query->where(function ($q) use ($from, $to) {
+                $q->where(function ($paid) use ($from, $to) {
+                    $paid->where('invoices.payment_status', Invoice::PAYMENT_PAID)
+                        ->whereBetween('invoices.paid_at', [$from, $to]);
+                })
+                    ->orWhere(function ($unpaid) use ($from, $to) {
+                        $unpaid->where('invoices.payment_status', '!=', Invoice::PAYMENT_PAID)
+                            ->whereBetween('invoices.created_at', [$from, $to]);
+                    });
+            });
+        }
 
         $this->applyInvoiceFilters($query, $paidOnly, 'invoices');
 
@@ -149,15 +164,15 @@ class StatsService
         $rows = $query
             ->groupBy('order_items.item_id', 'order_items.product_name', 'categories.name')
             ->selectRaw('
-                order_items.item_id as item_id,
-                order_items.product_name as name,
-                categories.name as category,
-               SUM(order_items.quantity) as qty,
-                SUM(order_items.total_price) as revenue,
-                SUM(order_items.quantity * COALESCE(NULLIF(order_items.cost_price, 0), items.purchase_price, 0)) as cogs,
-                AVG(order_items.price) as avg_sell,
-                AVG(COALESCE(NULLIF(order_items.cost_price, 0), items.purchase_price, 0)) as avg_buy
-            ')
+            order_items.item_id as item_id,
+            order_items.product_name as name,
+            categories.name as category,
+           SUM(order_items.quantity) as qty,
+            SUM(order_items.total_price) as revenue,
+            SUM(order_items.quantity * COALESCE(NULLIF(order_items.cost_price, 0), items.purchase_price, 0)) as cogs,
+            AVG(order_items.price) as avg_sell,
+            AVG(COALESCE(NULLIF(order_items.cost_price, 0), items.purchase_price, 0)) as avg_buy
+        ')
             ->get();
 
         $stock = $this->stockSnapshot($rows->pluck('item_id')->filter()->all());
@@ -193,16 +208,31 @@ class StatsService
             ->whereNotIn('status', [ServiceJob::STATUS_CANCELED])
             ->where(function ($q) use ($from, $to, $paidOnly) {
                 $q->whereHas('invoice', function ($invoice) use ($from, $to, $paidOnly) {
-                    $invoice->whereBetween('created_at', [$from, $to]);
-                    $this->applyInvoiceFilters($invoice, $paidOnly);
-                })->orWhere(function ($open) use ($from, $to) {
-                    $open->whereNull('invoice_id')
-                        ->where(function ($dates) use ($from, $to) {
-                            $dates->whereBetween('completed_at', [$from, $to])
-                                ->orWhereBetween('delivered_at', [$from, $to])
-                                ->orWhereBetween('created_at', [$from, $to]);
+                    if ($paidOnly) {
+                        $invoice->where('payment_status', Invoice::PAYMENT_PAID)
+                            ->whereBetween('paid_at', [$from, $to]);
+                    } else {
+                        $invoice->where(function ($q2) use ($from, $to) {
+                            $q2->where(function ($paid) use ($from, $to) {
+                                $paid->where('payment_status', Invoice::PAYMENT_PAID)
+                                    ->whereBetween('paid_at', [$from, $to]);
+                            })
+                                ->orWhere(function ($unpaid) use ($from, $to) {
+                                    $unpaid->where('payment_status', '!=', Invoice::PAYMENT_PAID)
+                                        ->whereBetween('created_at', [$from, $to]);
+                                });
                         });
-                });
+                    }
+                    $this->applyInvoiceFilters($invoice, $paidOnly);
+                })
+                    ->orWhere(function ($open) use ($from, $to) {
+                        $open->whereNull('invoice_id')
+                            ->where(function ($dates) use ($from, $to) {
+                                $dates->whereBetween('completed_at', [$from, $to])
+                                    ->orWhereBetween('delivered_at', [$from, $to])
+                                    ->orWhereBetween('created_at', [$from, $to]);
+                            });
+                    });
             })
             ->get();
 
@@ -236,15 +266,23 @@ class StatsService
             ];
         })->sortByDesc('revenue')->values();
     }
-
     public function invoiceRows(Carbon $from, Carbon $to): Collection
     {
         $amount = $this->invoiceAmountSql('invoices');
 
         return Invoice::query()
             ->with(['customer:id,name', 'orderItems', 'serviceJobs'])
-            ->whereBetween('created_at', [$from, $to])
-            ->latest()
+            ->where(function ($q) use ($from, $to) {
+                $q->where(function ($paid) use ($from, $to) {
+                    $paid->where('payment_status', Invoice::PAYMENT_PAID)
+                        ->whereBetween('paid_at', [$from, $to]);
+                })
+                    ->orWhere(function ($unpaid) use ($from, $to) {
+                        $unpaid->where('payment_status', '!=', Invoice::PAYMENT_PAID)
+                            ->whereBetween('created_at', [$from, $to]);
+                    });
+            })
+            ->latest('id')
             ->get()
             ->map(function (Invoice $invoice) {
                 $items = (float) $invoice->orderItems
@@ -289,16 +327,38 @@ class StatsService
             ->join('invoices', 'invoices.id', '=', 'order_items.invoice_id')
             ->leftJoin('items', 'items.id', '=', 'order_items.item_id')
             ->whereNull('order_items.deleted_at')
-            ->whereNull('invoices.deleted_at')
-            ->whereBetween('invoices.created_at', [$from, $to]);
+            ->whereNull('invoices.deleted_at');
+
+        if ($paidOnly) {
+            $itemQuery->where('invoices.payment_status', Invoice::PAYMENT_PAID)
+                ->whereBetween('invoices.paid_at', [$from, $to]);
+        } else {
+            $itemQuery->where(function ($q) use ($from, $to) {
+                $q->where(function ($paid) use ($from, $to) {
+                    $paid->where('invoices.payment_status', Invoice::PAYMENT_PAID)
+                        ->whereBetween('invoices.paid_at', [$from, $to]);
+                })
+                    ->orWhere(function ($unpaid) use ($from, $to) {
+                        $unpaid->where('invoices.payment_status', '!=', Invoice::PAYMENT_PAID)
+                            ->whereBetween('invoices.created_at', [$from, $to]);
+                    });
+            });
+        }
+
         $this->applyInvoiceFilters($itemQuery, $paidOnly, 'invoices');
+
         if (Schema::hasColumn('order_items', 'is_returned')) {
             $itemQuery->where(function ($q) {
                 $q->where('order_items.is_returned', false)->orWhereNull('order_items.is_returned');
             });
         }
+
+        $dateColumn = $paidOnly
+            ? 'invoices.paid_at'
+            : 'COALESCE(CASE WHEN invoices.payment_status = "' . Invoice::PAYMENT_PAID . '" THEN invoices.paid_at ELSE invoices.created_at END, invoices.created_at)';
+
         $itemByDay = $itemQuery
-            ->selectRaw('DATE(invoices.created_at) as d, SUM(order_items.total_price) as revenue, SUM(order_items.quantity * COALESCE(NULLIF(order_items.cost_price, 0), items.purchase_price, 0)) as cogs')
+            ->selectRaw("DATE({$dateColumn}) as d, SUM(order_items.total_price) as revenue, SUM(order_items.quantity * COALESCE(NULLIF(order_items.cost_price, 0), items.purchase_price, 0)) as cogs")
             ->groupBy('d')
             ->get()
             ->keyBy('d');
@@ -307,11 +367,28 @@ class StatsService
             ->join('invoices', 'invoices.id', '=', 'service_jobs.invoice_id')
             ->whereNull('service_jobs.deleted_at')
             ->whereNull('invoices.deleted_at')
-            ->whereNotIn('service_jobs.status', [ServiceJob::STATUS_CANCELED])
-            ->whereBetween('invoices.created_at', [$from, $to]);
+            ->whereNotIn('service_jobs.status', [ServiceJob::STATUS_CANCELED]);
+
+        if ($paidOnly) {
+            $svcQuery->where('invoices.payment_status', Invoice::PAYMENT_PAID)
+                ->whereBetween('invoices.paid_at', [$from, $to]);
+        } else {
+            $svcQuery->where(function ($q) use ($from, $to) {
+                $q->where(function ($paid) use ($from, $to) {
+                    $paid->where('invoices.payment_status', Invoice::PAYMENT_PAID)
+                        ->whereBetween('invoices.paid_at', [$from, $to]);
+                })
+                    ->orWhere(function ($unpaid) use ($from, $to) {
+                        $unpaid->where('invoices.payment_status', '!=', Invoice::PAYMENT_PAID)
+                            ->whereBetween('invoices.created_at', [$from, $to]);
+                    });
+            });
+        }
+
         $this->applyInvoiceFilters($svcQuery, $paidOnly, 'invoices');
+
         $svcByDay = $svcQuery
-            ->selectRaw('DATE(invoices.created_at) as d, SUM(service_jobs.final_price) as revenue')
+            ->selectRaw("DATE({$dateColumn}) as d, SUM(service_jobs.final_price) as revenue")
             ->groupBy('d')
             ->get()
             ->keyBy('d');
@@ -341,7 +418,16 @@ class StatsService
         $amount = $this->invoiceAmountSql();
 
         return Invoice::query()
-            ->whereBetween('created_at', [$from, $to])
+            ->where(function ($q) use ($from, $to) {
+                $q->where(function ($paid) use ($from, $to) {
+                    $paid->where('payment_status', Invoice::PAYMENT_PAID)
+                        ->whereBetween('paid_at', [$from, $to]);
+                })
+                    ->orWhere(function ($unpaid) use ($from, $to) {
+                        $unpaid->where('payment_status', '!=', Invoice::PAYMENT_PAID)
+                            ->whereBetween('created_at', [$from, $to]);
+                    });
+            })
             ->where(function ($q) {
                 $q->where('is_returned', false)->orWhereNull('is_returned');
             })
@@ -392,10 +478,19 @@ class StatsService
 
         return Invoice::query()
             ->where('is_returned', false)
-            ->whereBetween('created_at', [$from, $to])
-            ->selectRaw("created_at, payment_status, {$amountSql} as amount")
+            ->where(function ($q) use ($from, $to) {
+                $q->where(function ($paid) use ($from, $to) {
+                    $paid->where('payment_status', Invoice::PAYMENT_PAID)
+                        ->whereBetween('paid_at', [$from, $to]);
+                })
+                    ->orWhere(function ($unpaid) use ($from, $to) {
+                        $unpaid->where('payment_status', '!=', Invoice::PAYMENT_PAID)
+                            ->whereBetween('created_at', [$from, $to]);
+                    });
+            })
+            ->selectRaw("COALESCE(paid_at, created_at) as ref_date, payment_status, {$amountSql} as amount")
             ->get()
-            ->groupBy(fn($invoice) => $invoice->created_at->format('Y-m'))
+            ->groupBy(fn($invoice) => Carbon::parse($invoice->ref_date)->format('Y-m'))
             ->map(fn($group, $ym) => [
                 'period'    => $ym,
                 'count'     => $group->count(),
