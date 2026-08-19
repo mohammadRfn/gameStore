@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Item;
 use App\Models\ServiceJob;
 use App\Models\ServiceJobItem;
 use Illuminate\Support\Facades\DB;
@@ -130,6 +131,8 @@ class ServiceJobService
                 $totalPrice = $quantity * $unitPrice;
 
                 if (!empty($row['id']) && in_array($row['id'], $existingIds)) {
+                    // فقط تعداد/قیمت آپدیت می‌شود؛ cost_price (بهای خرید) دست نمی‌خورد
+                    // چون snapshot لحظهٔ ساخت است و نباید با قیمت خرید امروزِ کالا عوض شود.
                     ServiceJobItem::where('id', $row['id'])->update([
                         'item_id'     => $row['item_id'],
                         'quantity'    => $quantity,
@@ -138,12 +141,15 @@ class ServiceJobService
                     ]);
                     $keepIds[] = $row['id'];
                 } else {
+                    $costPrice = Item::find($row['item_id'])?->purchase_price ?? 0;
+
                     $created = ServiceJobItem::create([
                         'service_job_id' => $serviceJob->id,
                         'item_id'        => $row['item_id'],
                         'quantity'       => $quantity,
                         'unit_price'     => $unitPrice,
                         'total_price'    => $totalPrice,
+                        'cost_price'     => $costPrice,
                     ]);
                     $keepIds[] = $created->id;
                 }

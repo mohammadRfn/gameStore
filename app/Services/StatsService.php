@@ -14,6 +14,7 @@ use App\Models\StockMovement;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
+use App\Models\ServiceType;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -204,7 +205,7 @@ class StatsService
     public function serviceRows(Carbon $from, Carbon $to, bool $paidOnly): Collection
     {
         $jobs = ServiceJob::query()
-            ->with(['serviceType', 'items.item'])
+            ->with(['serviceTypes.serviceType', 'items.item'])
             ->whereNotIn('status', [ServiceJob::STATUS_CANCELED])
             ->where(function ($q) use ($from, $to, $paidOnly) {
                 $q->whereHas('invoice', function ($invoice) use ($from, $to, $paidOnly) {
@@ -224,8 +225,10 @@ class StatsService
                         });
                     }
                     $this->applyInvoiceFilters($invoice, $paidOnly);
-                })
-                    ->orWhere(function ($open) use ($from, $to) {
+                });
+
+                if (! $paidOnly) {
+                    $q->orWhere(function ($open) use ($from, $to) {
                         $open->whereNull('invoice_id')
                             ->where(function ($dates) use ($from, $to) {
                                 $dates->whereBetween('completed_at', [$from, $to])
@@ -233,31 +236,72 @@ class StatsService
                                     ->orWhereBetween('created_at', [$from, $to]);
                             });
                     });
+                }
             })
             ->get();
 
-        return $jobs->groupBy(fn($job) => $job->service_type_id ?: 0)->map(function ($group) {
-            $partsCost = 0.0;
-            $partsSale = 0.0;
-            foreach ($group as $job) {
-                foreach ($job->items as $line) {
-                    $partsSale += (float) $line->total_price;
-                    $buy = (float) ($line->item?->purchase_price ?? 0);
-                    $partsCost += $buy * (int) $line->quantity;
-                }
+        if ($jobs->isEmpty()) {
+            return collect();
+        }
+
+        // هر کار را به ازای هر نوع سرویسش می‌شکنیم و final_price را به نسبت price هر نوع تقسیم می‌کنیم
+        $expanded = $jobs->flatMap(function ($job) {
+            $types = $job->serviceTypes;
+
+            // فالبک برای رکوردهای خیلی قدیمی که فقط ستون تکی service_type_id را دارند
+            if ($types->isEmpty()) {
+                $legacyType = $job->service_type_id ? ServiceType::find($job->service_type_id) : null;
+
+                $types = collect([(object) [
+                    'service_type_id' => $job->service_type_id,
+                    'serviceType'     => $legacyType,
+                    'price'           => (float) $job->final_price,
+                ]]);
             }
 
-            $revenue = (float) $group->sum('final_price');
-            $wait    = $group->whereNotIn('status', [
-                ServiceJob::STATUS_COMPLETED,
-                ServiceJob::STATUS_DELIVERED,
-            ])->count();
+            $priceSum = (float) $types->sum(fn($t) => (float) $t->price);
+            $count    = $types->count();
+
+            $partsCost = 0.0;
+            $partsSale = 0.0;
+            foreach ($job->items as $line) {
+                $partsSale += (float) $line->total_price;
+                // اول cost_price ثبت‌شده روی خودِ قلم (snapshot لحظهٔ افزودن)؛
+                // فقط برای رکوردهای خیلی قدیمی که این ستون هنوز خالی است، به قیمت زندهٔ کالا فال‌بک می‌کنیم.
+                $unitCost = $line->cost_price ?: ($line->item?->purchase_price ?? 0);
+                $partsCost += (float) $unitCost * (int) $line->quantity;
+            }
+
+            $isWaiting = ! in_array($job->status, [ServiceJob::STATUS_COMPLETED, ServiceJob::STATUS_DELIVERED]);
+
+            return $types->map(function ($t) use ($job, $priceSum, $count, $partsCost, $partsSale, $isWaiting) {
+                $price = (float) $t->price;
+                $ratio = $priceSum > 0 ? ($price / $priceSum) : (1 / max($count, 1));
+
+                return [
+                    'service_type_id' => $t->service_type_id ?: 0,
+                    'type_name'       => $t->serviceType?->name ?: 'بدون نوع',
+                    'job_id'          => $job->id,
+                    'revenue'         => (float) $job->final_price * $ratio,
+                    'parts_cost'      => $partsCost * $ratio,
+                    'parts_sale'      => $partsSale * $ratio,
+                    'waiting'         => $isWaiting,
+                ];
+            });
+        });
+
+        return $expanded->groupBy('service_type_id')->map(function ($group) {
+            $revenue   = (float) $group->sum('revenue');
+            $partsCost = (float) $group->sum('parts_cost');
+            $partsSale = (float) $group->sum('parts_sale');
+            $jobsCount = $group->pluck('job_id')->unique()->count();
+            $wait      = $group->where('waiting', true)->pluck('job_id')->unique()->count();
 
             return [
-                'service_type_id' => $group->first()->service_type_id,
-                'name'            => $group->first()->serviceType?->name ?: 'بدون نوع',
-                'jobs'            => $group->count(),
-                'avg'             => $group->count() ? round($revenue / $group->count(), 0) : 0,
+                'service_type_id' => $group->first()['service_type_id'],
+                'name'            => $group->first()['type_name'],
+                'jobs'            => $jobsCount,
+                'avg'             => $jobsCount ? round($revenue / $jobsCount, 0) : 0,
                 'revenue'         => round($revenue, 0),
                 'parts_cost'      => round($partsCost, 0),
                 'parts_sale'      => round($partsSale, 0),
@@ -578,10 +622,16 @@ class StatsService
             ->whereNotIn('status', [ServiceJob::STATUS_CANCELED])
             ->whereBetween('completed_at', [$from, $to])
             ->where(function ($q) use ($paidOnly) {
-                $q->whereNull('invoice_id')
-                    ->orWhereHas('invoice', function ($invoice) use ($paidOnly) {
+                if ($paidOnly) {
+                    $q->whereHas('invoice', function ($invoice) use ($paidOnly) {
                         $this->applyInvoiceFilters($invoice, $paidOnly);
                     });
+                } else {
+                    $q->whereNull('invoice_id')
+                        ->orWhereHas('invoice', function ($invoice) use ($paidOnly) {
+                            $this->applyInvoiceFilters($invoice, $paidOnly);
+                        });
+                }
             })
             ->get(['completed_at', 'final_price']);
 

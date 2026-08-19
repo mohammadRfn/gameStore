@@ -9,110 +9,57 @@
             </template>
         </StatHero>
 
-        <RangeFilter
-            :from="from"
-            :to="to"
-            :paid-only="paidOnly"
-            :range="range"
-            route-name="stats.index"
-            class="mb"
-        />
+        <RangeFilter :from="from" :to="to" :paid-only="paidOnly" :range="range" route-name="stats.index" class="mb" />
 
         <!-- KPI -->
-        <div class="gs-kpi-grid gs-stagger">
-            <KpiCard
-                label="درآمد کل"
-                :value="compactMoney(kpi.gross)"
-                :delta="compare.gross"
-                :icon="Wallet"
-                tone="gold"
-                :spark="dailyTotals"
-            />
-            <KpiCard
-                label="سود خالص"
-                :value="compactMoney(kpi.net_profit)"
-                :delta="compare.net_profit"
-                :icon="TrendingUp"
-                tone="green"
-                :spark="dailyProfits"
-            />
-            <KpiCard
-                label="درآمد کالا"
-                :value="compactMoney(kpi.product_revenue)"
-                :icon="Package"
-                tone="gold"
-                :footnote="'بهای تمام‌شده: ' + compactMoney(kpi.product_cogs)"
-            />
-            <KpiCard
-                label="سود کالا"
-                :value="compactMoney(kpi.product_profit)"
-                :delta="compare.product_profit"
-                :icon="Layers"
-                tone="green"
-                :spark="dailyProfits"
-            />
-            <KpiCard
-                label="درآمد سرویس"
-                :value="compactMoney(kpi.service_revenue)"
-                :delta="compare.service_revenue"
-                :icon="Wrench"
-                tone="blue"
-                :spark="dailyServices"
-            />
-            <KpiCard
-                label="وصول‌شده"
-                :value="compactMoney(kpi.collected)"
-                :delta="compare.collected"
-                :icon="Banknote"
-                tone="green"
-            />
-            <KpiCard
-                label="معوق"
-                :value="compactMoney(kpi.outstanding)"
-                :delta="compare.outstanding"
-                :invert="true"
-                :icon="Clock"
-                tone="red"
-                :footnote="'مرجوعی: ' + compactMoney(kpi.returned)"
-            />
-            <KpiCard
-                label="فاکتورها"
-                :value="faInt(kpi.invoice_count)"
-                :icon="Receipt"
-                tone="violet"
-                :footnote="'وصول‌شده: ' + faInt(kpi.paid_count)"
-            />
+        <!-- ردیف اول: ۵ کارت -->
+        <div class="gs-kpi-grid gs-kpi-grid-5 gs-stagger">
+            <KpiCard label="درآمد کل" :value="money(kpi.gross)" :delta="compare.gross" :icon="Wallet" tone="gold"
+                :spark="dailyTotals" />
+            <KpiCard label="فاکتورها" :value="faInt(kpi.invoice_count)" :icon="Receipt" tone="violet"
+                :footnote="'وصول‌شده: ' + faInt(kpi.paid_count)" />
+            <KpiCard label="درآمد کالا" :value="money(kpi.product_revenue)" :icon="Package" tone="gold"
+                :footnote="'بهای تمام‌شده: ' + money(kpi.product_cogs)" />
+            <KpiCard label="سود کالا" :value="money(kpi.product_profit)" :delta="compare.product_profit" :icon="Layers"
+                tone="green" :spark="dailyProfits" />
+            <KpiCard label="درآمد سرویس" :value="money(kpi.service_revenue)" :delta="compare.service_revenue"
+                :icon="Wrench" tone="blue" :spark="dailyServices" />
+        </div>
+
+        <!-- ردیف دوم: ۳ کارت -->
+        <div class="gs-kpi-grid gs-kpi-grid-3 gs-stagger">
+            <KpiCard label="وصول‌شده" :value="money(kpi.collected)" :delta="compare.collected" :icon="Banknote"
+                tone="green" />
+            <KpiCard label="معوق" :value="money(kpi.outstanding)" :delta="compare.outstanding" :invert="true"
+                :icon="Clock" tone="red" :footnote="'مرجوعی: ' + money(kpi.returned)" />
+           
+                <KpiCard label="سود خالص" :value="money(kpi.net_profit)" :delta="compare.net_profit" :icon="TrendingUp"
+                tone="green" :spark="dailyProfits" />
         </div>
 
         <!-- روند + ترکیب -->
         <div class="gs-grid-2">
             <section class="gs-card">
                 <div class="gs-card-head">
-                    <h3 class="gs-card-title"><BarChart3 class="ic" :size="17" /> روند روزانهٔ درآمد</h3>
+                    <h3 class="gs-card-title">
+                        <BarChart3 class="ic" :size="17" /> روند روزانهٔ درآمد
+                    </h3>
                     <span class="gs-label">کالا + سرویس</span>
                 </div>
-                <GsChart
-                    type="bar"
-                    :stacked="true"
-                    :labels="dailyLabels"
-                    :datasets="[
-                        { label: 'کالا', data: dailyProducts, color: '#e3bd5c' },
-                        { label: 'سرویس', data: dailyServices, color: '#5b9df0' },
-                    ]"
-                    :height="270"
-                />
+                <GsChart type="bar" :stacked="false" :labels="dailyLabels" :datasets="[
+                    { label: 'کالا', data: dailyProducts, color: '#e3bd5c' },
+                    { label: 'سرویس', data: dailyServices, color: '#5b9df0' },
+                ]" :height="270" />
             </section>
 
             <section class="gs-card">
                 <div class="gs-card-head">
-                    <h3 class="gs-card-title"><PieChart class="ic" :size="17" /> ترکیب درآمد</h3>
+                    <h3 class="gs-card-title">
+                        <PieChart class="ic" :size="17" /> ترکیب درآمد
+                    </h3>
                 </div>
-                <GsChart
-                    type="doughnut"
-                    :labels="['سود کالا', 'بهای تمام‌شده', 'درآمد سرویس']"
-                    :datasets="[{ data: mixData }]"
-                    :height="270"
-                />
+                <GsChart type="doughnut" :labels="['سود کالا', 'بهای تمام‌شده', 'درآمد سرویس']"
+                    :datasets="[{ data: mixData }]" :height="270" />
             </section>
         </div>
 
@@ -120,29 +67,23 @@
         <div class="gs-grid-2">
             <section class="gs-card">
                 <div class="gs-card-head">
-                    <h3 class="gs-card-title"><Activity class="ic" :size="17" /> سود کالا در برابر سرویس</h3>
+                    <h3 class="gs-card-title">
+                        <Activity class="ic" :size="17" /> سود کالا در برابر سرویس
+                    </h3>
                 </div>
-                <GsChart
-                    type="line"
-                    :labels="dailyLabels"
-                    :datasets="[
-                        { label: 'سود کالا', data: dailyProfits, color: '#45d68b' },
-                        { label: 'درآمد سرویس', data: dailyServices, color: '#5b9df0' },
-                    ]"
-                    :height="240"
-                />
+                <GsChart type="line" :labels="dailyLabels" :datasets="[
+                    { label: 'سود کالا', data: dailyProfits, color: '#45d68b' },
+                    { label: 'درآمد سرویس', data: dailyServices, color: '#5b9df0' },
+                ]" :height="240" />
             </section>
 
             <section class="gs-card">
                 <div class="gs-card-head">
-                    <h3 class="gs-card-title"><CreditCard class="ic" :size="17" /> روش پرداخت</h3>
+                    <h3 class="gs-card-title">
+                        <CreditCard class="ic" :size="17" /> روش پرداخت
+                    </h3>
                 </div>
-                <GsChart
-                    type="doughnut"
-                    :labels="paymentLabels"
-                    :datasets="[{ data: paymentData }]"
-                    :height="240"
-                />
+                <GsChart type="doughnut" :labels="paymentLabels" :datasets="[{ data: paymentData }]" :height="240" />
             </section>
         </div>
 
@@ -150,25 +91,35 @@
         <div class="gs-grid-2">
             <section class="gs-card">
                 <div class="gs-card-head">
-                    <h3 class="gs-card-title"><Trophy class="ic" :size="17" /> پرسودترین کالاها</h3>
-                    <Link :href="route('stats.ranking', query)" class="gs-btn gs-btn-ghost gs-btn-sm">مشاهدهٔ کامل</Link>
+                    <h3 class="gs-card-title">
+                        <Trophy class="ic" :size="17" /> پرسودترین کالاها
+                    </h3>
+                    <Link :href="route('stats.ranking', query)" class="gs-btn gs-btn-ghost gs-btn-sm">مشاهدهٔ کامل
+                    </Link>
                 </div>
-                <Bar3D :labels="topProductNames" :values="topProductProfits" color="#45d68b" :money="true" :height="250" />
+                <Bar3D :labels="topProductNames" :values="topProductProfits" color="#45d68b" :money="true"
+                    :height="250" />
             </section>
 
             <section class="gs-card">
                 <div class="gs-card-head">
-                    <h3 class="gs-card-title"><Crown class="ic" :size="17" /> برترین سرویس‌ها</h3>
-                    <Link :href="route('stats.ranking', query)" class="gs-btn gs-btn-ghost gs-btn-sm">مشاهدهٔ کامل</Link>
+                    <h3 class="gs-card-title">
+                        <Crown class="ic" :size="17" /> برترین سرویس‌ها
+                    </h3>
+                    <Link :href="route('stats.ranking', query)" class="gs-btn gs-btn-ghost gs-btn-sm">مشاهدهٔ کامل
+                    </Link>
                 </div>
-                <Bar3D :labels="topServiceNames" :values="topServiceRevenues" color="#5b9df0" :money="true" :height="250" />
+                <Bar3D :labels="topServiceNames" :values="topServiceRevenues" color="#5b9df0" :money="true"
+                    :height="250" />
             </section>
         </div>
 
         <!-- فاکتورهای اخیر -->
         <section class="gs-card">
             <div class="gs-card-head">
-                <h3 class="gs-card-title"><FileText class="ic" :size="17" /> آخرین فاکتورها</h3>
+                <h3 class="gs-card-title">
+                    <FileText class="ic" :size="17" /> آخرین فاکتورها
+                </h3>
                 <span class="gs-label">{{ faInt(invoices.length) }} فاکتور</span>
             </div>
             <div class="gs-table-wrap">
@@ -191,7 +142,8 @@
                             <td>{{ money(inv.services) }}</td>
                             <td class="strong">{{ money(inv.total) }}</td>
                             <td>
-                                <span class="gs-badge" :class="statusBadge(inv.status)">{{ statusLabel(inv.status) }}</span>
+                                <span class="gs-badge" :class="statusBadge(inv.status)">{{ statusLabel(inv.status)
+                                    }}</span>
                             </td>
                         </tr>
                         <tr v-if="!invoices.length">
@@ -284,5 +236,7 @@ function statusBadge(s) {
 </script>
 
 <style scoped>
-.mb { margin-bottom: 1rem; }
+.mb {
+    margin-bottom: 1rem;
+}
 </style>

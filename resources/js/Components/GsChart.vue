@@ -8,18 +8,21 @@
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { Chart, registerables } from 'chart.js'
 import { faInt } from '@/Utils/format'
-import { toJalaali } from 'jalaali-js'
+// 👇 کانورتر شمسی (فایل resources/js/Utils/jalali.js)
+import { faLabel, jalaliFull, isDateLabel } from '@/Utils/jalali'
 
 Chart.register(...registerables)
 Chart.defaults.font.family = "'Vazir', Tahoma, sans-serif"
 
 const props = defineProps({
-    type: { type: String, default: 'bar' }, // bar | line | doughnut | hbar
+    type: { type: String, default: 'bar' },
     labels: { type: Array, default: () => [] },
     datasets: { type: Array, default: () => [] },
     height: { type: Number, default: 260 },
     stacked: { type: Boolean, default: false },
     centerText: { type: String, default: '' },
+    debugLabels: { type: Boolean, default: false },
+    valueUnit: { type: String, default: 'toman' }, // 'toman' | 'count'
 })
 
 const canvas = ref(null)
@@ -28,50 +31,8 @@ let themeObserver = null
 
 const PALETTE = ['#e3bd5c', '#5b9df0', '#45d68b', '#9f7bf6', '#f0b04c', '#f06a6a']
 
-/* ---------- تبدیل تاریخ میلادی به شمسی برای برچسب‌ها ---------- */
-
-const FA_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹']
-const JALALI_MONTHS = [
-    'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
-    'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند',
-]
-const DATE_RE = /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/
-
-function toFa(str) {
-    return String(str).replace(/[0-9]/g, (d) => FA_DIGITS[d])
-}
-
-/** اگر برچسب، تاریخ میلادی (YYYY-MM-DD) باشد آبجکت جلالی برمی‌گرداند، وگرنه null */
-function parseGregorianLabel(s) {
-    if (typeof s !== 'string') return null
-    const m = s.match(DATE_RE)
-    if (!m) return null
-    const y = +m[1], mo = +m[2], d = +m[3]
-    // سال‌های خارج از این بازه یعنی برچسب از قبل شمسی است؛ دست نمی‌زنیم
-    if (y < 1700 || y > 2200 || mo < 1 || mo > 12 || d < 1 || d > 31) return null
-    try { return toJalaali(y, mo, d) } catch { return null }
-}
-
-/** برچسب کوتاه محور: «۲۱ مرداد» */
-function jalaliTick(s) {
-    const j = parseGregorianLabel(s)
-    return j ? toFa(j.jd) + ' ' + JALALI_MONTHS[j.jm - 1] : null
-}
-
-/** عنوان کامل تولتیپ: «۲۱ مرداد ۱۴۰۳» */
-function jalaliFull(s) {
-    const j = parseGregorianLabel(s)
-    return j ? toFa(j.jd) + ' ' + JALALI_MONTHS[j.jm - 1] + ' ' + toFa(j.jy) : null
-}
-
-/* -------------------------------------------------------------- */
-
 function cssVar(name, fallback) {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
-}
-
-function isDark() {
-    return !document.documentElement.classList.contains('light')
 }
 
 function palette() {
@@ -95,7 +56,6 @@ function hexToRgba(hex, a) {
 }
 
 function normalize() {
-    const labels = props.labels || []
     return (props.datasets || []).map((d, i) => ({
         label: d.label || '',
         data: (d.data || []).map((n) => Number(n) || 0),
@@ -116,7 +76,15 @@ function build() {
     const legendColor = cssVar('--gs-text-secondary', '#a9a194')
     const rtl = true
 
-    // تیک محور دسته‌ای (برچسب‌ها) — تاریخ میلادی خودکار شمسی می‌شود
+    // 🔍 دیباگ: اگر تاریخ‌ها شمسی نشدند، این را روشن کن تا فرمت خام را ببینی
+    if (props.debugLabels && labels.length) {
+        // eslint-disable-next-line no-console
+        console.log('[GsChart] برچسب خام:', JSON.stringify(labels.slice(0, 3)),
+            '| تاریخ تشخیص داده شد؟', isDateLabel(labels[0]),
+            '| خروجی:', faLabel(labels[0]))
+    }
+
+    // تیک محور دسته‌ای — همیشه از faLabel عبور می‌کند (تاریخ ⇐ شمسی، غیرتاریخ ⇐ ارقام فارسی)
     const catTicks = () => ({
         color: tickColor,
         font: { size: 10 },
@@ -127,23 +95,21 @@ function build() {
             const raw = this.getLabelForValue(val)
             const max = labels.length
             if (max > 16 && i % Math.ceil(max / 14) !== 0) return ''
-            const fa = jalaliTick(raw)
-            if (fa) return fa // «۲۱ مرداد» به‌جای 2025-08-12
-            return typeof raw === 'string' && raw.length > 12 ? raw.slice(0, 11) + '…' : raw
+            const out = faLabel(raw)
+            return typeof out === 'string' && out.length > 14 ? out.slice(0, 13) + '…' : out
         },
     })
 
-    // تیک محور مقداری (اعداد)
     const valTicks = () => ({
         color: tickColor,
         font: { size: 10 },
         callback: (v) => short(v),
     })
 
-    // عنوان تولتیپ: اگر برچسب تاریخ بود، شمسیِ کامل نمایش بده
+    // عنوان تولتیپ: تاریخ کامل شمسی
     const tooltipTitle = (items) => {
         const raw = items?.[0]?.label ?? ''
-        return jalaliFull(raw) || raw
+        return jalaliFull(raw) || faLabel(raw)
     }
 
     if (props.type === 'doughnut') {
@@ -152,7 +118,7 @@ function build() {
         chart = new Chart(canvas.value, {
             type: 'doughnut',
             data: {
-                labels,
+                labels: labels.map((l) => faLabel(l)), // برچسب لجند هم فارسی
                 datasets: [{
                     data: ds.data,
                     backgroundColor: colors.map((c, i) => c || pal[i % pal.length]),
@@ -177,8 +143,9 @@ function build() {
                         callbacks: {
                             title: tooltipTitle,
                             label: (ctx) => {
-                                const v = Number(ctx.parsed) || 0
-                                return ` ${jalaliFull(ctx.label) || ctx.label}: ${faInt(v)} تومان`
+                                const v = faInt(Number(ctx.parsed) || 0)
+                                const suffix = props.valueUnit === 'count' ? ' مورد' : ' تومان'
+                                return ` ${faLabel(ctx.label)}: ${v}${suffix}`
                             },
                         },
                     },
@@ -192,13 +159,13 @@ function build() {
     const horizontal = props.type === 'hbar'
     const type = horizontal ? 'bar' : (props.type === 'line' ? 'line' : 'bar')
 
-    const chartDatasets = datasets.map((d, i) => {
+    const chartDatasets = datasets.map((d) => {
         const base = {
             label: d.label,
             data: d.data,
             borderColor: d.color,
             borderWidth: 2,
-            borderRadius: horizontal ? 6 : 6,
+            borderRadius: 6,
             borderSkipped: false,
             tension: 0.4,
             hoverBackgroundColor: d.color,
@@ -257,9 +224,8 @@ function build() {
                     callbacks: {
                         title: tooltipTitle,
                         label: (ctx) => {
-                            // در نمودار عمودی مقدار روی y است؛ x فقط ایندکس دسته است
                             const v = horizontal ? ctx.parsed.x : ctx.parsed.y
-                            const name = ctx.dataset.label || ctx.label || ''
+                            const name = ctx.dataset.label || faLabel(ctx.label) || ''
                             return ` ${name}: ${faInt(v)} تومان`
                         },
                     },
@@ -281,7 +247,6 @@ function build() {
     })
 }
 
-// متن مرکزی دونات
 function centerTextPlugin() {
     return {
         id: 'centerText',
@@ -309,9 +274,9 @@ function centerTextPlugin() {
 
 function short(v) {
     const n = Number(v) || 0
-    if (Math.abs(n) >= 1e9) return (n / 1e9).toLocaleString('fa-IR', { maximumFractionDigits: 1 }) + 'B'
-    if (Math.abs(n) >= 1e6) return (n / 1e6).toLocaleString('fa-IR', { maximumFractionDigits: 1 }) + 'M'
-    if (Math.abs(n) >= 1e3) return (n / 1e3).toLocaleString('fa-IR', { maximumFractionDigits: 0 }) + 'K'
+    if (Math.abs(n) >= 1e9) return (n / 1e9).toLocaleString('fa-IR', { maximumFractionDigits: 1 }) + ' میلیارد'
+    if (Math.abs(n) >= 1e6) return (n / 1e6).toLocaleString('fa-IR', { maximumFractionDigits: 1 }) + ' م'
+    if (Math.abs(n) >= 1e3) return (n / 1e3).toLocaleString('fa-IR', { maximumFractionDigits: 0 }) + ' ه'
     return n.toLocaleString('fa-IR')
 }
 

@@ -1,10 +1,7 @@
 <template>
     <AppLayout>
-        <StatHero
-            title="درآمد سرویس"
-            subtitle="تفکیک نوع سرویس، هزینهٔ قطعات مصرفی و کارهای باز"
-            :from="from" :to="to" :range="range"
-        >
+        <StatHero title="درآمد سرویس" subtitle="تفکیک نوع سرویس، هزینهٔ قطعات مصرفی و کارهای باز" :from="from" :to="to"
+            :range="range">
             <template #actions>
                 <Link :href="route('stats.index', query)" class="gs-btn gs-btn-soft">مرکز گزارشات</Link>
                 <Link :href="route('stats.products', query)" class="gs-btn gs-btn-soft">کالا</Link>
@@ -12,37 +9,42 @@
             </template>
         </StatHero>
 
-        <RangeFilter
-            :from="from" :to="to" :paid-only="paidOnly" :range="range"
-            route-name="stats.services" class="mb"
-        />
+        <RangeFilter :from="from" :to="to" :paid-only="paidOnly" :range="range" route-name="stats.services"
+            class="mb" />
 
         <div class="gs-kpi-grid gs-stagger">
-            <KpiCard label="درآمد سرویس" :value="compactMoney(kpi.service_revenue)" :icon="Wrench" tone="blue" />
-            <KpiCard label="هزینهٔ قطعه" :value="compactMoney(kpi.service_parts)" :icon="Cog" tone="gold" />
-            <KpiCard label="خالص سرویس" :value="compactMoney(kpi.service_net)" :icon="TrendingUp" tone="green" />
+            <KpiCard label="درآمد سرویس" :value="money(kpi.service_revenue)" :icon="Wrench" tone="blue" />
+            <KpiCard label="هزینهٔ قطعه" :value="money(kpi.service_parts)" :icon="Cog" tone="gold" />
+            <KpiCard label="خالص سرویس" :value="money(kpi.service_net)" :icon="TrendingUp" tone="green" />
             <KpiCard label="تعداد کار" :value="faInt(kpi.service_jobs)" :icon="ClipboardList" tone="violet" />
         </div>
 
         <div class="gs-grid-2">
             <section class="gs-card">
                 <div class="gs-card-head">
-                    <h3 class="gs-card-title"><BarChart3 class="ic" :size="17" /> درآمد به تفکیک نوع سرویس</h3>
+                    <h3 class="gs-card-title">
+                        <BarChart3 class="ic" :size="17" /> درآمد به تفکیک نوع سرویس
+                    </h3>
                 </div>
                 <Bar3D :labels="serviceNames" :values="serviceRevenues" color="#5b9df0" :money="true" :height="290" />
             </section>
 
             <section class="gs-card">
                 <div class="gs-card-head">
-                    <h3 class="gs-card-title"><Filter class="ic" :size="17" /> قیف وضعیت کارها</h3>
+                    <h3 class="gs-card-title">
+                        <Filter class="ic" :size="17" /> قیف وضعیت کارها
+                    </h3>
                 </div>
-                <GsChart type="doughnut" :labels="funnelLabels" :datasets="[{ data: funnelData }]" :height="290" />
+                <GsChart type="doughnut" :labels="funnelLabels" :datasets="[{ data: funnelData }]" :height="290"
+                    value-unit="count" />
             </section>
         </div>
 
         <section class="gs-card">
             <div class="gs-card-head">
-                <h3 class="gs-card-title"><Table class="ic" :size="17" /> جدول سرویس</h3>
+                <h3 class="gs-card-title">
+                    <Table class="ic" :size="17" /> جدول سرویس
+                </h3>
                 <span class="gs-label">{{ faInt(services.length) }} نوع سرویس</span>
             </div>
             <p class="gs-hint" style="margin-bottom: 0.9rem;">
@@ -58,7 +60,6 @@
                             <th>درآمد</th>
                             <th>قطعه</th>
                             <th>خالص</th>
-                            <th>باز</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -69,10 +70,7 @@
                             <td class="gold">{{ money(row.revenue) }}</td>
                             <td>{{ money(row.parts_cost) }}</td>
                             <td class="ok">{{ money(row.net) }}</td>
-                            <td>
-                                <span v-if="(row.open ?? 0) > 0" class="gs-badge gs-badge-warning">{{ faInt(row.open) }}</span>
-                                <span v-else class="gs-badge gs-badge-success">۰</span>
-                            </td>
+                        
                         </tr>
                         <tr v-if="!services.length">
                             <td colspan="7" class="gs-empty">در این بازه سرویسی ثبت نشده</td>
@@ -120,5 +118,7 @@ const funnelData = computed(() => (props.funnel || []).map((f) => f.count))
 </script>
 
 <style scoped>
-.mb { margin-bottom: 1rem; }
+.mb {
+    margin-bottom: 1rem;
+}
 </style>

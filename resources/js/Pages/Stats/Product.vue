@@ -18,9 +18,9 @@
         />
 
         <div class="gs-kpi-grid gs-stagger">
-            <KpiCard label="فروش کالا" :value="compactMoney(kpi.product_revenue)" :icon="Package" tone="gold" />
-            <KpiCard label="بهای تمام‌شده" :value="compactMoney(kpi.product_cogs)" :icon="Coins" tone="gold" />
-            <KpiCard label="سود ناخالص" :value="compactMoney(kpi.product_profit)" :icon="TrendingUp" tone="green" />
+            <KpiCard label="فروش کالا" :value="money(kpi.product_revenue)" :icon="Package" tone="gold" />
+            <KpiCard label="بهای تمام‌شده" :value="money(kpi.product_cogs)" :icon="Coins" tone="gold" />
+            <KpiCard label="سود ناخالص" :value="money(kpi.product_profit)" :icon="TrendingUp" tone="green" />
             <KpiCard label="حاشیهٔ سود" :value="percent(kpi.product_margin)" :icon="Percent" tone="violet" />
         </div>
 

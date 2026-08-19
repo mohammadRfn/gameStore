@@ -69,7 +69,7 @@ class StatsController extends Controller
     {
         $range = $request->input('range', 'month');
         [$from, $to] = $this->resolveRange($request, $range);
-        $paidOnly = $request->boolean('paid_only', false);
+        $paidOnly = $request->boolean('paid_only', true);
 
         $data = $this->statsService->dashboard($from, $to, $paidOnly);
         $data['range'] = $range;

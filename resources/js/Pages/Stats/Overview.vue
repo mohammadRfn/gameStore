@@ -13,13 +13,13 @@
             class="mb" />
 
         <div class="gs-kpi-grid gs-stagger">
-            <KpiCard label="درآمد کل" :value="compactMoney(kpi.gross)" :delta="compare.gross" :icon="Wallet" tone="gold"
+            <KpiCard label="درآمد کل" :value="money(kpi.gross)" :delta="compare.gross" :icon="Wallet" tone="gold"
                 :spark="dailyTotals" />
-            <KpiCard label="سود خالص" :value="compactMoney(kpi.net_profit)" :delta="compare.net_profit"
-                :icon="TrendingUp" tone="green" :spark="dailyProfits" />
-            <KpiCard label="وصول‌شده" :value="compactMoney(kpi.collected)" :delta="compare.collected" :icon="Banknote"
+            <KpiCard label="سود خالص" :value="money(kpi.net_profit)" :delta="compare.net_profit" :icon="TrendingUp"
+                tone="green" :spark="dailyProfits" />
+            <KpiCard label="وصول‌شده" :value="money(kpi.collected)" :delta="compare.collected" :icon="Banknote"
                 tone="green" />
-            <KpiCard label="معوق" :value="compactMoney(kpi.outstanding)" :delta="compare.outstanding" :invert="true"
+            <KpiCard label="معوق" :value="money(kpi.outstanding)" :delta="compare.outstanding" :invert="true"
                 :icon="Clock" tone="red" />
             <KpiCard label="مشتریان جدید" :value="faInt(kpi.new_customers)" :icon="UserPlus" tone="gold" />
         </div>
@@ -31,7 +31,7 @@
                         <BarChart3 class="ic" :size="17" /> روند روزانهٔ درآمد
                     </h3>
                 </div>
-                <GsChart type="bar" :stacked="true" :labels="dailyLabels" :datasets="[
+                <GsChart type="bar" :stacked="false" :labels="dailyLabels" :datasets="[
                     { label: 'کالا', data: dailyProducts, color: '#e3bd5c' },
                     { label: 'سرویس', data: dailyServices, color: '#5b9df0' },
                 ]" :height="280" />
@@ -122,7 +122,7 @@ import GsChart from '@/Components/GsChart.vue'
 import {
     Wallet, TrendingUp, Banknote, Clock, BarChart3, PieChart, Activity, CreditCard, Hourglass, CalendarDays, UserPlus,
 } from '@lucide/vue'
-import { faInt, compactMoney } from '@/Utils/format'
+import { faInt, money, compactMoney } from '@/Utils/format'
 
 const props = defineProps({
     from: { type: String, default: '' },
