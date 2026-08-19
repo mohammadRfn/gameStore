@@ -604,53 +604,46 @@ class StatsService
         }
 
         /* فروش کالا در بازه */
+        /* فروش کالا در بازه (بر اساس تاریخ مؤثر فاکتور: پرداخت یا ایجاد) */
         $orders = OrderItem::query()
-            ->where('is_returned', false)
-            ->whereBetween('order_items.created_at', [$from, $to])
-            ->whereHas('invoice', function ($q) use ($paidOnly) {
-                $q->where('is_returned', false)
-                    ->when($paidOnly, fn($q) => $q->where('payment_status', Invoice::PAYMENT_PAID));
-            })
+            ->join('invoices', 'invoices.id', '=', 'order_items.invoice_id')
+            ->where('invoices.is_returned', false)
+            ->when($paidOnly, fn($q) => $q->where('invoices.payment_status', Invoice::PAYMENT_PAID))
+            ->whereRaw('COALESCE(invoices.paid_at, invoices.created_at) between ? and ?', [$from, $to])
             ->select(
-                'order_items.created_at as order_at',
+                DB::raw('COALESCE(invoices.paid_at, invoices.created_at) as order_at'),
                 'order_items.total_price as price_total'
             )
             ->get();
 
-        /* درآمد سرویس در بازه */
+        /* درآمد سرویس در بازه (بر اساس تاریخ مؤثر فاکتور) */
         $services = ServiceJob::query()
-            ->whereNotIn('status', [ServiceJob::STATUS_CANCELED])
-            ->whereBetween('completed_at', [$from, $to])
-            ->where(function ($q) use ($paidOnly) {
-                if ($paidOnly) {
-                    $q->whereHas('invoice', function ($invoice) use ($paidOnly) {
-                        $this->applyInvoiceFilters($invoice, $paidOnly);
-                    });
-                } else {
-                    $q->whereNull('invoice_id')
-                        ->orWhereHas('invoice', function ($invoice) use ($paidOnly) {
-                            $this->applyInvoiceFilters($invoice, $paidOnly);
-                        });
-                }
-            })
-            ->get(['completed_at', 'final_price']);
+            ->join('invoices', 'invoices.id', '=', 'service_jobs.invoice_id')
+            ->whereNotIn('service_jobs.status', [ServiceJob::STATUS_CANCELED])
+            ->where('invoices.is_returned', false)
+            ->when($paidOnly, fn($q) => $q->where('invoices.payment_status', Invoice::PAYMENT_PAID))
+            ->whereRaw('COALESCE(invoices.paid_at, invoices.created_at) between ? and ?', [$from, $to])
+            ->select(
+                DB::raw('COALESCE(invoices.paid_at, invoices.created_at) as order_at'),
+                'service_jobs.final_price'
+            )
+            ->get();
 
         foreach ($orders as $order) {
             // Carbon: dayOfWeek => 0=یکشنبه ... 6=شنبه
             // تبدیل به ایندکس فارسی: شنبه=0 → (dayOfWeek + 1) % 7
-            $idx = ($order->order_at->dayOfWeek + 1) % 7;
+            $idx = (Carbon::parse($order->order_at)->dayOfWeek + 1) % 7;
 
             $days[$idx]['count']++;
             $days[$idx]['amount'] += (float) $order->price_total;
         }
 
         foreach ($services as $job) {
-            $idx = ($job->completed_at->dayOfWeek + 1) % 7;
+            $idx = (Carbon::parse($job->order_at)->dayOfWeek + 1) % 7;
 
             $days[$idx]['count']++;
             $days[$idx]['amount'] += (float) $job->final_price;
         }
-
         return array_values($days);
     }
 
