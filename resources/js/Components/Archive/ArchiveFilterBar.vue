@@ -46,34 +46,42 @@
         </button>
 
         <!-- منوی خروجی اکسل -->
-        <div class="export-wrap" v-click-outside="() => (exportOpen = false)">
+        <div class="export-wrap" ref="exportWrapRef">
           <button
+            ref="exportBtnRef"
             type="button"
             class="a3d-btn a3d-btn--gold a3d-btn--sm"
-            @click="exportOpen = !exportOpen"
+            @click="toggleExportMenu"
           >
             <span>⬇</span>
             خروجی اکسل
             <span class="caret" :class="{ 'is-open': exportOpen }">▾</span>
           </button>
 
-          <Transition name="pop3d">
-            <div v-if="exportOpen" class="export-menu">
-              <p class="export-title">خروجی با اعمال فیلترهای فعلی</p>
-              <button type="button" class="export-item" @click="doExport('all')">
-                <span>🗂</span> فایل کامل (سه شیت جدا)
-              </button>
-              <button type="button" class="export-item" @click="doExport('invoice')">
-                <span>🧾</span> فقط فاکتورها
-              </button>
-              <button type="button" class="export-item" @click="doExport('request')">
-                <span>📋</span> فقط درخواست‌ها
-              </button>
-              <button type="button" class="export-item" @click="doExport('service_job')">
-                <span>🔧</span> فقط سرویس‌ها
-              </button>
-            </div>
-          </Transition>
+          <Teleport to="body">
+            <Transition name="pop3d">
+              <div
+                v-if="exportOpen"
+                ref="exportMenuRef"
+                class="export-menu"
+                :style="exportMenuStyle"
+              >
+                <p class="export-title">خروجی با اعمال فیلترهای فعلی</p>
+                <button type="button" class="export-item" @click="doExport('all')">
+                  <span>🗂</span> فایل کامل (سه شیت جدا)
+                </button>
+                <button type="button" class="export-item" @click="doExport('invoice')">
+                  <span>🧾</span> فقط فاکتورها
+                </button>
+                <button type="button" class="export-item" @click="doExport('request')">
+                  <span>📋</span> فقط درخواست‌ها
+                </button>
+                <button type="button" class="export-item" @click="doExport('service_job')">
+                  <span>🔧</span> فقط سرویس‌ها
+                </button>
+              </div>
+            </Transition>
+          </Teleport>
         </div>
       </div>
     </div>
@@ -135,7 +143,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { vReveal } from '@/Composables/useTilt'
 import JalaliDateInput from '@/Components/JalaliDateInput.vue'
 const props = defineProps({
@@ -154,6 +162,10 @@ const tabs = [
 ]
 
 const exportOpen = ref(false)
+const exportWrapRef = ref(null)
+const exportBtnRef = ref(null)
+const exportMenuRef = ref(null)
+const exportMenuStyle = ref({})
 const segmentRef = ref(null)
 const tabRefs = ref([])
 const indicatorStyle = ref({ width: '0px', transform: 'translateX(0px)' })
@@ -191,6 +203,42 @@ function doExport(scope) {
   emit('export', scope)
 }
 
+function toggleExportMenu() {
+  if (exportOpen.value) {
+    exportOpen.value = false
+    return
+  }
+  exportOpen.value = true
+  nextTick(positionExportMenu)
+}
+
+function positionExportMenu() {
+  const btn = exportBtnRef.value
+  if (!btn) return
+  const rect = btn.getBoundingClientRect()
+  const menuWidth = 246
+  // اگر منو از سمت چپ صفحه بیرون بزنه، از راست دکمه بچینش
+  let left = rect.left
+  if (left + menuWidth > window.innerWidth - 8) {
+    left = rect.right - menuWidth
+  }
+
+  exportMenuStyle.value = {
+    position: 'fixed',
+    top: `${rect.bottom + 10}px`,
+    left: `${Math.max(left, 8)}px`,
+    minWidth: `${menuWidth}px`,
+  }
+}
+
+function handleExportDocClick(event) {
+  if (!exportOpen.value) return
+  const wrap = exportWrapRef.value
+  const menu = exportMenuRef.value
+  if (wrap?.contains(event.target) || menu?.contains(event.target)) return
+  exportOpen.value = false
+}
+
 /* نشانگر لغزان زیر تب فعال */
 function moveIndicator(index) {
   const el = tabRefs.value?.[index]
@@ -213,21 +261,19 @@ function syncIndicator() {
   moveIndicator(index < 0 ? 0 : index)
 }
 
-onMounted(() => nextTick(syncIndicator))
+onMounted(() => {
+  nextTick(syncIndicator)
+  document.addEventListener('click', handleExportDocClick)
+  window.addEventListener('resize', positionExportMenu)
+  window.addEventListener('scroll', positionExportMenu, true)
+})
 watch(() => props.modelValue.source_type, () => nextTick(syncIndicator))
 
-/* دایرکتیو محلی کلیک بیرون */
-const vClickOutside = {
-  mounted(el, binding) {
-    el._outside = (event) => {
-      if (!el.contains(event.target)) binding.value(event)
-    }
-    document.addEventListener('click', el._outside)
-  },
-  unmounted(el) {
-    document.removeEventListener('click', el._outside)
-  },
-}
+onUnmounted(() => {
+  document.removeEventListener('click', handleExportDocClick)
+  window.removeEventListener('resize', positionExportMenu)
+  window.removeEventListener('scroll', positionExportMenu, true)
+})
 </script>
 
 <style scoped>

@@ -38,6 +38,7 @@ const props = defineProps({
     color: { type: String, default: '#e3bd5c' },
     height: { type: Number, default: 240 },
     money: { type: Boolean, default: false },
+    unit: { type: String, default: '' },
 })
 
 const items = computed(() => {
@@ -50,8 +51,8 @@ const items = computed(() => {
             shortLabel: String(label).length > 10 ? String(label).slice(0, 9) + '…' : label,
             value: raw,
             pct: (raw / max) * 100,
-            valueText: props.money ? compactMoney(raw) : fa(raw),
-            fullValueText: props.money ? faInt(raw) + ' تومان' : faInt(raw),
+            valueText: props.money ? compactMoney(raw) : fa(raw) + props.unit,
+            fullValueText: props.money ? faInt(raw) + ' تومان' : faInt(raw) + props.unit,
         }
     })
 })

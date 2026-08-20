@@ -268,11 +268,19 @@ class InvoiceService
             throw new \RuntimeException('فاکتور پرداخت‌شده یا مرجوع‌شده را نمی‌توان ویرایش کرد.');
         }
 
+        $categoryKey = $data['category_key'] ?? 'other';
+
+        $countsAsRevenue = $data['counts_as_revenue']
+            ?? \App\Models\AdjustmentCategory::where('key', $categoryKey)->value('default_counts_as_revenue')
+            ?? true;
+
         $invoice->adjustments()->create([
-            'title'     => $data['title'],
-            'type'      => $data['type'],
-            'direction' => $data['direction'],
-            'value'     => $data['value'],
+            'title'             => $data['title'],
+            'type'              => $data['type'],
+            'direction'         => $data['direction'],
+            'value'             => $data['value'],
+            'category_key'      => $categoryKey,
+            'counts_as_revenue' => $countsAsRevenue,
         ]);
 
         $invoice->recalculateAmounts();

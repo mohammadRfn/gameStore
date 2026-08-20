@@ -39,7 +39,10 @@ class InvoiceController extends Controller
     public function show(int $invoiceId)
     {
         return Inertia::render('Invoices/Show', [
-            'invoice' => $this->invoiceService->getInvoice($invoiceId),
+            'invoice'               => $this->invoiceService->getInvoice($invoiceId),
+            'adjustment_categories' => \App\Models\AdjustmentCategory::where('is_active', true)
+                ->orderBy('sort_order')
+                ->get(['key', 'label', 'default_counts_as_revenue']),
         ]);
     }
     public function create(HttpRequest $httpRequest)

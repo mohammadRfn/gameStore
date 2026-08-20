@@ -1,10 +1,7 @@
 <template>
     <AppLayout>
-        <StatHero
-            title="رتبه‌بندی فروش"
-            subtitle="پرفروش‌ترین و پرسودترین محصول و سرویس — برای هر بازهٔ دلخواه"
-            :from="from" :to="to" :range="range"
-        >
+        <StatHero title="رتبه‌بندی فروش" subtitle="پرفروش‌ترین و پرسودترین محصول و سرویس — برای هر بازهٔ دلخواه"
+            :from="from" :to="to" :range="range">
             <template #actions>
                 <Link :href="route('stats.index', query)" class="gs-btn gs-btn-soft">مرکز گزارشات</Link>
                 <Link :href="route('stats.products', query)" class="gs-btn gs-btn-soft">کالا</Link>
@@ -12,10 +9,7 @@
             </template>
         </StatHero>
 
-        <RangeFilter
-            :from="from" :to="to" :paid-only="paidOnly" :range="range"
-            route-name="stats.ranking" class="mb"
-        />
+        <RangeFilter :from="from" :to="to" :paid-only="paidOnly" :range="range" route-name="stats.ranking" class="mb" />
 
         <!-- کنترل‌ها -->
         <div class="gs-tabs">
@@ -68,14 +62,19 @@
 
             <section class="gs-card">
                 <div class="gs-card-head">
-                    <h3 class="gs-card-title"><Trophy class="ic" :size="17" /> {{ sortLabel }} — ۵ تای اول</h3>
+                    <h3 class="gs-card-title">
+                        <Trophy class="ic" :size="17" /> {{ sortLabel }} — ۵ تای اول
+                    </h3>
                 </div>
-                <Bar3D :labels="topNames" :values="topValues" :color="sortColor" :money="true" :height="250" />
+                <Bar3D :labels="topNames" :values="topValues" :color="sortColor"
+                    :money="!['qty', 'margin'].includes(sort)" :unit="sort === 'margin' ? '٪' : ''" :height="250" />
             </section>
 
             <section class="gs-card">
                 <div class="gs-card-head">
-                    <h3 class="gs-card-title"><Table class="ic" :size="17" /> جدول کامل رتبه‌بندی</h3>
+                    <h3 class="gs-card-title">
+                        <Table class="ic" :size="17" /> جدول کامل رتبه‌بندی
+                    </h3>
                     <span class="gs-label">{{ faInt(rankedProducts.length) }} کالا</span>
                 </div>
                 <div class="gs-table-wrap">
@@ -94,7 +93,8 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="(row, i) in rankedProducts" :key="row.item_id || row.name" :class="medalClass(i)">
+                            <tr v-for="(row, i) in rankedProducts" :key="row.item_id || row.name"
+                                :class="medalClass(i)">
                                 <td class="rank-cell">{{ faInt(i + 1) }}</td>
                                 <td class="strong">{{ row.name }}</td>
                                 <td><span class="gs-badge gs-badge-gold">{{ row.category }}</span></td>
@@ -104,7 +104,9 @@
                                 <td :class="row.profit >= 0 ? 'ok' : 'bad'">{{ money(row.profit) }}</td>
                                 <td>{{ percent(row.margin) }}</td>
                                 <td>
-                                    <span v-if="row.stock !== null && row.stock <= 2" class="gs-badge gs-badge-error">کم {{ faInt(row.stock) }}</span>
+                                    <span v-if="row.stock !== null && row.stock <= 2" class="gs-badge gs-badge-error">کم
+                                        {{
+                                        faInt(row.stock) }}</span>
                                     <span v-else-if="row.stock !== null">{{ faInt(row.stock) }}</span>
                                     <span v-else>—</span>
                                 </td>
@@ -124,14 +126,19 @@
 
             <section class="gs-card">
                 <div class="gs-card-head">
-                    <h3 class="gs-card-title"><Trophy class="ic" :size="17" /> پردرآمدترین سرویس‌ها</h3>
+                    <h3 class="gs-card-title">
+                        <Trophy class="ic" :size="17" /> پردرآمدترین سرویس‌ها
+                    </h3>
                 </div>
-                <Bar3D :labels="topServiceNames" :values="topServiceRevenues" color="#5b9df0" :money="true" :height="250" />
+                <Bar3D :labels="topServiceNames" :values="topServiceRevenues" color="#5b9df0" :money="true"
+                    :height="250" />
             </section>
 
             <section class="gs-card">
                 <div class="gs-card-head">
-                    <h3 class="gs-card-title"><Table class="ic" :size="17" /> جدول رتبه‌بندی سرویس</h3>
+                    <h3 class="gs-card-title">
+                        <Table class="ic" :size="17" /> جدول رتبه‌بندی سرویس
+                    </h3>
                 </div>
                 <div class="gs-table-wrap">
                     <table class="gs-table">
@@ -148,7 +155,8 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="(row, i) in rankedServices" :key="row.service_type_id || row.name" :class="medalClass(i)">
+                            <tr v-for="(row, i) in rankedServices" :key="row.service_type_id || row.name"
+                                :class="medalClass(i)">
                                 <td class="rank-cell">{{ faInt(i + 1) }}</td>
                                 <td class="strong">{{ row.name }}</td>
                                 <td>{{ faInt(row.jobs) }}</td>
@@ -157,7 +165,9 @@
                                 <td>{{ money(row.parts_cost) }}</td>
                                 <td class="ok">{{ money(row.net) }}</td>
                                 <td>
-                                    <span v-if="(row.open ?? 0) > 0" class="gs-badge gs-badge-warning">{{ faInt(row.open) }}</span>
+                                    <span v-if="(row.open ?? 0) > 0" class="gs-badge gs-badge-warning">{{
+                                        faInt(row.open)
+                                        }}</span>
                                     <span v-else class="gs-badge gs-badge-success">۰</span>
                                 </td>
                             </tr>
@@ -174,11 +184,15 @@
         <section v-show="pane === 'slow'">
             <section class="gs-card">
                 <div class="gs-card-head">
-                    <h3 class="gs-card-title"><Snowflake class="ic" :size="17" /> محصولات کندفروش</h3>
+                    <h3 class="gs-card-title">
+                        <Snowflake class="ic" :size="17" /> محصولات کندفروش
+                    </h3>
                     <span class="gs-label">موجودی ≥ ۳ برابر فروش بازه</span>
                 </div>
                 <p class="gs-hint" style="margin-bottom: 0.9rem;">
-                    کالاهایی که فروش داشته‌اند اما موجودی انبارشان نسبت به فروش بازه زیاد است؛ «ارزش منجمد» = موجودی × قیمت فروش.
+                    کالاهایی که فروش داشته‌اند اما موجودی انبارشان نسبت به فروش بازه زیاد است؛ «ارزش منجمد» = موجودی ×
+                    قیمت
+                    فروش.
                 </p>
                 <div class="gs-table-wrap">
                     <table class="gs-table">
@@ -198,7 +212,9 @@
                                 <td><span class="gs-badge gs-badge-gold">{{ row.category }}</span></td>
                                 <td>{{ faInt(row.qty) }}</td>
                                 <td>
-                                    <span class="gs-badge" :class="row.stock >= 10 ? 'gs-badge-error' : 'gs-badge-warning'">{{ faInt(row.stock) }}</span>
+                                    <span class="gs-badge"
+                                        :class="row.stock >= 10 ? 'gs-badge-error' : 'gs-badge-warning'">{{
+                                        faInt(row.stock) }}</span>
                                 </td>
                                 <td>{{ row.ratio }}×</td>
                                 <td class="gold">{{ money(row.frozen) }}</td>
@@ -217,21 +233,29 @@
             <div class="gs-grid-2">
                 <section class="gs-card">
                     <div class="gs-card-head">
-                        <h3 class="gs-card-title"><PieChart class="ic" :size="17" /> درآمد به تفکیک دسته</h3>
+                        <h3 class="gs-card-title">
+                            <PieChart class="ic" :size="17" /> درآمد به تفکیک دسته
+                        </h3>
                     </div>
-                    <GsChart type="doughnut" :labels="categoryLabels" :datasets="[{ data: categoryRevenues }]" :height="270" />
+                    <GsChart type="doughnut" :labels="categoryLabels" :datasets="[{ data: categoryRevenues }]"
+                        :height="270" />
                 </section>
                 <section class="gs-card">
                     <div class="gs-card-head">
-                        <h3 class="gs-card-title"><Coins class="ic" :size="17" /> سود به تفکیک دسته</h3>
+                        <h3 class="gs-card-title">
+                            <Coins class="ic" :size="17" /> سود به تفکیک دسته
+                        </h3>
                     </div>
-                    <GsChart type="doughnut" :labels="categoryLabels" :datasets="[{ data: categoryProfits }]" :height="270" />
+                    <GsChart type="doughnut" :labels="categoryLabels" :datasets="[{ data: categoryProfits }]"
+                        :height="270" />
                 </section>
             </div>
 
             <section class="gs-card">
                 <div class="gs-card-head">
-                    <h3 class="gs-card-title"><Table class="ic" :size="17" /> جدول دسته‌ها</h3>
+                    <h3 class="gs-card-title">
+                        <Table class="ic" :size="17" /> جدول دسته‌ها
+                    </h3>
                 </div>
                 <div class="gs-table-wrap">
                     <table class="gs-table">
@@ -290,7 +314,7 @@ const props = defineProps({
     paidOnly: { type: Boolean, default: true },
     range: { type: String, default: 'month' },
     kpi: { type: Object, default: () => ({}) },
-     products: { type: Array, default: () => [] },
+    products: { type: Array, default: () => [] },
     services: { type: Array, default: () => [] },
     stock: { type: Object, default: () => ({}) },
     funnel: { type: Array, default: () => [] },
@@ -407,7 +431,9 @@ function medalClass(i) {
 </script>
 
 <style scoped>
-.mb { margin-bottom: 1rem; }
+.mb {
+    margin-bottom: 1rem;
+}
 
 .rk-toolbar {
     display: flex;
@@ -421,11 +447,26 @@ function medalClass(i) {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
 }
-.rk-field { display: flex; flex-direction: column; gap: 0.3rem; }
-.rk-field .gs-select { min-width: 180px; }
-.rk-label { font-size: 0.7rem; color: var(--gs-text-muted); font-weight: 600; }
 
-.gs-tabs { margin-bottom: 1rem; }
+.rk-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.rk-field .gs-select {
+    min-width: 180px;
+}
+
+.rk-label {
+    font-size: 0.7rem;
+    color: var(--gs-text-muted);
+    font-weight: 600;
+}
+
+.gs-tabs {
+    margin-bottom: 1rem;
+}
 
 .rank-cell {
     font-weight: 800;
@@ -434,9 +475,18 @@ function medalClass(i) {
     text-align: center;
     color: var(--gs-gold);
 }
-.rank-gold { background: rgba(227, 189, 92, 0.12); }
-.rank-silver { background: rgba(192, 192, 192, 0.08); }
-.rank-bronze { background: rgba(205, 127, 50, 0.08); }
+
+.rank-gold {
+    background: rgba(227, 189, 92, 0.12);
+}
+
+.rank-silver {
+    background: rgba(192, 192, 192, 0.08);
+}
+
+.rank-bronze {
+    background: rgba(205, 127, 50, 0.08);
+}
 
 .share-bar {
     display: flex;
@@ -444,6 +494,7 @@ function medalClass(i) {
     gap: 0.4rem;
     min-width: 110px;
 }
+
 .share-fill {
     height: 6px;
     border-radius: 4px;
@@ -451,5 +502,10 @@ function medalClass(i) {
     min-width: 4px;
     transition: width 0.4s var(--gs-ease-spring);
 }
-.share-bar span { font-size: 0.72rem; color: var(--gs-text-muted); white-space: nowrap; }
+
+.share-bar span {
+    font-size: 0.72rem;
+    color: var(--gs-text-muted);
+    white-space: nowrap;
+}
 </style>

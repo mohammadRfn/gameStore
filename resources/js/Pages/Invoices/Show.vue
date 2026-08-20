@@ -164,6 +164,10 @@
                             <span class="gs-muted">({{ adj.type === 'percentage' ? adj.value + '%' :
                                 formatPrice(adj.value)
                                 }})</span>
+                            <span v-if="!adj.counts_as_revenue" class="gs-badge gs-badge-sm"
+                                style="opacity:.75" title="جزو درآمد فروشگاه حساب نمی‌شود">
+                                غیر-درآمدی
+                            </span>
                         </div>
                         <div style="display:flex;align-items:center;gap:.75rem">
                             <span :class="adj.direction === 'increase' ? 'gs-gold-text' : ''"
@@ -178,24 +182,52 @@
                     </div>
 
                     <!-- Add adjustment form -->
-                    <div v-if="!isLocked" style="display:flex;gap:.5rem;margin-top:.75rem;flex-wrap:wrap">
-                        <input v-model="adjustmentForm.title" placeholder="عنوان (مثلا تخفیف)" class="gs-input"
-                            style="flex:1;min-width:140px" />
-                        <select v-model="adjustmentForm.type" class="gs-input" style="max-width:110px">
-                            <option value="percentage">درصدی</option>
-                            <option value="fixed">مبلغ ثابت</option>
-                        </select>
-                        <select v-model="adjustmentForm.direction" class="gs-input" style="max-width:100px">
-                            <option value="increase">افزایش</option>
-                            <option value="decrease">کاهش</option>
-                        </select>
-                        <input v-model.number="adjustmentForm.value" type="number" min="0" step="0.01"
-                            :placeholder="adjustmentForm.type === 'percentage' ? 'درصد' : 'مبلغ'" class="gs-input"
-                            style="max-width:120px" />
-                        <button @click="submitAdjustment" class="gs-btn gs-btn-primary gs-btn-sm"
-                            :disabled="adjustmentForm.processing">
-                            + افزودن
-                        </button>
+                    <div v-if="!isLocked" style="display:flex;flex-direction:column;gap:.5rem;margin-top:.75rem">
+                        <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:var(--gs-text-muted)">
+                            <input type="checkbox" v-model="adjustmentForm.counts_as_revenue" />
+                            محاسبه به‌عنوان درآمد فروشگاه (در گزارش‌های مالی و بایگانی لحاظ شود)
+                        </label>
+
+                        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+                            <div class="category-select" ref="categorySelectRef">
+                                <button type="button" ref="categoryTriggerRef" class="gs-input category-select__trigger"
+                                    @click="toggleCategoryMenu">
+                                    <span>{{ selectedCategoryLabel }}</span>
+                                    <span class="category-select__caret" :class="{ 'is-open': categoryMenuOpen }">▾</span>
+                                </button>
+
+                                <Teleport to="body">
+                                    <div v-if="categoryMenuOpen" ref="categoryMenuRef" class="category-select__menu"
+                                        :style="categoryMenuStyle">
+                                        <button v-for="cat in adjustmentCategories" :key="cat.key" type="button"
+                                            class="category-select__item"
+                                            :class="{ 'is-active': cat.key === adjustmentForm.category_key }"
+                                            @click="selectCategory(cat.key)">
+                                            {{ cat.label }}
+                                        </button>
+                                    </div>
+                                </Teleport>
+                            </div>
+
+                            <input v-if="adjustmentForm.category_key === 'other'" v-model="adjustmentForm.title"
+                                placeholder="عنوان دلخواه" class="gs-input" style="flex:1;min-width:140px" />
+
+                            <select v-model="adjustmentForm.type" class="gs-input" style="max-width:110px">
+                                <option value="percentage">درصدی</option>
+                                <option value="fixed">مبلغ ثابت</option>
+                            </select>
+                            <select v-model="adjustmentForm.direction" class="gs-input" style="max-width:100px">
+                                <option value="increase">افزایش</option>
+                                <option value="decrease">کاهش</option>
+                            </select>
+                            <input v-model.number="adjustmentForm.value" type="number" min="0" step="0.01"
+                                :placeholder="adjustmentForm.type === 'percentage' ? 'درصد' : 'مبلغ'" class="gs-input"
+                                style="max-width:120px" />
+                            <button @click="submitAdjustment" class="gs-btn gs-btn-primary gs-btn-sm"
+                                :disabled="adjustmentForm.processing">
+                                + افزودن
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -263,17 +295,112 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 const removingAdjustmentId = ref(null)
 import InvoiceRestockPanel from '@/Components/InvoiceRestockPanel.vue'
+const props = defineProps({ invoice: Object, adjustment_categories: { type: Array, default: () => [] } })
+const adjustmentCategories = computed(() => props.adjustment_categories)
+
 const adjustmentForm = reactive({
+    category_key: 'other',
     title: '',
     type: 'percentage',
     direction: 'increase',
     value: null,
+    counts_as_revenue: false,
     processing: false,
+})
+
+const categoryMenuOpen = ref(false)
+const categorySelectRef = ref(null)
+const categoryTriggerRef = ref(null)
+const categoryMenuRef = ref(null)
+const categoryMenuStyle = ref({})
+
+const selectedCategoryLabel = computed(() => {
+    const cat = adjustmentCategories.value.find(c => c.key === adjustmentForm.category_key)
+    return cat?.label ?? 'انتخاب دسته...'
+})
+
+function applyCategory(key) {
+    const cat = adjustmentCategories.value.find(c => c.key === key)
+    if (!cat) return
+    adjustmentForm.counts_as_revenue = !!cat.default_counts_as_revenue
+    if (cat.key !== 'other') {
+        adjustmentForm.title = cat.label
+    } else {
+        adjustmentForm.title = ''
+    }
+}
+
+function selectCategory(key) {
+    adjustmentForm.category_key = key
+    applyCategory(key)
+    categoryMenuOpen.value = false
+}
+
+function toggleCategoryMenu() {
+    if (categoryMenuOpen.value) {
+        categoryMenuOpen.value = false
+        return
+    }
+    categoryMenuOpen.value = true
+    nextTick(positionCategoryMenu)
+}
+
+function positionCategoryMenu() {
+    const trigger = categoryTriggerRef.value
+    if (!trigger) return
+    const rect = trigger.getBoundingClientRect()
+
+    const menuWidth = Math.max(rect.width, 280)
+    const menuMaxHeight = 240
+    const spaceBelow = window.innerHeight - rect.bottom
+    const spaceAbove = rect.top
+    const openUpward = spaceBelow < menuMaxHeight && spaceAbove > spaceBelow
+
+    // اگر منو از سمت راست صفحه بیرون بزنه، تراز چپ رو تصحیح کن
+    let right = window.innerWidth - rect.right
+    if (right + menuWidth > window.innerWidth - 8) {
+        right = Math.max(window.innerWidth - menuWidth - 8, 8)
+    }
+
+    categoryMenuStyle.value = openUpward
+        ? {
+            position: 'fixed',
+            bottom: `${window.innerHeight - rect.top + 6}px`,
+            right: `${right}px`,
+            width: `${menuWidth}px`,
+            maxHeight: `${Math.min(menuMaxHeight, spaceAbove - 12)}px`,
+        }
+        : {
+            position: 'fixed',
+            top: `${rect.bottom + 6}px`,
+            right: `${right}px`,
+            width: `${menuWidth}px`,
+            maxHeight: `${Math.min(menuMaxHeight, spaceBelow - 12)}px`,
+        }
+}
+
+function handleCategoryDocClick(event) {
+    if (!categoryMenuOpen.value) return
+    const trigger = categorySelectRef.value
+    const menu = categoryMenuRef.value
+    if (trigger?.contains(event.target) || menu?.contains(event.target)) return
+    categoryMenuOpen.value = false
+}
+
+onMounted(() => {
+    document.addEventListener('click', handleCategoryDocClick)
+    window.addEventListener('resize', positionCategoryMenu)
+    window.addEventListener('scroll', positionCategoryMenu, true)
+})
+onUnmounted(() => {
+    document.removeEventListener('click', handleCategoryDocClick)
+    window.removeEventListener('resize', positionCategoryMenu)
+    window.removeEventListener('scroll', positionCategoryMenu, true)
 })
 
 function resolveAdjustmentAmount(adj) {
@@ -289,10 +416,14 @@ function submitAdjustment() {
         type: adjustmentForm.type,
         direction: adjustmentForm.direction,
         value: adjustmentForm.value,
+        category_key: adjustmentForm.category_key,
+        counts_as_revenue: adjustmentForm.counts_as_revenue,
     }, {
         onSuccess: () => {
+            adjustmentForm.category_key = 'other'
             adjustmentForm.title = ''
             adjustmentForm.value = null
+            adjustmentForm.counts_as_revenue = false
         },
         onFinish: () => adjustmentForm.processing = false
     })
@@ -311,7 +442,7 @@ function removeAdjustment(adjustmentId) {
     })
 }
 
-const props = defineProps({ invoice: Object })
+
 const isLocked = computed(() => props.invoice.payment_status !== 'unpaid')
 const hasRestockedItems = computed(() => props.invoice.order_items?.some(i => i.restocked_at))
 
@@ -491,5 +622,66 @@ function formatPrice(p) {
     .gs-detail-grid {
         grid-template-columns: 1fr
     }
+}
+.category-select {
+    position: relative;
+    min-width: 180px;
+}
+
+.category-select__trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    text-align: right;
+}
+
+.category-select__caret {
+    font-size: .7rem;
+    transition: transform .2s ease;
+    margin-right: .4rem;
+}
+
+.category-select__caret.is-open {
+    transform: rotate(180deg);
+}
+
+.category-select__menu {
+    overflow-y: auto;
+    background: var(--gs-bg-card);
+    border: 1px solid var(--gs-border-strong);
+    border-radius: 10px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.35);
+    z-index: 200;
+    padding: .3rem;
+}
+
+.category-select__item {
+    white-space: normal;
+    line-height: 1.4;
+}
+
+.category-select__item {
+    display: block;
+    width: 100%;
+    text-align: right;
+    padding: .5rem .6rem;
+    border: none;
+    background: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: .82rem;
+    color: var(--gs-text-primary);
+    cursor: pointer;
+}
+
+.category-select__item:hover {
+    background: var(--gs-bg-elevated);
+}
+
+.category-select__item.is-active {
+    color: var(--gs-gold);
+    font-weight: 700;
 }
 </style>

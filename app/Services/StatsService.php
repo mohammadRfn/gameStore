@@ -17,6 +17,7 @@ use Illuminate\Support\Collection;
 use App\Models\ServiceType;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use App\Models\ArchivedRecord;
 
 class StatsService
 {
@@ -134,8 +135,9 @@ class StatsService
             ->leftJoin('items', 'items.id', '=', 'order_items.item_id')
             ->leftJoin('categories', 'categories.id', '=', 'order_items.category_id')
             ->join('invoices', 'invoices.id', '=', 'order_items.invoice_id')
-            ->whereNull('order_items.deleted_at')
-            ->whereNull('invoices.deleted_at');
+            ->whereNull('order_items.deleted_at');
+
+        $this->activeOrArchived($query, 'invoices', ArchivedRecord::TYPE_INVOICE);
 
         if ($paidOnly) {
             $query->where('invoices.payment_status', Invoice::PAYMENT_PAID)
@@ -204,11 +206,14 @@ class StatsService
      * ----------------------------------------------------------------- */
     public function serviceRows(Carbon $from, Carbon $to, bool $paidOnly): Collection
     {
-        $jobs = ServiceJob::query()
+        $jobs = ServiceJob::withTrashed()
             ->with(['serviceTypes.serviceType', 'items.item'])
             ->whereNotIn('status', [ServiceJob::STATUS_CANCELED])
             ->where(function ($q) use ($from, $to, $paidOnly) {
                 $q->whereHas('invoice', function ($invoice) use ($from, $to, $paidOnly) {
+                    $invoice->withTrashed();
+                    $this->activeOrArchived($invoice, 'invoices', ArchivedRecord::TYPE_INVOICE);
+
                     if ($paidOnly) {
                         $invoice->where('payment_status', Invoice::PAYMENT_PAID)
                             ->whereBetween('paid_at', [$from, $to]);
@@ -237,8 +242,11 @@ class StatsService
                             });
                     });
                 }
-            })
-            ->get();
+            });
+
+        $this->activeOrArchived($jobs, 'service_jobs', ArchivedRecord::TYPE_SERVICE_JOB);
+
+        $jobs = $jobs->get();
 
         if ($jobs->isEmpty()) {
             return collect();
@@ -314,8 +322,8 @@ class StatsService
     {
         $amount = $this->invoiceAmountSql('invoices');
 
-        return Invoice::query()
-            ->with(['customer:id,name', 'orderItems', 'serviceJobs'])
+        $query = Invoice::withTrashed()
+            ->with(['customer:id,name', 'orderItems', 'serviceJobs', 'adjustments'])
             ->where(function ($q) use ($from, $to) {
                 $q->where(function ($paid) use ($from, $to) {
                     $paid->where('payment_status', Invoice::PAYMENT_PAID)
@@ -325,7 +333,11 @@ class StatsService
                         $unpaid->where('payment_status', '!=', Invoice::PAYMENT_PAID)
                             ->whereBetween('created_at', [$from, $to]);
                     });
-            })
+            });
+
+        $this->activeOrArchived($query, 'invoices', ArchivedRecord::TYPE_INVOICE);
+
+        return $query
             ->latest('id')
             ->get()
             ->map(function (Invoice $invoice) {
@@ -333,7 +345,8 @@ class StatsService
                     ->when(Schema::hasColumn('order_items', 'is_returned'), fn($c) => $c->where('is_returned', false))
                     ->sum('total_price');
                 $svc = (float) $invoice->serviceJobs->sum('final_price');
-                $adj = 0.0;
+                $adj        = 0.0;
+                $revenueAdj = 0.0;
                 if ($invoice->relationLoaded('adjustments') || method_exists($invoice, 'adjustments')) {
                     $invoice->loadMissing('adjustments');
                     foreach ($invoice->adjustments as $adjustment) {
@@ -341,17 +354,22 @@ class StatsService
                         $value = method_exists($adjustment, 'resolveAmount')
                             ? (float) $adjustment->resolveAmount($base)
                             : (float) ($adjustment->amount ?? 0);
-                        $adj += ($adjustment->direction ?? 'increase') === 'increase' ? $value : -$value;
+                        $signed = ($adjustment->direction ?? 'increase') === 'increase' ? $value : -$value;
+                        $adj += $signed;
+                        if ($adjustment->counts_as_revenue ?? true) {
+                            $revenueAdj += $signed;
+                        }
                     }
                 }
 
                 return [
-                    'id'             => $invoice->id,
-                    'number'         => $invoice->invoice_number,
-                    'customer'       => $invoice->customer?->name ?? '—',
-                    'items'          => round($items, 0),
-                    'services'       => round($svc, 0),
-                    'adjustment'     => round($adj, 0),
+                    'id'                 => $invoice->id,
+                    'number'             => $invoice->invoice_number,
+                    'customer'           => $invoice->customer?->name ?? '—',
+                    'items'              => round($items, 0),
+                    'services'           => round($svc, 0),
+                    'adjustment'         => round($adj, 0),
+                    'revenue_adjustment' => round($revenueAdj, 0),
                     'total'          => round((float) ($invoice->final_amount ?? $invoice->total_amount ?? ($items + $svc + $adj)), 0),
                     'status'         => $invoice->payment_status,
                     'method'         => $invoice->payment_method,
@@ -371,8 +389,9 @@ class StatsService
         $itemQuery = OrderItem::query()
             ->join('invoices', 'invoices.id', '=', 'order_items.invoice_id')
             ->leftJoin('items', 'items.id', '=', 'order_items.item_id')
-            ->whereNull('order_items.deleted_at')
-            ->whereNull('invoices.deleted_at');
+            ->whereNull('order_items.deleted_at');
+
+        $this->activeOrArchived($itemQuery, 'invoices', ArchivedRecord::TYPE_INVOICE);
 
         if ($paidOnly) {
             $itemQuery
@@ -412,11 +431,12 @@ class StatsService
             ->keyBy('d');
 
         // ── سرویس‌ها ────────────────────────────────────────────
-        $svcQuery = ServiceJob::query()
+        $svcQuery = ServiceJob::withTrashed()
             ->join('invoices', 'invoices.id', '=', 'service_jobs.invoice_id')
-            ->whereNull('service_jobs.deleted_at')
-            ->whereNull('invoices.deleted_at')
             ->whereNotIn('service_jobs.status', [ServiceJob::STATUS_CANCELED]);
+
+        $this->activeOrArchived($svcQuery, 'service_jobs', ArchivedRecord::TYPE_SERVICE_JOB);
+        $this->activeOrArchived($svcQuery, 'invoices', ArchivedRecord::TYPE_INVOICE);
 
         if ($paidOnly) {
             $svcQuery
@@ -605,11 +625,15 @@ class StatsService
 
         /* فروش کالا در بازه */
         /* فروش کالا در بازه (بر اساس تاریخ مؤثر فاکتور: پرداخت یا ایجاد) */
-        $orders = OrderItem::query()
+        $ordersQuery = OrderItem::query()
             ->join('invoices', 'invoices.id', '=', 'order_items.invoice_id')
             ->where('invoices.is_returned', false)
             ->when($paidOnly, fn($q) => $q->where('invoices.payment_status', Invoice::PAYMENT_PAID))
-            ->whereRaw('COALESCE(invoices.paid_at, invoices.created_at) between ? and ?', [$from, $to])
+            ->whereRaw('COALESCE(invoices.paid_at, invoices.created_at) between ? and ?', [$from, $to]);
+
+        $this->activeOrArchived($ordersQuery, 'invoices', ArchivedRecord::TYPE_INVOICE);
+
+        $orders = $ordersQuery
             ->select(
                 DB::raw('COALESCE(invoices.paid_at, invoices.created_at) as order_at'),
                 'order_items.total_price as price_total'
@@ -617,12 +641,17 @@ class StatsService
             ->get();
 
         /* درآمد سرویس در بازه (بر اساس تاریخ مؤثر فاکتور) */
-        $services = ServiceJob::query()
+        $servicesQuery = ServiceJob::withTrashed()
             ->join('invoices', 'invoices.id', '=', 'service_jobs.invoice_id')
             ->whereNotIn('service_jobs.status', [ServiceJob::STATUS_CANCELED])
             ->where('invoices.is_returned', false)
             ->when($paidOnly, fn($q) => $q->where('invoices.payment_status', Invoice::PAYMENT_PAID))
-            ->whereRaw('COALESCE(invoices.paid_at, invoices.created_at) between ? and ?', [$from, $to])
+            ->whereRaw('COALESCE(invoices.paid_at, invoices.created_at) between ? and ?', [$from, $to]);
+
+        $this->activeOrArchived($servicesQuery, 'service_jobs', ArchivedRecord::TYPE_SERVICE_JOB);
+        $this->activeOrArchived($servicesQuery, 'invoices', ArchivedRecord::TYPE_INVOICE);
+
+        $services = $servicesQuery
             ->select(
                 DB::raw('COALESCE(invoices.paid_at, invoices.created_at) as order_at'),
                 'service_jobs.final_price'
@@ -648,6 +677,24 @@ class StatsService
     }
 
     /* ----------------------------------------------------------------- */
+
+    /**
+     * رکورد یا اصلاً حذف نشده، یا حذف شده ولی از مسیر «انتقال به بایگانی»
+     * بوده (نه حذف واقعی) — در هر دو حالت باید در استتز محاسبه شود.
+     */
+    private function activeOrArchived($query, string $table, string $sourceType)
+    {
+        return $query->where(function ($q) use ($table, $sourceType) {
+            $q->whereNull("{$table}.deleted_at")
+                ->orWhereExists(function ($sub) use ($table, $sourceType) {
+                    $sub->selectRaw('1')
+                        ->from('archived_records')
+                        ->whereColumn('archived_records.source_id', "{$table}.id")
+                        ->where('archived_records.source_type', $sourceType)
+                        ->where('archived_records.archive_status', ArchivedRecord::STATUS_TRANSFERRED);
+                });
+        });
+    }
 
     private function applyInvoiceFilters($query, bool $paidOnly, string $table = ''): void
     {
@@ -696,6 +743,7 @@ class StatsService
         $billed    = (float) $active->sum('total');
         $collected = (float) $paid->sum('total');
         $outstanding = (float) $unpaid->sum('total');
+        $revenueAdjustments = (float) $paid->sum('revenue_adjustment');
 
         return [
             'product_revenue'  => round($productRevenue, 0),
@@ -706,8 +754,9 @@ class StatsService
             'service_parts'    => round($serviceParts, 0),
             'service_net'      => round($serviceNet, 0),
             'service_jobs'     => (int) $services->sum('jobs'),
-            'gross'            => round($productRevenue + $serviceRevenue, 0),
-            'net_profit'       => round($productProfit + $serviceNet, 0),
+            'revenue_adjustments' => round($revenueAdjustments, 0),
+            'gross'            => round($productRevenue + $serviceRevenue + $revenueAdjustments, 0),
+            'net_profit'       => round($productProfit + $serviceNet + $revenueAdjustments, 0),
             'billed'           => round($billed, 0),
             'collected'        => round($collected, 0),
             'outstanding'      => round($outstanding, 0),

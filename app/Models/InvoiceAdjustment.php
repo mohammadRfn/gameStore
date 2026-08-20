@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class InvoiceAdjustment extends Model
 {
-    protected $fillable = ['invoice_id', 'title', 'type', 'direction', 'value'];
+    protected $fillable = ['invoice_id', 'title', 'type', 'direction', 'value', 'category_key', 'counts_as_revenue'];
 
     protected $casts = [
-        'value' => 'float',
+        'value'             => 'float',
+        'counts_as_revenue' => 'boolean',
     ];
 
     const TYPE_PERCENTAGE = 'percentage';
@@ -31,5 +32,9 @@ class InvoiceAdjustment extends Model
         return $this->type === self::TYPE_PERCENTAGE
             ? $baseAmount * ($this->value / 100)
             : $this->value;
+    }
+    public function category()
+    {
+        return $this->belongsTo(AdjustmentCategory::class, 'category_key', 'key');
     }
 }
