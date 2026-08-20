@@ -15,7 +15,6 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
-use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class ArchivedServiceJobsExport implements
@@ -49,10 +48,22 @@ class ArchivedServiceJobsExport implements
             'نوع دستگاه',
             'سریال دستگاه',
             'نام مشتری',
+            'شناسه مشتری',
+            'نوع سرویس‌ها',
             'شرح ایراد مشتری',
-            'شرح تشخیص',
+            'شرح تشخیص تکنسین',
+            'قطعات مصرفی',
+            'وضعیت سرویس',
+            'قیمت تخمینی (تومان)',
+            'قیمت نهایی سرویس (تومان)',
             'شماره فاکتور مرتبط',
-            'مبلغ نهایی سرویس (تومان)',
+            'اقلام فاکتور',
+            'تعدیلات فاکتور',
+            'مبلغ نهایی فاکتور (تومان)',
+            'وضعیت پرداخت',
+            'روش پرداخت',
+            'تاریخ دریافت دستگاه',
+            'تاریخ تحویل دستگاه',
             'وضعیت بایگانی',
             'تاریخ بایگانی',
             'تاریخ انتقال به بایگانی',
@@ -65,16 +76,46 @@ class ArchivedServiceJobsExport implements
     {
         $snapshot = $this->snapshot($record);
 
+        $status = data_get($snapshot, 'source.status', '-');
+        $statusLabel = match ($status) {
+            'received'          => 'دریافت‌شده',
+            'diagnosing'        => 'در حال تشخیص',
+            'waiting_for_parts' => 'منتظر قطعات',
+            'in_progress'       => 'در حال انجام',
+            'completed'         => 'تکمیل‌شده',
+            'delivered'         => 'تحویل‌شده',
+            'canceled'          => 'لغو‌شده',
+            default             => $status,
+        };
+
+        $paymentMethod   = data_get($snapshot, 'paid_invoice.payment_method');
+        $estimatedPrice  = data_get($snapshot, 'source.estimated_price');
+        $finalPrice      = data_get($snapshot, 'source.final_price', $record->total_amount);
+        $invoiceFinal    = data_get($snapshot, 'paid_invoice.final_amount',
+                             data_get($snapshot, 'paid_invoice.total_amount', $record->total_amount));
+
         return [
             $record->id,
             $record->source_id,
             data_get($snapshot, 'source.device_type', '-'),
             data_get($snapshot, 'source.device_serial', '-'),
             $record->customer_name ?? '-',
+            $record->customer_id ?? '-',
+            $this->serviceTypesText($snapshot),
             data_get($snapshot, 'source.customer_problem_description', '-'),
             data_get($snapshot, 'source.diagnosis_description', '-'),
+            $this->serviceItemsText($snapshot),
+            $statusLabel,
+            $this->amount($estimatedPrice),
+            $this->amount($finalPrice),
             $record->invoice_number ?? '-',
-            $this->amount($record->total_amount),
+            $this->orderItemsText($snapshot),
+            $this->adjustmentsText($snapshot),
+            $this->amount($invoiceFinal),
+            $this->paymentStatusLabel($record->payment_status),
+            $this->paymentMethodLabel($paymentMethod),
+            $this->jalali(data_get($snapshot, 'source.received_at')),
+            $this->jalali(data_get($snapshot, 'source.delivered_at')),
             $this->archiveStatusLabel($record),
             $this->jalali($record->archived_at),
             $this->jalali($record->removed_from_source_at),
@@ -84,22 +125,18 @@ class ArchivedServiceJobsExport implements
 
     public function styles(Worksheet $sheet): array
     {
-        return [1 => ['font' => ['bold' => true]]];
+        return [];
     }
 
     public function title(): string
     {
-        return 'سرویس‌های بایگانی‌شده';
+        return '🔧 سرویس‌های بایگانی‌شده';
     }
 
     public function registerEvents(): array
     {
         return [
-            AfterSheet::class => function (AfterSheet $event): void {
-                $event->sheet->getDelegate()->setRightToLeft(true);
-                $event->sheet->getDelegate()->freezePane('A2');
-                $event->sheet->getStyle('A1:M1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            },
+            AfterSheet::class => $this->luxuryAfterSheetEvent('Y'), // 25 ستون = A تا Y
         ];
     }
 }

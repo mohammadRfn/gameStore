@@ -15,7 +15,6 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
-use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class ArchivedRequestsExport implements
@@ -47,10 +46,18 @@ class ArchivedRequestsExport implements
             '#',
             'شناسه درخواست',
             'نام مشتری',
+            'شناسه مشتری',
             'دسته‌بندی‌ها',
             'شرح درخواست',
             'شماره فاکتور مرتبط',
-            'مبلغ فاکتور (تومان)',
+            'اقلام فاکتور',
+            'تعدیلات فاکتور',
+            'مبلغ پایه فاکتور (تومان)',
+            'مبلغ نهایی فاکتور (تومان)',
+            'وضعیت پرداخت',
+            'روش پرداخت',
+            'تاریخ پرداخت',
+            'تاریخ ثبت درخواست',
             'وضعیت بایگانی',
             'تاریخ بایگانی',
             'تاریخ انتقال به بایگانی',
@@ -68,14 +75,26 @@ class ArchivedRequestsExport implements
             ->filter()
             ->implode('، ');
 
+        $paymentMethod = data_get($snapshot, 'paid_invoice.payment_method');
+        $baseAmount    = data_get($snapshot, 'paid_invoice.total_amount', $record->total_amount);
+        $finalAmount   = data_get($snapshot, 'paid_invoice.final_amount', $record->total_amount);
+
         return [
             $record->id,
             $record->source_id,
             $record->customer_name ?? '-',
+            $record->customer_id ?? '-',
             $categories ?: '-',
             data_get($snapshot, 'source.description', '-'),
             $record->invoice_number ?? '-',
-            $this->amount($record->total_amount),
+            $this->orderItemsText($snapshot),
+            $this->adjustmentsText($snapshot),
+            $this->amount($baseAmount),
+            $this->amount($finalAmount),
+            $this->paymentStatusLabel($record->payment_status),
+            $this->paymentMethodLabel($paymentMethod),
+            $this->jalali($record->paid_at),
+            $this->jalali($record->source_created_at),
             $this->archiveStatusLabel($record),
             $this->jalali($record->archived_at),
             $this->jalali($record->removed_from_source_at),
@@ -85,22 +104,18 @@ class ArchivedRequestsExport implements
 
     public function styles(Worksheet $sheet): array
     {
-        return [1 => ['font' => ['bold' => true]]];
+        return [];
     }
 
     public function title(): string
     {
-        return 'درخواست‌های بایگانی‌شده';
+        return '📋 درخواست‌های بایگانی‌شده';
     }
 
     public function registerEvents(): array
     {
         return [
-            AfterSheet::class => function (AfterSheet $event): void {
-                $event->sheet->getDelegate()->setRightToLeft(true);
-                $event->sheet->getDelegate()->freezePane('A2');
-                $event->sheet->getStyle('A1:K1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            },
+            AfterSheet::class => $this->luxuryAfterSheetEvent('S'), // 19 ستون = A تا S
         ];
     }
 }
