@@ -22,17 +22,18 @@ trait FormatsArchiveExports
     /* ------------------------------------------------------------------ */
     /* رنگ‌های تم (گیم‌استور — تیره/طلایی)                                 */
     /* ------------------------------------------------------------------ */
-    protected static string $colorHeaderBg      = '1A1A2E';   // سرمه‌ای تیره
+    protected static string $colorHeaderBg      = '1A1A2E';   // سرمه‌ای تیره (فقط سرستون)
     protected static string $colorHeaderFont     = 'FFD700';   // طلایی
     protected static string $colorSubHeaderBg    = '16213E';   // سرمه‌ای متوسط
     protected static string $colorSubHeaderFont  = 'E8D5B7';   // کرم
-    protected static string $colorRowEven        = '0F3460';   // آبی تیره
-    protected static string $colorRowOdd         = '1A1A2E';   // سرمه‌ای تیره
-    protected static string $colorRowFont        = 'EAEAEA';   // سفید مایل به خاکستری
-    protected static string $colorBorder         = '2D3A6A';   // آبی-خاکستری
-    protected static string $colorAccentGold     = 'FFD700';   // طلایی
+    protected static string $colorRowEven        = 'F5EAD1';   // کرم عمیق‌تر
+    protected static string $colorRowOdd          = 'FBF6E9';   // کرم روشن
+    protected static string $colorRowFont        = '3B2F1E';   // قهوه‌ای تیره (خوانا روی کرم)
+    protected static string $colorBorder         = 'D9C289';   // طلایی کدر
+    protected static string $colorAccentGold     = 'C9A227';   // طلایی تیره‌تر برای بوردر/جداکننده
     protected static string $colorTotalBg        = 'B8860B';   // طلایی تیره
     protected static string $colorTotalFont      = 'FFFFFF';   // سفید
+    protected static string $fontFamily          = 'Vazirmatn'; // باید روی سیستمی که فایل رو باز می‌کنه نصب باشه
 
     /* ------------------------------------------------------------------ */
     /* تبدیل‌ها و لیبل‌ها                                                  */
@@ -167,7 +168,7 @@ trait FormatsArchiveExports
         foreach ($items as $i => $item) {
             $name  = data_get($item, 'item.name', data_get($item, 'product_name', '—'));
             $qty   = data_get($item, 'quantity', 1);
-            $price = number_format((float) data_get($item, 'price', 0), 0);
+            $price = number_format((float) data_get($item, 'unit_price', 0), 0);
             $lines[] = ($i + 1) . ") {$name} × {$qty} — {$price} تومان";
         }
         return implode("\n", $lines);
@@ -214,9 +215,9 @@ trait FormatsArchiveExports
         $sheet->getStyle($headerRange)->applyFromArray([
             'font' => [
                 'bold'  => true,
-                'size'  => 13,
+                'size'  => 12,
                 'color' => ['argb' => 'FF' . static::$colorHeaderFont],
-                'name'  => 'Tahoma',
+                'name'  => static::$fontFamily,
             ],
             'fill' => [
                 'fillType'   => Fill::FILL_SOLID,
@@ -234,18 +235,20 @@ trait FormatsArchiveExports
                 ],
             ],
         ]);
-        $sheet->getRowDimension(1)->setRowHeight(38);
+        $sheet->getRowDimension(1)->setRowHeight(
+            $this->calculateHeaderRowHeight($sheet, $lastCol)
+        );
 
         /* ---------- استایل ردیف‌های داده ---------- */
         for ($row = 2; $row <= $lastDataRow; $row++) {
-            $isEven = ($row % 2 === 0);
+            $isEven  = ($row % 2 === 0);
             $bgColor = $isEven ? static::$colorRowEven : static::$colorRowOdd;
 
             $sheet->getStyle("A{$row}:{$lastCol}{$row}")->applyFromArray([
                 'font' => [
-                    'size'  => 11,
+                    'size'  => 10.5,
                     'color' => ['argb' => 'FF' . static::$colorRowFont],
-                    'name'  => 'Tahoma',
+                    'name'  => static::$fontFamily,
                 ],
                 'fill' => [
                     'fillType'   => Fill::FILL_SOLID,
@@ -263,7 +266,9 @@ trait FormatsArchiveExports
                     ],
                 ],
             ]);
-            $sheet->getRowDimension($row)->setRowHeight(26);
+            $sheet->getRowDimension($row)->setRowHeight(
+                $this->calculateRowHeight($sheet, $row, $lastCol)
+            );
         }
 
         /* ---------- بوردر بیرونی کل جدول ---------- */
@@ -279,8 +284,59 @@ trait FormatsArchiveExports
         }
     }
 
+    protected function estimateWrappedLineCount(string $text, float $columnWidthChars): int
+    {
+        $columnWidthChars = max($columnWidthChars, 4);
+        $lines = 0;
+
+        foreach (explode("\n", $text) as $segment) {
+            $len = mb_strlen($segment);
+            $lines += (int) max(1, ceil($len / $columnWidthChars));
+        }
+
+        return max($lines, 1);
+    }
+
     /**
-     * رجیسترهای مشترک AfterSheet برای اعمال استایل
+     * ارتفاع ردیف هدر را بر اساس طول عنوان هر ستون نسبت به عرض همان
+     * ستون محاسبه می‌کند.
+     */
+    protected function calculateHeaderRowHeight(Worksheet $sheet, string $lastCol): int
+    {
+        $maxLines   = 1;
+        $highestCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($lastCol);
+
+        for ($colIndex = 1; $colIndex <= $highestCol; $colIndex++) {
+            $col   = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex);
+            $value = (string) $sheet->getCell("{$col}1")->getValue();
+            $width = $sheet->getColumnDimension($col)->getWidth();
+            $maxLines = max($maxLines, $this->estimateWrappedLineCount($value, $width));
+        }
+
+        return min(max($maxLines * 16 + 14, 30), 90);
+    }
+
+    /**
+     * ارتفاع یک ردیف داده را بر اساس بیشترین تعداد خط لازم در بین همه‌ی
+     * ستون‌های آن ردیف (با احتساب عرض واقعی هر ستون) محاسبه می‌کند.
+     */
+    protected function calculateRowHeight(Worksheet $sheet, int $row, string $lastCol): int
+    {
+        $maxLines   = 1;
+        $highestCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($lastCol);
+
+        for ($colIndex = 1; $colIndex <= $highestCol; $colIndex++) {
+            $col   = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex);
+            $value = (string) $sheet->getCell("{$col}{$row}")->getValue();
+            $width = $sheet->getColumnDimension($col)->getWidth();
+            $maxLines = max($maxLines, $this->estimateWrappedLineCount($value, $width));
+        }
+
+        return min(max($maxLines * 15 + 8, 26), 260);
+    }
+
+    /**
+     * رجیسترهای مشترک AfterSheet برای اعمال استایل.
      */
     protected function luxuryAfterSheetEvent(string $lastCol): \Closure
     {

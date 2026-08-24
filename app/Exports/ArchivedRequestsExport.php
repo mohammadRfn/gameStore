@@ -8,7 +8,7 @@ use App\Services\ArchiveService;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\Export;
 use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -24,7 +24,7 @@ class ArchivedRequestsExport implements
     WithMapping,
     WithStyles,
     WithEvents,
-    ShouldAutoSize,
+    WithColumnWidths,
     WithTitle
 {
     use FormatsArchiveExports;
@@ -102,6 +102,31 @@ class ArchivedRequestsExport implements
         ];
     }
 
+    public function columnWidths(): array
+    {
+        return [
+            'A' => 6,
+            'B' => 14,
+            'C' => 18,
+            'D' => 10,
+            'E' => 18,
+            'F' => 28,
+            'G' => 16,
+            'H' => 30,
+            'I' => 22,
+            'J' => 16,
+            'K' => 16,
+            'L' => 16,
+            'M' => 16,
+            'N' => 16,
+            'O' => 16,
+            'P' => 24,
+            'Q' => 16,
+            'R' => 16,
+            'S' => 22,
+        ];
+    }
+
     public function styles(Worksheet $sheet): array
     {
         return [];
@@ -115,7 +140,8 @@ class ArchivedRequestsExport implements
     public function registerEvents(): array
     {
         return [
-            AfterSheet::class => $this->luxuryAfterSheetEvent('S'), // 19 ستون = A تا S
+            // ستون‌های چندخطی: F (شرح درخواست)، H (اقلام فاکتور)، I (تعدیلات فاکتور)
+            AfterSheet::class => $this->luxuryAfterSheetEvent('S', ['F', 'H', 'I']),
         ];
     }
 }

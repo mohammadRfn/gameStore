@@ -31,8 +31,7 @@ class BackupController extends Controller
         protected BackupManifest $manifest,
         protected BackupPathResolver $paths,
         protected BackupSettingsService $settings,
-    ) {
-    }
+    ) {}
 
     /* ------------------------------------------------------------------ */
     /* داشبورد و متادیتا                                                  */
@@ -62,6 +61,7 @@ class BackupController extends Controller
                         BackupRun::STRATEGY_REPLACE,
                         BackupRun::STRATEGY_SKIP_EXISTING,
                         BackupRun::STRATEGY_FAIL,
+                        BackupRun::STRATEGY_REINDEX,
                     ],
                     'format_version' => config('backup.format_version'),
                 ],
@@ -93,7 +93,7 @@ class BackupController extends Controller
                 'data' => [
                     'path'         => $path,
                     'writable'     => true,
-                    'free_space_mb'=> round((float) (@disk_free_space($path) ?: 0) / 1048576, 1),
+                    'free_space_mb' => round((float) (@disk_free_space($path) ?: 0) / 1048576, 1),
                 ],
                 'message' => 'مسیر معتبر است.',
             ]);
@@ -105,6 +105,11 @@ class BackupController extends Controller
     /** اجرای خروجی کامل/دیتابیس/تصاویر. */
     public function export(Request $request): JsonResponse
     {
+        $this->castBooleans($request, [
+            'include_media', 'include_soft_deleted', 'include_orphan_media',
+            'redact_sensitive', 'remember_path',
+        ]);
+
         $data = $request->validate([
             'destination_path'     => ['nullable', 'string', 'max:1000'],
             'mode'                 => ['nullable', Rule::in([BackupRun::MODE_FULL, BackupRun::MODE_DATABASE, BackupRun::MODE_MEDIA])],
@@ -224,6 +229,11 @@ class BackupController extends Controller
     /** تزریق داده‌ها از بسته‌ی ورودی. */
     public function import(Request $request): JsonResponse
     {
+        $this->castBooleans($request, [
+            'dry_run', 'safety_backup', 'verify_checksums',
+            'stop_on_error', 'relink', 'ignore_fk_violations', 'remember_path',
+        ]);
+
         $data = $request->validate([
             'source_path'          => ['nullable', 'string', 'max:1000'],
             'mode'                 => ['nullable', Rule::in([BackupRun::MODE_FULL, BackupRun::MODE_DATABASE, BackupRun::MODE_MEDIA])],
@@ -232,6 +242,7 @@ class BackupController extends Controller
                 BackupRun::STRATEGY_REPLACE,
                 BackupRun::STRATEGY_SKIP_EXISTING,
                 BackupRun::STRATEGY_FAIL,
+                BackupRun::STRATEGY_REINDEX,
             ])],
             'entities'             => ['nullable', 'array'],
             'entities.*'           => ['string', Rule::in($this->manifest->keys())],
@@ -248,7 +259,8 @@ class BackupController extends Controller
         // حالت replace داده‌های فعلی را پاک می‌کند؛ تاییدیه‌ی صریح لازم است.
         if (($data['strategy'] ?? null) === BackupRun::STRATEGY_REPLACE
             && empty($data['dry_run'])
-            && ($data['confirmation'] ?? null) !== 'REPLACE') {
+            && ($data['confirmation'] ?? null) !== 'REPLACE'
+        ) {
             throw ValidationException::withMessages([
                 'confirmation' => 'برای جایگزینی کامل داده‌ها باید عبارت REPLACE را در فیلد تایید وارد کنید.',
             ]);
@@ -303,6 +315,8 @@ class BackupController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        $this->castBooleans($request, ['include_auto']);
+
         $filters = $request->validate([
             'direction'    => ['nullable', Rule::in([BackupRun::DIRECTION_EXPORT, BackupRun::DIRECTION_IMPORT])],
             'status'       => ['nullable', 'string', 'max:20'],
@@ -336,7 +350,7 @@ class BackupController extends Controller
         $status  = $request->query('status');
 
         $files = $run->files()
-            ->when(is_string($status) && $status !== '', fn ($q) => $q->where('status', $status))
+            ->when(is_string($status) && $status !== '', fn($q) => $q->where('status', $status))
             ->paginate(min(200, (int) $request->query('per_page', 50)));
 
         return response()->json(['data' => $files]);
@@ -379,6 +393,11 @@ class BackupController extends Controller
 
     public function updateSettings(Request $request): JsonResponse
     {
+        $this->castBooleans($request, [
+            'include_media', 'include_soft_deleted', 'csv_bom',
+            'auto_safety_backup', 'verify_checksums',
+        ]);
+
         $data = $request->validate([
             'export_root_path'       => ['nullable', 'string', 'max:1000'],
             'import_root_path'       => ['nullable', 'string', 'max:1000'],
@@ -391,11 +410,12 @@ class BackupController extends Controller
             'retention_copies'       => ['nullable', 'integer', 'min:0', 'max:200'],
             'auto_safety_backup'     => ['nullable', 'boolean'],
             'verify_checksums'       => ['nullable', 'boolean'],
-            'default_import_strategy'=> ['nullable', Rule::in([
+            'default_import_strategy' => ['nullable', Rule::in([
                 BackupRun::STRATEGY_MERGE,
                 BackupRun::STRATEGY_REPLACE,
                 BackupRun::STRATEGY_SKIP_EXISTING,
                 BackupRun::STRATEGY_FAIL,
+                BackupRun::STRATEGY_REINDEX,
             ])],
         ]);
 
@@ -406,7 +426,7 @@ class BackupController extends Controller
         }
 
         $saved = $this->settings->setMany(
-            array_filter($data, fn ($value) => $value !== null),
+            array_filter($data, fn($value) => $value !== null),
             null,
             $request->user()?->id,
         );
@@ -441,7 +461,17 @@ class BackupController extends Controller
             ];
         }, $this->manifest->all()));
     }
-
+    private function castBooleans(Request $request, array $fields): void
+    {
+        $request->merge(
+            collect($fields)
+                ->filter(fn($field) => $request->has($field))
+                ->mapWithKeys(fn($field) => [
+                    $field => filter_var($request->input($field), FILTER_VALIDATE_BOOLEAN),
+                ])
+                ->all()
+        );
+    }
     private function error(Throwable $e, string $fallback): JsonResponse
     {
         report($e);

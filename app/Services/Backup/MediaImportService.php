@@ -28,6 +28,8 @@ class MediaImportService
         'order_items'        => ['entity' => 'order_items', 'table' => 'order_items', 'column' => 'image_path',         'storage_dir' => 'images/order_items'],
         'invoices/receipts'  => ['entity' => 'invoices',    'table' => 'invoices',    'column' => 'receipt_image_path', 'storage_dir' => 'images/receipts'],
         'invoices'           => ['entity' => 'invoices',    'table' => 'invoices',    'column' => 'receipt_image_path', 'storage_dir' => 'images/receipts'],
+        'store/logo'         => ['entity' => 'store_profiles', 'table' => 'store_profiles', 'column' => 'logo_path',  'storage_dir' => 'images/store/logo'],
+        'store/cover'        => ['entity' => 'store_profiles', 'table' => 'store_profiles', 'column' => 'cover_path', 'storage_dir' => 'images/store/cover'],
     ];
 
     public function __construct(

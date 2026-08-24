@@ -20,6 +20,8 @@ use App\Models\User;
 use App\Models\AppSetting;
 use App\Models\SettingGroup;
 use App\Models\StoreProfile;
+use App\Models\AdjustmentCategory;
+use App\Models\RequestCategory;
 
 return [
 
@@ -82,10 +84,11 @@ return [
         'time_limit'          => (int) env('BACKUP_TIME_LIMIT', 0), // 0 = بدون محدودیت
         'min_free_space_mb'   => 200,
         'lock_seconds'        => 1800,
-        'retention_copies'    => (int) env('BACKUP_RETENTION', 10),
+        'retention_copies'         => (int) env('BACKUP_RETENTION', 10),
+        'safety_retention_copies'  => (int) env('BACKUP_SAFETY_RETENTION', 3),
         'auto_safety_backup'  => true,   // قبل از ایمپورت، بکاپ ایمنی بگیر
         'verify_checksums'    => true,
-        'include_soft_deleted'=> true,
+        'include_soft_deleted' => true,
         'vacuum_after_import' => true,
     ],
 
@@ -111,10 +114,20 @@ return [
     |--------------------------------------------------------------------------
     */
     'excluded_tables' => [
-        'migrations', 'sessions', 'cache', 'cache_locks', 'jobs', 'job_batches',
-        'failed_jobs', 'password_reset_tokens', 'personal_access_tokens',
-        'backup_runs', 'backup_run_entities', 'backup_files', 'backup_run_events', 'backup_settings',
-        'cache_maintenance_runs',
+        'migrations',
+        'sessions',
+        'cache',
+        'cache_locks',
+        'jobs',
+        'job_batches',
+        'failed_jobs',
+        'password_reset_tokens',
+        'personal_access_tokens',
+        'backup_runs',
+        'backup_run_entities',
+        'backup_files',
+        'backup_run_events',
+        'backup_settings',
     ],
 
     /*
@@ -162,7 +175,33 @@ return [
             'optional'     => false,
         ],
 
+        'setting_groups' => [
+            'table'        => 'setting_groups',
+            'model'        => SettingGroup::class,
+            'group'        => '00_core',
+            'label'        => 'گروه‌های تنظیمات',
+            'natural_key'  => ['code'],
+            'soft_deletes' => false,
+        ],
 
+        'app_settings' => [
+            'table'        => 'app_settings',
+            'model'        => AppSetting::class,
+            'group'        => '00_core',
+            'label'        => 'تنظیمات برنامه',
+            'natural_key'  => ['group_id', 'setting_key'],
+            'soft_deletes' => false,
+        ],
+
+        'store_profiles' => [
+            'table'        => 'store_profiles',
+            'model'        => StoreProfile::class,
+            'group'        => '00_core',
+            'label'        => 'پروفایل فروشگاه',
+            'natural_key'  => ['slug'],
+            'soft_deletes' => false,
+            'media'        => ['logo_path' => 'store/logo', 'cover_path' => 'store/cover'],
+        ],
         'categories' => [
             'table'        => 'categories',
             'model'        => Category::class,
@@ -180,7 +219,14 @@ return [
             'natural_key'  => ['phone', 'name'],
             'soft_deletes' => true,
         ],
-
+        'adjustment_categories' => [
+            'table'        => 'adjustment_categories',
+            'model'        => AdjustmentCategory::class,
+            'group'        => '30_sales',
+            'label'        => 'دسته‌بندی تعدیل‌ها',
+            'natural_key'  => ['key'],
+            'soft_deletes' => false,
+        ],
         'items' => [
             'table'        => 'items',
             'model'        => Item::class,
@@ -199,7 +245,14 @@ return [
             'natural_key'  => [],
             'soft_deletes' => true,
         ],
-
+        'request_categories' => [
+            'table'        => 'request_categories',
+            'model'        => null,
+            'group'        => '40_services',
+            'label'        => 'دسته‌بندی درخواست‌ها',
+            'natural_key'  => ['request_id', 'category_id'],
+            'soft_deletes' => false,
+        ],
         'invoices' => [
             'table'        => 'invoices',
             'model'        => Invoice::class,
@@ -235,7 +288,7 @@ return [
             'model'        => ServiceType::class,
             'group'        => '40_services',
             'label'        => 'انواع خدمات',
-            'natural_key'  => [ 'name'],
+            'natural_key'  => ['name'],
             'soft_deletes' => true,
         ],
 
@@ -309,6 +362,15 @@ return [
             'model'        => ArchiveAction::class,
             'group'        => '70_archive',
             'label'        => 'رویدادهای بایگانی',
+            'natural_key'  => [],
+            'soft_deletes' => false,
+            'optional'     => true,
+        ],
+        'cache_maintenance_runs' => [
+            'table'        => 'cache_maintenance_runs',
+            'model'        => null,
+            'group'        => '00_core',
+            'label'        => 'لاگ نگهداری کش',
             'natural_key'  => [],
             'soft_deletes' => false,
             'optional'     => true,

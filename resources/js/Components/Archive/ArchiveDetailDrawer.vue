@@ -51,15 +51,131 @@
                   </span>
                 </section>
 
-                <!-- اسنپ‌شات -->
+                <!-- خود درخواست (فقط برای نوع request) -->
+                <section v-if="requestInfo" class="detail-block">
+                  <h3 class="block-title">جزئیات درخواست</h3>
+                  <div class="kv-grid">
+                    <div class="kv-item">
+                      <span class="kv-label">وضعیت درخواست</span>
+                      <span class="kv-value">{{ requestInfo.statusLabel }}</span>
+                    </div>
+                    <div v-if="requestInfo.categories.length" class="kv-item">
+                      <span class="kv-label">دسته‌بندی‌ها</span>
+                      <span class="kv-value">
+                        <span class="chip-list">
+                          <span v-for="(c, i) in requestInfo.categories" :key="i" class="chip chip--muted">{{ c }}</span>
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="text-blocks">
+                    <div class="text-block">
+                      <span class="kv-label">شرح درخواست</span>
+                      <p>{{ requestInfo.description }}</p>
+                    </div>
+                  </div>
+                </section>
+
+                <!-- مشخصات دستگاه (فقط سرویس) -->
+                <section v-if="deviceInfo.length" class="detail-block">
+                  <h3 class="block-title">مشخصات دستگاه</h3>
+                  <div class="kv-grid">
+                    <div v-for="row in deviceInfo" :key="row.label" class="kv-item">
+                      <span class="kv-label">{{ row.label }}</span>
+                      <span class="kv-value">{{ row.value }}</span>
+                    </div>
+                  </div>
+                </section>
+
+                <!-- نوع سرویس‌ها -->
+                <section v-if="serviceTypes.length" class="detail-block">
+                  <h3 class="block-title">نوع سرویس‌ها</h3>
+                  <div class="chip-list">
+                    <span v-for="(t, i) in serviceTypes" :key="i" class="chip chip--muted">
+                      {{ t.name }}<template v-if="t.price"> — {{ formatMoney(t.price) }} تومان</template>
+                    </span>
+                  </div>
+                </section>
+
+                <!-- قطعات مصرفی سرویس -->
+                <section v-if="serviceItems.length" class="detail-block">
+                  <h3 class="block-title">قطعات مصرفی</h3>
+                  <table class="items-table">
+                    <thead>
+                      <tr>
+                        <th>نام</th>
+                        <th>تعداد</th>
+                        <th>قیمت واحد</th>
+                        <th>جمع</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(it, i) in serviceItems" :key="i">
+                        <td>{{ it.name }}</td>
+                        <td>{{ it.quantity }}</td>
+                        <td>{{ formatMoney(it.unitPrice) }}</td>
+                        <td>{{ formatMoney(it.totalPrice) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </section>
+
+                <!-- شرح ایراد و تشخیص -->
+                <section v-if="problemInfo.length" class="detail-block">
+                  <h3 class="block-title">شرح ایراد و تشخیص</h3>
+                  <div class="text-blocks">
+                    <div v-for="row in problemInfo" :key="row.label" class="text-block">
+                      <span class="kv-label">{{ row.label }}</span>
+                      <p>{{ row.value }}</p>
+                    </div>
+                  </div>
+                </section>
+
+                <!-- اقلام فاکتور -->
+                <section v-if="orderItems.length" class="detail-block">
+                  <h3 class="block-title">اقلام فاکتور</h3>
+                  <table class="items-table">
+                    <thead>
+                      <tr>
+                        <th>نام</th>
+                        <th>تعداد</th>
+                        <th>قیمت واحد</th>
+                        <th>جمع</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(it, i) in orderItems" :key="i">
+                        <td>{{ it.name }}</td>
+                        <td>{{ it.quantity }}</td>
+                        <td>{{ formatMoney(it.unitPrice) }}</td>
+                        <td>{{ formatMoney(it.totalPrice) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </section>
+
+                <!-- تعدیلات فاکتور -->
+                <section v-if="adjustments.length" class="detail-block">
+                  <h3 class="block-title">تعدیلات فاکتور</h3>
+                  <ul class="adjustments-list">
+                    <li v-for="(a, i) in adjustments" :key="i">
+                      <span>{{ a.title }}</span>
+                      <span :class="a.direction === 'increase' ? 'is-up' : 'is-down'">
+                        {{ a.direction === 'increase' ? '➕' : '➖' }}
+                        {{ formatMoney(a.value) }}{{ a.type === 'percentage' ? '٪' : ' تومان' }}
+                      </span>
+                    </li>
+                  </ul>
+                </section>
+
+                <!-- دادهٔ خام: فقط قابل کپی، بدون نمایش روی صفحه -->
                 <section class="snapshot">
                   <div class="snapshot-head">
-                    <h3>نسخهٔ منجمدشدهٔ داده (snapshot_json)</h3>
+                    <h3>دادهٔ خام بایگانی</h3>
                     <button type="button" class="a3d-btn a3d-btn--ghost a3d-btn--sm" @click="copySnapshot">
-                      {{ copied ? '✓ کپی شد' : 'کپی JSON' }}
+                      {{ copied ? '✓ کپی شد' : 'کپی JSON خام' }}
                     </button>
                   </div>
-                  <pre class="snapshot-code" dir="ltr" v-html="highlightedSnapshot"></pre>
                 </section>
               </template>
 
@@ -113,14 +229,7 @@ const summaryRows = computed(() => {
   ]
 })
 
-/* ---------- رنگ‌بندی نحوی JSON ---------- */
-function escapeHtml(text) {
-  return String(text)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-}
-
+/* ---------- دادهٔ خام (فقط برای کپی، دیگر روی صفحه رندر نمی‌شود) ---------- */
 const snapshotText = computed(() => {
   const snapshot = props.record?.snapshot_json
   if (!snapshot) return '{}'
@@ -134,22 +243,107 @@ const snapshotText = computed(() => {
   return JSON.stringify(snapshot, null, 2)
 })
 
-const highlightedSnapshot = computed(() => {
-  const escaped = escapeHtml(snapshotText.value)
-  return escaped.replace(
-    /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g,
-    (match) => {
-      let cls = 'tok-num'
-      if (/^"/.test(match)) {
-        cls = /:$/.test(match) ? 'tok-key' : 'tok-str'
-      } else if (/true|false/.test(match)) {
-        cls = 'tok-bool'
-      } else if (/null/.test(match)) {
-        cls = 'tok-null'
-      }
-      return `<span class="${cls}">${match}</span>`
+/* ---------- شیء snapshot به‌صورت آبجکت (برای استخراج بخش‌های شیک) ---------- */
+const snapshotObj = computed(() => {
+  const snapshot = props.record?.snapshot_json
+  if (!snapshot) return {}
+  if (typeof snapshot === 'string') {
+    try {
+      return JSON.parse(snapshot)
+    } catch {
+      return {}
     }
-  )
+  }
+  return snapshot
+})
+
+const isServiceJob = computed(() => props.record?.source_type === 'service_job')
+const isRequest = computed(() => props.record?.source_type === 'request')
+
+const REQUEST_STATUS_LABELS = {
+  processing: 'در حال بررسی',
+  in_progress: 'در حال انجام',
+  completed: 'تکمیل‌شده',
+  canceled: 'لغو‌شده',
+}
+
+/* جزئیات خود درخواست — فقط برای رکوردهای نوع request */
+const requestInfo = computed(() => {
+  const s = snapshotObj.value?.source
+  if (!s || !isRequest.value) return null
+  const status = s.status
+  return {
+    statusLabel: REQUEST_STATUS_LABELS[status] || status || '—',
+    description: s.description || '—',
+    categories: Array.isArray(s.categories) ? s.categories.map((c) => c?.name).filter(Boolean) : [],
+  }
+})
+
+/* مشخصات دستگاه — فقط برای رکوردهای نوع سرویس */
+const deviceInfo = computed(() => {
+  const s = snapshotObj.value?.source
+  if (!s || !isServiceJob.value) return []
+  return [
+    { label: 'نوع دستگاه', value: s.device_type || '—' },
+    { label: 'سریال دستگاه', value: s.device_serial || '—' },
+    { label: 'تاریخ دریافت دستگاه', value: formatDateTime(s.received_at) },
+    { label: 'تاریخ تحویل دستگاه', value: formatDateTime(s.delivered_at) },
+  ]
+})
+
+/* شرح ایراد مشتری و تشخیص تکنسین */
+const problemInfo = computed(() => {
+  const s = snapshotObj.value?.source
+  if (!s || !isServiceJob.value) return []
+  const rows = []
+  if (s.customer_problem_description) rows.push({ label: 'شرح ایراد مشتری', value: s.customer_problem_description })
+  if (s.diagnosis_description) rows.push({ label: 'شرح تشخیص تکنسین', value: s.diagnosis_description })
+  return rows
+})
+
+/* نوع سرویس‌ها (هر کدام می‌تواند قیمت مستقل خودش را داشته باشد) */
+const serviceTypes = computed(() => {
+  const types = snapshotObj.value?.source?.service_types
+  if (!Array.isArray(types)) return []
+  return types
+    .map((st) => ({ name: st?.service_type?.name || '—', price: Number(st?.price) || 0 }))
+    .filter((t) => t.name !== '—')
+})
+
+/* قطعات مصرفی سرویس — کلید قیمت واقعی unit_price است نه price */
+const serviceItems = computed(() => {
+  const items = snapshotObj.value?.source?.items
+  if (!Array.isArray(items)) return []
+  return items.map((it) => ({
+    name: it?.item?.name || it?.product_name || '—',
+    quantity: it?.quantity ?? 1,
+    unitPrice: Number(it?.unit_price) || 0,
+    totalPrice: Number(it?.total_price) || 0,
+  }))
+})
+
+/* اقلام فاکتور پرداخت‌شده — همیشه از paid_invoice، مستقل از نوع رکورد */
+const orderItems = computed(() => {
+  const items = snapshotObj.value?.paid_invoice?.order_items
+  if (!Array.isArray(items)) return []
+  return items.map((it) => ({
+    name: it?.product_name || it?.item?.name || '—',
+    quantity: it?.quantity ?? 1,
+    unitPrice: Number(it?.price) || 0,
+    totalPrice: Number(it?.total_price) || 0,
+  }))
+})
+
+/* تعدیلات فاکتور (تخفیف/اضافه) */
+const adjustments = computed(() => {
+  const list = snapshotObj.value?.paid_invoice?.adjustments
+  if (!Array.isArray(list)) return []
+  return list.map((a) => ({
+    title: a?.title || '—',
+    direction: a?.direction,
+    type: a?.type,
+    value: Number(a?.value) || 0,
+  }))
 })
 
 async function copySnapshot() {
@@ -214,7 +408,12 @@ watch(() => props.modelValue, (open) => {
   background: var(--gs-bg-soft);
 }
 
-.head-main { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
+.head-main {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
 
 .head-icon {
   width: 46px;
@@ -228,7 +427,11 @@ watch(() => props.modelValue, (open) => {
   border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
 }
 
-.head-kicker { font-size: 0.68rem; color: var(--gs-text-muted); font-weight: 600; }
+.head-kicker {
+  font-size: 0.68rem;
+  color: var(--gs-text-muted);
+  font-weight: 600;
+}
 
 .head-title {
   font-size: 1rem;
@@ -267,7 +470,11 @@ watch(() => props.modelValue, (open) => {
   gap: 1rem;
 }
 
-.loading-block { display: flex; flex-direction: column; gap: 0.75rem; }
+.loading-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
 
 .summary {
   display: grid;
@@ -298,9 +505,15 @@ watch(() => props.modelValue, (open) => {
   word-break: break-word;
 }
 
-.is-gold { color: var(--gs-gold); }
+.is-gold {
+  color: var(--gs-gold);
+}
 
-.status-row { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
 
 .chip {
   padding: 0.32rem 0.7rem;
@@ -309,52 +522,188 @@ watch(() => props.modelValue, (open) => {
   font-weight: 700;
 }
 
-.chip--info { background: var(--gs-info-soft); color: var(--gs-info); border: 1px solid color-mix(in srgb, var(--gs-info) 30%, transparent); }
-.chip--success { background: var(--gs-success-soft); color: var(--gs-success); border: 1px solid color-mix(in srgb, var(--gs-success) 30%, transparent); }
-.chip--muted { background: var(--gs-glass); color: var(--gs-text-muted); border: 1px solid var(--gs-border-soft); font-variant-numeric: tabular-nums; }
+.chip--info {
+  background: var(--gs-info-soft);
+  color: var(--gs-info);
+  border: 1px solid color-mix(in srgb, var(--gs-info) 30%, transparent);
+}
 
-/* ---------- اسنپ‌شات ---------- */
+.chip--success {
+  background: var(--gs-success-soft);
+  color: var(--gs-success);
+  border: 1px solid color-mix(in srgb, var(--gs-success) 30%, transparent);
+}
+
+.chip--muted {
+  background: var(--gs-glass);
+  color: var(--gs-text-muted);
+  border: 1px solid var(--gs-border-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- بخش‌های جزئیات (مشترک) ---------- */
+.detail-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.block-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--gs-text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.kv-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.kv-item {
+  padding: 0.6rem 0.7rem;
+  border-radius: 12px;
+  background: var(--gs-bg-elevated);
+  border: 1px solid var(--gs-border-soft);
+}
+
+.kv-label {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--gs-text-muted);
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+
+.kv-value {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--gs-text-primary);
+  word-break: break-word;
+}
+
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.76rem;
+}
+
+.items-table th,
+.items-table td {
+  padding: 0.45rem 0.5rem;
+  border: 1px solid var(--gs-border-soft);
+  text-align: center;
+}
+
+.items-table th {
+  background: var(--gs-bg-soft);
+  color: var(--gs-text-secondary);
+  font-weight: 700;
+}
+
+.items-table td {
+  color: var(--gs-text-primary);
+}
+
+.adjustments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.adjustments-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0.6rem;
+  border-radius: 10px;
+  background: var(--gs-bg-elevated);
+  border: 1px solid var(--gs-border-soft);
+  font-size: 0.76rem;
+  color: var(--gs-text-primary);
+}
+
+.is-up {
+  color: var(--gs-success);
+  font-weight: 700;
+}
+
+.is-down {
+  color: var(--gs-error);
+  font-weight: 700;
+}
+
+.text-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.text-block p {
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+  line-height: 1.7;
+  color: var(--gs-text-primary);
+  background: var(--gs-bg-elevated);
+  border: 1px solid var(--gs-border-soft);
+  border-radius: 10px;
+  padding: 0.6rem 0.7rem;
+  white-space: pre-wrap;
+}
+
+/* ---------- دادهٔ خام (فقط دکمهٔ کپی، بدون نمایش) ---------- */
 .snapshot-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.6rem;
-  margin-bottom: 0.5rem;
 }
 
-.snapshot-head h3 { font-size: 0.78rem; font-weight: 700; color: var(--gs-text-secondary); }
-
-.snapshot-code {
-  max-height: 420px;
-  overflow: auto;
-  padding: 0.9rem;
-  border-radius: 12px;
-  background: #07070b;
-  border: 1px solid var(--gs-border-soft);
-  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
-  font-size: 0.72rem;
-  line-height: 1.85;
-  color: #b9b3a4;
-  white-space: pre;
-  text-align: left;
+.snapshot-head h3 {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--gs-text-secondary);
 }
 
-.snapshot-code :deep(.tok-key)  { color: #e3bd5c; }
-.snapshot-code :deep(.tok-str)  { color: #45d68b; }
-.snapshot-code :deep(.tok-num)  { color: #5b9df0; }
-.snapshot-code :deep(.tok-bool) { color: #9f7bf6; }
-.snapshot-code :deep(.tok-null) { color: #f06a6a; }
+.empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--gs-text-muted);
+  font-size: 0.85rem;
+}
 
-.empty { text-align: center; padding: 3rem 1rem; color: var(--gs-text-muted); font-size: 0.85rem; }
+@media (max-width: 620px) {
+  .kv-grid {
+    grid-template-columns: 1fr;
+  }
+}
 
 /* ---------- ترنزیشن‌ها ---------- */
 .drawer-fade-enter-active,
-.drawer-fade-leave-active { transition: opacity 0.3s ease; }
-.drawer-fade-enter-from,
-.drawer-fade-leave-to { opacity: 0; }
+.drawer-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
 
-.drawer-door-enter-active { transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease; }
-.drawer-door-leave-active { transition: transform 0.35s ease-in, opacity 0.3s ease; }
+.drawer-fade-enter-from,
+.drawer-fade-leave-to {
+  opacity: 0;
+}
+
+.drawer-door-enter-active {
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease;
+}
+
+.drawer-door-leave-active {
+  transition: transform 0.35s ease-in, opacity 0.3s ease;
+}
+
 .drawer-door-enter-from,
 .drawer-door-leave-to {
   opacity: 0;
@@ -362,6 +711,8 @@ watch(() => props.modelValue, (open) => {
 }
 
 @media (max-width: 620px) {
-  .summary { grid-template-columns: 1fr; }
+  .summary {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

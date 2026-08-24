@@ -26,6 +26,7 @@ class BackupRun extends Model
     public const STRATEGY_REPLACE       = 'replace';
     public const STRATEGY_SKIP_EXISTING = 'skip_existing';
     public const STRATEGY_FAIL          = 'fail_on_conflict';
+    public const STRATEGY_REINDEX       = 'reindex';
 
     public const STATUS_PENDING   = 'pending';
     public const STATUS_RUNNING   = 'running';

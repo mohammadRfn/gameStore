@@ -8,7 +8,7 @@ use App\Services\ArchiveService;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\Export;
 use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -24,7 +24,7 @@ class ArchivedInvoicesExport implements
     WithMapping,
     WithStyles,
     WithEvents,
-    ShouldAutoSize,
+    WithColumnWidths,
     WithTitle
 {
     use FormatsArchiveExports;
@@ -96,6 +96,35 @@ class ArchivedInvoicesExport implements
         ];
     }
 
+    /**
+     * عرض ثابت و معقول برای هر ستون؛ قبلاً ShouldAutoSize باعث می‌شد
+     * ستون‌های چندخطی (اقلام سفارش/تعدیلات) بر اساس طولانی‌ترین خط
+     * عریض شوند (۷۰+ کاراکتر) و کل شیت غیرقابل‌استفاده به‌نظر برسد.
+     */
+    public function columnWidths(): array
+    {
+        return [
+            'A' => 6,
+            'B' => 18,
+            'C' => 18,
+            'D' => 10,
+            'E' => 34,
+            'F' => 10,
+            'G' => 16,
+            'H' => 26,
+            'I' => 16,
+            'J' => 16,
+            'K' => 16,
+            'L' => 16,
+            'M' => 16,
+            'N' => 24,
+            'O' => 16,
+            'P' => 16,
+            'Q' => 14,
+            'R' => 22,
+        ];
+    }
+
     public function styles(Worksheet $sheet): array
     {
         // استایل‌های اصلی در registerEvents اعمال می‌شوند
@@ -110,7 +139,8 @@ class ArchivedInvoicesExport implements
     public function registerEvents(): array
     {
         return [
-            AfterSheet::class => $this->luxuryAfterSheetEvent('R'), // 18 ستون = A تا R
+            // ستون‌های چندخطی: E (اقلام سفارش) و H (تعدیلات) — برای محاسبه‌ی ارتفاع درست هر ردیف
+            AfterSheet::class => $this->luxuryAfterSheetEvent('R', ['E', 'H']),
         ];
     }
 }

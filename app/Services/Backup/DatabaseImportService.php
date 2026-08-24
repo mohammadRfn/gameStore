@@ -49,6 +49,24 @@ class DatabaseImportService
             $connection->statement('PRAGMA foreign_keys = OFF');
         }
 
+        // ── استراتژی reindex: بازسازی کلی با شماره‌گذاری مجدد بر اساس تاریخ ──
+        if ($strategy === BackupRun::STRATEGY_REINDEX) {
+            try {
+                $report = $this->reindexAll($run, $sourcePath, $entities, $options, $dryRun);
+            } catch (Throwable $e) {
+                if ($connection->transactionLevel() > 0) {
+                    $connection->rollBack();
+                }
+                throw $e;
+            } finally {
+                if ($isSqlite) {
+                    $connection->statement('PRAGMA foreign_keys = ON');
+                }
+            }
+
+            return $report;
+        }
+
         $connection->beginTransaction();
 
         try {
@@ -133,7 +151,7 @@ class DatabaseImportService
             'table_name'    => $table,
             'group_name'    => $entity['group'],
             'display_name'  => $entity['label'],
-            'relative_path' => $this->paths->relative(dirname($file, 3), $file),
+            'relative_path' => basename($file),
             'absolute_path' => $file,
             'status'        => 'running',
             'started_at'    => now(),
@@ -329,6 +347,278 @@ class DatabaseImportService
                 // جدول بدون AUTOINCREMENT: sqlite_sequence ندارد
             }
         }
+    }
+
+    /**
+     * بازسازی کلی دیتابیس با شماره‌گذاری مجدد بر اساس تاریخ ثبت.
+     *
+     * رکوردهای بکاپ قدیم و دیتابیس فعلی بر اساس created_at ادغام شده
+     * و ID های جدید به ترتیب زمانی اختصاص می‌یابند:
+     *   - رکوردهای قدیمی‌تر → ID های پایین‌تر
+     *   - رکوردهای جدیدتر  → ID های بالاتر
+     *
+     * @param  array<string, array<string, mixed>>  $entities
+     * @return array<string, array<string, mixed>>
+     */
+    private function reindexAll(BackupRun $run, string $sourcePath, array $entities, array $options, bool $dryRun): array
+    {
+        $connection = DB::connection();
+        $isSqlite   = $connection->getDriverName() === 'sqlite';
+        $report     = [];
+
+        // ── فاز ۱: جمع‌آوری داده‌ها و بازسازی جداول ──
+        /** @var array<string, array<int, array{old: int, new: int}>>  table => [{old, new}] */
+        $allMappings = [];
+
+        $connection->beginTransaction();
+
+        try {
+            foreach ($entities as $key => $entity) {
+                $table = $entity['table'];
+
+                if (! Schema::hasTable($table)) {
+                    $report[$key] = ['status' => 'skipped', 'reason' => 'table_missing'];
+                    continue;
+                }
+
+                $file = $this->resolveCsvPath($sourcePath, $entity);
+
+                if ($file === null) {
+                    $report[$key] = ['status' => 'skipped', 'reason' => 'file_missing'];
+                    $this->recorder->entity($run, $key, [
+                        'table_name'    => $table,
+                        'group_name'    => $entity['group'],
+                        'display_name'  => $entity['label'],
+                        'status'        => 'skipped',
+                        'error_message' => 'فایل CSV یافت نشد.',
+                    ]);
+                    continue;
+                }
+
+                $tableColumns = $this->manifest->columns($table);
+
+                // ── خواندن ردیف‌های موجود دیتابیس ──
+                $existingRows = DB::table($table)->orderBy('created_at')->orderBy('id')->get()->map(fn ($r) => (array) $r)->toArray();
+
+                // ── خواندن ردیف‌های بکاپ از CSV ──
+                $reader = new CsvStreamReader(
+                    path: $file,
+                    delimiter: $options['csv_delimiter'] ?? config('backup.csv.delimiter', ','),
+                    enclosure: config('backup.csv.enclosure', '"'),
+                    escape: config('backup.csv.escape', '\\'),
+                    nullMarker: $options['csv_null_marker'] ?? config('backup.csv.null_marker', '\N'),
+                );
+
+                $header  = $reader->header();
+                $usable  = array_values(array_intersect($header, $tableColumns));
+                $backupRows = [];
+
+                foreach ($reader->rows() as $row) {
+                    unset($row['__line']);
+                    $payload = $this->preparePayload($row, $usable, $table);
+                    $backupRows[] = $payload;
+                }
+                $reader->close();
+
+                // ── ادغام بر اساس natural_key (حذف تکراری‌ها از بکاپ) ──
+                $naturalKeys = $entity['natural_key'] ?? [];
+                $merged      = $existingRows;
+
+                if ($naturalKeys !== []) {
+                    foreach ($backupRows as $bRow) {
+                        $isDuplicate = false;
+                        foreach ($existingRows as $eRow) {
+                            $match = true;
+                            foreach ($naturalKeys as $nk) {
+                                if (($bRow[$nk] ?? null) !== ($eRow[$nk] ?? null)) {
+                                    $match = false;
+                                    break;
+                                }
+                            }
+                            if ($match) {
+                                $isDuplicate = true;
+                                break;
+                            }
+                        }
+                        if (! $isDuplicate) {
+                            // ردیف جدید از بکاپ — id قدیمی را حذف کن تا id جدید بگیرد
+                            unset($bRow['id']);
+                            $merged[] = $bRow;
+                        }
+                    }
+                } else {
+                    // بدون natural_key: همه ردیف‌های بکاپ اضافه شوند (بدون id تا مجدداً شماره‌گذاری شود)
+                    foreach ($backupRows as $bRow) {
+                        unset($bRow['id']);
+                        $merged[] = $bRow;
+                    }
+                }
+
+                // ── مرتب‌سازی بر اساس تاریخ ثبت ──
+                usort($merged, function ($a, $b) {
+                    $dateA = $a['created_at'] ?? '';
+                    $dateB = $b['created_at'] ?? '';
+                    $cmp   = strcmp($dateA, $dateB);
+
+                    return $cmp !== 0 ? $cmp : (($a['id'] ?? 0) <=> ($b['id'] ?? 0));
+                });
+
+                // ── شماره‌گذاری مجدد ID ──
+                $mapping   = [];
+                $newId     = 1;
+                $columns   = array_values(array_intersect(array_keys($merged[0] ?? []), $tableColumns));
+
+                // ساخت جدول موقت
+                $tempTable = "_reindex_{$table}";
+                DB::statement("DROP TABLE IF EXISTS [{$tempTable}]");
+                DB::statement("CREATE TABLE [{$tempTable}] AS SELECT * FROM [{$table}] WHERE 0 = 1");
+
+                foreach ($merged as $row) {
+                    $oldId = $row['id'] ?? null;
+                    $row['id'] = $newId;
+
+                    // حفظ created_at ردیف‌های اصلی
+                    if ($oldId !== null && isset($existingRows)) {
+                        foreach ($existingRows as $er) {
+                            if (($er['id'] ?? null) == $oldId) {
+                                $row['created_at'] = $er['created_at'] ?? $row['created_at'];
+                                break;
+                            }
+                        }
+                    }
+
+                    $insertData = array_intersect_key($row, array_flip($columns));
+                    DB::table($tempTable)->insert($insertData);
+
+                    if ($oldId !== null && (int) $oldId !== $newId) {
+                        $mapping[] = ['old' => (int) $oldId, 'new' => $newId];
+                    }
+
+                    $newId++;
+                }
+
+                // جایگزینی جدول اصلی
+                DB::statement("DROP TABLE [{$table}]");
+                DB::statement("ALTER TABLE [{$tempTable}] RENAME TO [{$table}]");
+
+                $allMappings[$table] = $mapping;
+
+                $report[$key] = [
+                    'status'   => 'completed',
+                    'label'    => $entity['label'],
+                    'rows'     => count($merged),
+                    'inserted' => count($merged),
+                    'updated'  => 0,
+                    'skipped'  => 0,
+                    'failed'   => 0,
+                    'remapped' => count($mapping),
+                ];
+
+                $this->recorder->entity($run, $key, [
+                    'table_name'    => $table,
+                    'group_name'    => $entity['group'],
+                    'display_name'  => $entity['label'],
+                    'status'        => 'completed',
+                    'row_count'     => count($merged),
+                    'processed_rows' => count($merged),
+                    'inserted_rows' => count($merged),
+                    'updated_rows'  => 0,
+                    'skipped_rows'  => 0,
+                    'failed_rows'   => 0,
+                    'finished_at'   => now(),
+                ]);
+            }
+
+            // ── فاز ۲: به‌روزرسانی کلیدهای خارجی ──
+            $fkMap = $this->buildFkMap($allMappings);
+
+            foreach ($fkMap as $update) {
+                DB::table($update['table'])
+                    ->where($update['fk_column'], $update['old_id'])
+                    ->update([$update['fk_column'] => $update['new_id']]);
+            }
+
+            if ($dryRun) {
+                $connection->rollBack();
+                $this->recorder->event($run, 'info', 'import.dry_run', 'اجرای آزمایشی reindex: هیچ تغییری ذخیره نشد.');
+            } else {
+                $connection->commit();
+            }
+        } catch (Throwable $e) {
+            if ($connection->transactionLevel() > 0) {
+                $connection->rollBack();
+            }
+            throw $e;
+        }
+
+        // ── فاز ۳: بهینه‌سازی نهایی ──
+        if (! $dryRun && $isSqlite) {
+            $this->resetSequences(array_keys($entities), $entities);
+
+            if (config('backup.runtime.vacuum_after_import', true)) {
+                try {
+                    DB::statement('VACUUM');
+                    DB::statement('PRAGMA optimize');
+                } catch (Throwable) {
+                    // بی‌اهمیت
+                }
+            }
+        }
+
+        return $report;
+    }
+
+    /**
+     * ساخت نقشه به‌روزرسانی کلیدهای خارجی بر اساس نقشه‌های reindex.
+     *
+     * @param  array<string, array<int, array{old: int, new: int}>>  $allMappings
+     * @return array<int, array{table: string, fk_column: string, old_id: int, new_id: int}>
+     */
+    private function buildFkMap(array $allMappings): array
+    {
+        // نگاشت نام جدول → لیست ستون‌های FK
+        $fkRegistry = [
+            'customers'                    => ['id' => [['invoices', 'customer_id'], ['requests', 'customer_id'], ['service_jobs', 'customer_id'], ['archived_records', 'customer_id']]],
+            'categories'                   => ['id' => [['items', 'category_id'], ['order_items', 'category_id']]],
+            'items'                        => ['id' => [['order_items', 'item_id'], ['service_job_items', 'item_id'], ['stock_movements', 'item_id'], ['daily_item_stats', 'item_id']]],
+            'invoices'                     => ['id' => [['order_items', 'invoice_id'], ['service_jobs', 'invoice_id'], ['stock_movements', 'invoice_id'], ['invoice_adjustments', 'invoice_id'], ['archived_records', 'invoice_id']]],
+            'requests'                     => ['id' => [['invoices', 'request_id'], ['service_jobs', 'request_id']]],
+            'service_types'                => ['id' => [['service_job_service_types', 'service_type_id']]],
+            'service_jobs'                 => ['id' => [['service_job_items', 'service_job_id'], ['service_job_service_types', 'service_job_id'], ['stock_movements', 'service_job_id']]],
+            'archived_records'             => ['id' => [['archive_actions', 'archived_record_id']]],
+            'setting_groups'               => ['id' => [['app_settings', 'group_id']]],
+            'users'                        => ['id' => [['archive_actions', 'actor_id'], ['cache_maintenance_runs', 'user_id']]],
+            'order_items'                  => ['id' => [['stock_movements', 'order_item_id']]],
+            'adjustment_categories'        => ['id' => [['invoice_adjustments', 'category_key']]], // key-based, skip ID remap
+        ];
+
+        $updates = [];
+
+        foreach ($allMappings as $sourceTable => $mappingList) {
+            if ($mappingList === []) {
+                continue;
+            }
+
+            $fkColumns = $fkRegistry[$sourceTable]['id'] ?? [];
+
+            foreach ($fkColumns as [$targetTable, $fkColumn]) {
+                // اگر جدول هدف هم reindex شده، FK باید به‌روزرسانی شود
+                if (! isset($allMappings[$targetTable])) {
+                    continue;
+                }
+
+                foreach ($mappingList as $map) {
+                    $updates[] = [
+                        'table'      => $targetTable,
+                        'fk_column'  => $fkColumn,
+                        'old_id'     => $map['old'],
+                        'new_id'     => $map['new'],
+                    ];
+                }
+            }
+        }
+
+        return $updates;
     }
 
     /** یافتن فایل CSV یک موجودیت در بسته‌ی ورودی (با مسیر استاندارد یا جست‌وجوی بازگشتی). */

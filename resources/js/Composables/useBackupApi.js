@@ -20,6 +20,7 @@ export const IMPORT_STRATEGIES = {
   REPLACE: 'replace',
   SKIP_EXISTING: 'skip_existing',
   FAIL_ON_CONFLICT: 'fail_on_conflict',
+  REINDEX: 'reindex',
 }
 
 export const RUN_STATUS = {
@@ -42,6 +43,7 @@ export const STRATEGY_META = {
   [IMPORT_STRATEGIES.REPLACE]: { label: 'جایگزینی کامل', icon: '♻️', hint: 'داده‌ی قبلی حذف و از بسته بازسازی می‌شود' },
   [IMPORT_STRATEGIES.SKIP_EXISTING]: { label: 'رد تکراری‌ها', icon: '⏭', hint: 'فقط رکوردهای جدید درج می‌شوند' },
   [IMPORT_STRATEGIES.FAIL_ON_CONFLICT]: { label: 'توقف روی تداخل', icon: '🛡', hint: 'هر تداخل باعث rollback کامل می‌شود' },
+  [IMPORT_STRATEGIES.REINDEX]: { label: 'بازشماره‌گذاری تاریخی', icon: '📅', hint: 'ادغام بر اساس تاریخ ثبت؛ قدیمی‌ها ID پایین‌تر، جدیدها بالاتر' },
 }
 
 export const STATUS_META = {

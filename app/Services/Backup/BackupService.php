@@ -45,8 +45,7 @@ class BackupService
         private readonly MediaExportService $mediaExporter,
         private readonly DatabaseImportService $databaseImporter,
         private readonly MediaImportService $mediaImporter,
-    ) {
-    }
+    ) {}
 
     /* ================================================================== */
     /*  EXPORT                                                            */
@@ -65,94 +64,101 @@ class BackupService
      */
     public function export(array $options = [], ?int $actorId = null): BackupRun
     {
-        return $this->withLock(function () use ($options, $actorId) {
-            $this->tuneRuntime();
+        return $this->withLock(fn() => $this->performExport($options, $actorId));
+    }
 
-            $mode     = $options['mode'] ?? BackupRun::MODE_FULL;
-            $entities = $this->manifest->only($options['entities'] ?? []);
-            $root     = $this->paths->prepareExportRoot($options['destination_path'] ?? null);
-            $runPath  = $this->paths->makeRunDirectory($root, 'export', $options['label'] ?? null);
+    /**
+     * منطق واقعی خروجی گرفتن، بدون گرفتن قفل.
+     * توسط export() عمومی (که خودش قفل می‌گیرد) و همچنین توسط
+     * import() برای ساخت بکاپ ایمنی (که از قبل داخل قفل است) فراخوانی می‌شود.
+     */
+    private function performExport(array $options = [], ?int $actorId = null): BackupRun
+    {
+        $this->tuneRuntime();
 
-            $options = $this->normalizeExportOptions($options);
+        $mode     = $options['mode'] ?? BackupRun::MODE_FULL;
+        $entities = $this->manifest->only($options['entities'] ?? []);
+        $root     = $this->paths->prepareExportRoot($options['destination_path'] ?? null);
+        $runPath  = $this->paths->makeRunDirectory($root, 'export', $options['label'] ?? null);
 
-            $run = $this->createRun([
-                'direction'      => BackupRun::DIRECTION_EXPORT,
-                'mode'           => $mode,
-                'label'          => $options['label'] ?? null,
-                'root_path'      => $root,
-                'run_path'       => $runPath,
-                'is_dry_run'     => false,
-                'is_auto'        => (bool) ($options['is_auto'] ?? false),
-                'is_safety_copy' => (bool) ($options['is_safety_copy'] ?? false),
-                'shop_id'        => $options['shop_id'] ?? null,
-                'options_json'   => $options,
-                'filters_json'   => array_filter([
-                    'shop_id'   => $options['shop_id'] ?? null,
-                    'from_date' => $options['from_date'] ?? null,
-                    'to_date'   => $options['to_date'] ?? null,
-                ], fn ($v) => $v !== null),
-                'entities_json'  => array_keys($entities),
-                'created_by'     => $actorId,
-            ]);
+        $options = $this->normalizeExportOptions($options);
 
-            $this->prepareRunSkeleton($runPath);
-            $this->recorder->attachLogFile($runPath . DIRECTORY_SEPARATOR . config('backup.paths.logs_dir', 'logs') . DIRECTORY_SEPARATOR . 'run.log');
-            $this->recorder->start($run);
+        $run = $this->createRun([
+            'direction'      => BackupRun::DIRECTION_EXPORT,
+            'mode'           => $mode,
+            'label'          => $options['label'] ?? null,
+            'root_path'      => $root,
+            'run_path'       => $runPath,
+            'is_dry_run'     => false,
+            'is_auto'        => (bool) ($options['is_auto'] ?? false),
+            'is_safety_copy' => (bool) ($options['is_safety_copy'] ?? false),
+            'shop_id'        => $options['shop_id'] ?? null,
+            'options_json'   => $options,
+            'filters_json'   => array_filter([
+                'shop_id'   => $options['shop_id'] ?? null,
+                'from_date' => $options['from_date'] ?? null,
+                'to_date'   => $options['to_date'] ?? null,
+            ], fn($v) => $v !== null),
+            'entities_json'  => array_keys($entities),
+            'created_by'     => $actorId,
+        ]);
 
-            try {
-                $report     = [];
-                $mediaStats = ['copied' => 0, 'skipped' => 0, 'missing' => 0, 'failed' => 0, 'bytes' => 0, 'orphans' => 0];
+        $this->prepareRunSkeleton($runPath);
+        $this->recorder->attachLogFile($runPath . DIRECTORY_SEPARATOR . config('backup.paths.logs_dir', 'logs') . DIRECTORY_SEPARATOR . 'run.log');
+        $this->recorder->start($run);
 
-                if ($mode !== BackupRun::MODE_MEDIA) {
-                    $report = $this->databaseExporter->export($run, $runPath, $entities, $options);
-                }
+        try {
+            $report     = [];
+            $mediaStats = ['copied' => 0, 'skipped' => 0, 'missing' => 0, 'failed' => 0, 'bytes' => 0, 'orphans' => 0];
 
-                if ($mode !== BackupRun::MODE_DATABASE && ! empty($options['include_media'])) {
-                    $references = [];
-
-                    foreach ($report as $entityReport) {
-                        foreach ($entityReport['media_refs'] ?? [] as $reference) {
-                            $references[] = $reference;
-                        }
-                    }
-
-                    // اگر فقط مدیا خواسته شده، ارجاع‌ها مستقیماً از دیتابیس خوانده می‌شوند.
-                    if ($mode === BackupRun::MODE_MEDIA) {
-                        $references = $this->collectMediaReferences($options);
-                    }
-
-                    $mediaStats = $this->mediaExporter->export($run, $runPath, $references, $options);
-                }
-
-                $totals = $this->summarizeExport($report, $mediaStats);
-
-                $manifestPath = $this->writeManifest($run, $runPath, $entities, $report, $mediaStats, $totals);
-                $checksumPath = $this->writeChecksums($runPath);
-                $this->writeReadme($run, $runPath, $totals);
-
-                $run->forceFill([
-                    'manifest_path'  => $manifestPath,
-                    'total_entities' => $totals['entities'],
-                    'total_rows'     => $totals['rows'],
-                    'total_files'    => $totals['files'],
-                    'missing_files'  => $mediaStats['missing'] ?? 0,
-                    'total_bytes'    => $totals['bytes'],
-                    'checksum'       => is_file($checksumPath) ? hash_file('sha256', $checksumPath) : null,
-                ])->save();
-
-                $status = $totals['failed_entities'] > 0 ? BackupRun::STATUS_PARTIAL : BackupRun::STATUS_COMPLETED;
-
-                $this->recorder->finish($run, $status, $totals + ['media' => $mediaStats]);
-
-                $this->applyRetention($root, $run);
-
-                return $run->refresh();
-            } catch (Throwable $e) {
-                $this->recorder->fail($run, $e);
-
-                throw $e;
+            if ($mode !== BackupRun::MODE_MEDIA) {
+                $report = $this->databaseExporter->export($run, $runPath, $entities, $options);
             }
-        });
+
+            if ($mode !== BackupRun::MODE_DATABASE && ! empty($options['include_media'])) {
+                $references = [];
+
+                foreach ($report as $entityReport) {
+                    foreach ($entityReport['media_refs'] ?? [] as $reference) {
+                        $references[] = $reference;
+                    }
+                }
+
+                if ($mode === BackupRun::MODE_MEDIA) {
+                    $references = $this->collectMediaReferences($options);
+                }
+
+                $mediaStats = $this->mediaExporter->export($run, $runPath, $references, $options);
+            }
+
+            $totals = $this->summarizeExport($report, $mediaStats);
+
+            $manifestPath = $this->writeManifest($run, $runPath, $entities, $report, $mediaStats, $totals);
+            $checksumPath = $this->writeChecksums($runPath);
+            $this->writeReadme($run, $runPath, $totals);
+
+            $run->forceFill([
+                'manifest_path'  => $manifestPath,
+                'total_entities' => $totals['entities'],
+                'total_rows'     => $totals['rows'],
+                'total_files'    => $totals['files'],
+                'missing_files'  => $mediaStats['missing'] ?? 0,
+                'total_bytes'    => $totals['bytes'],
+                'checksum'       => is_file($checksumPath) ? hash_file('sha256', $checksumPath) : null,
+            ])->save();
+
+            $status = $totals['failed_entities'] > 0 ? BackupRun::STATUS_PARTIAL : BackupRun::STATUS_COMPLETED;
+
+            $this->recorder->finish($run, $status, $totals + ['media' => $mediaStats]);
+
+            $this->applyRetention($root, $run);
+
+            return $run->refresh();
+        } catch (Throwable $e) {
+            $this->recorder->fail($run, $e);
+
+            throw $e;
+        }
     }
 
     /* ================================================================== */
@@ -209,15 +215,20 @@ class BackupService
                 // بکاپ ایمنی قبل از تغییر داده‌ها (قابل بازگشت بودن عملیات)
                 $safety = null;
                 if (! $dryRun && ($options['safety_backup'] ?? $this->settings->bool('auto_safety_backup', true))) {
-                    $safety = $this->export([
+                    $safety = $this->performExport([
                         'label'          => 'pre-import-safety',
                         'is_auto'        => true,
                         'is_safety_copy' => true,
                         'include_media'  => false,
-                    ], $actorId, );
+                    ], $actorId);
 
-                    $this->recorder->event($run, 'info', 'import.safety_backup',
-                        'بکاپ ایمنی قبل از ایمپورت گرفته شد.', ['run_id' => $safety->id, 'path' => $safety->run_path]);
+                    $this->recorder->event(
+                        $run,
+                        'info',
+                        'import.safety_backup',
+                        'بکاپ ایمنی قبل از ایمپورت گرفته شد.',
+                        ['run_id' => $safety->id, 'path' => $safety->run_path]
+                    );
                 }
 
                 $report     = [];
@@ -248,7 +259,7 @@ class BackupService
 
                 $this->recorder->finish($run, $status, $totals + [
                     'media'           => $mediaStats,
-                    'safety_backup_id'=> $safety?->id,
+                    'safety_backup_id' => $safety?->id,
                 ]);
 
                 return $run->refresh();
@@ -324,10 +335,10 @@ class BackupService
         $perPage = max(1, min((int) ($filters['per_page'] ?? 20), 100));
 
         return BackupRun::query()
-            ->when(! empty($filters['direction']), fn (Builder $q) => $q->where('direction', $filters['direction']))
-            ->when(! empty($filters['status']), fn (Builder $q) => $q->where('status', $filters['status']))
-            ->when(! empty($filters['mode']), fn (Builder $q) => $q->where('mode', $filters['mode']))
-            ->when(isset($filters['include_auto']) && ! $filters['include_auto'], fn (Builder $q) => $q->where('is_auto', false))
+            ->when(! empty($filters['direction']), fn(Builder $q) => $q->where('direction', $filters['direction']))
+            ->when(! empty($filters['status']), fn(Builder $q) => $q->where('status', $filters['status']))
+            ->when(! empty($filters['mode']), fn(Builder $q) => $q->where('mode', $filters['mode']))
+            ->when(isset($filters['include_auto']) && ! $filters['include_auto'], fn(Builder $q) => $q->where('is_auto', false))
             ->withCount(['entities', 'files'])
             ->orderByDesc('id')
             ->paginate($perPage);
@@ -335,7 +346,7 @@ class BackupService
 
     public function findRun(int $id): BackupRun
     {
-        return BackupRun::query()->with(['entities', 'events' => fn ($q) => $q->latest('id')->limit(200)])->findOrFail($id);
+        return BackupRun::query()->with(['entities', 'events' => fn($q) => $q->latest('id')->limit(200)])->findOrFail($id);
     }
 
     /** حذف رکورد اجرا و در صورت تمایل، پوشه‌ی فیزیکی آن. */
@@ -379,7 +390,7 @@ class BackupService
             'csv_delimiter'        => $this->settings->get('csv_delimiter', config('backup.csv.delimiter')),
             'csv_null_marker'      => $this->settings->get('csv_null_marker', config('backup.csv.null_marker')),
             'csv_bom'              => $this->settings->bool('csv_bom', true),
-        ], array_filter($options, fn ($v) => $v !== null));
+        ], array_filter($options, fn($v) => $v !== null));
     }
 
     private function prepareRunSkeleton(string $runPath): void
@@ -403,8 +414,10 @@ class BackupService
                 DB::table($entity['table'])
                     ->select(['id', $column])
                     ->whereNotNull($column)
-                    ->when(! empty($options['shop_id']) && \Illuminate\Support\Facades\Schema::hasColumn($entity['table'], 'shop_id'),
-                        fn ($q) => $q->where('shop_id', $options['shop_id']))
+                    ->when(
+                        ! empty($options['shop_id']) && \Illuminate\Support\Facades\Schema::hasColumn($entity['table'], 'shop_id'),
+                        fn($q) => $q->where('shop_id', $options['shop_id'])
+                    )
                     ->orderBy('id')
                     ->chunk(500, function ($rows) use (&$references, $entity, $column, $target) {
                         foreach ($rows as $row) {
@@ -553,36 +566,38 @@ class BackupService
 
     private function writeReadme(BackupRun $run, string $runPath, array $totals): void
     {
+        $jalaliNow = Jalalian::now()->format('Y/m/d H:i');
+
         $content = <<<TXT
-        {$run->app_version} | بسته‌ی پشتیبان فروشگاه
-        =====================================================
-        شناسه اجرا      : {$run->uuid}
-        تاریخ (میلادی)  : {$run->created_at}
-        تاریخ (شمسی)    : {Jalalian::now()->format('Y/m/d H:i')}
-        نوع             : {$run->mode}
-        تعداد جداول     : {$totals['entities']}
-        تعداد رکوردها   : {$totals['rows']}
-        تعداد تصاویر    : {$totals['files']}
+    {$run->app_version} | بسته‌ی پشتیبان فروشگاه
+    =====================================================
+    شناسه اجرا      : {$run->uuid}
+    تاریخ (میلادی)  : {$run->created_at}
+    تاریخ (شمسی)    : {$jalaliNow}
+    نوع             : {$run->mode}
+    تعداد جداول     : {$totals['entities']}
+    تعداد رکوردها   : {$totals['rows']}
+    تعداد تصاویر    : {$totals['files']}
 
-        ساختار پوشه‌ها
-        -----------------------------------------------------
-        database/   فایل‌های CSV دیتابیس، طبقه‌بندی‌شده بر اساس بخش‌های برنامه
-        media/      تصاویر کالاها، اقلام فاکتور و رسیدهای پرداخت
-        logs/       گزارش کامل اجرای بکاپ
-        manifest.json     شناسنامه‌ی بسته (ستون‌ها، تعداد رکوردها، هش فایل‌ها)
-        checksums.sha256  هش تمام فایل‌ها برای بررسی سلامت بسته
+    ساختار پوشه‌ها
+    -----------------------------------------------------
+    database/   فایل‌های CSV دیتابیس، طبقه‌بندی‌شده بر اساس بخش‌های برنامه
+    media/      تصاویر کالاها، اقلام فاکتور و رسیدهای پرداخت
+    logs/       گزارش کامل اجرای بکاپ
+    manifest.json     شناسنامه‌ی بسته (ستون‌ها، تعداد رکوردها، هش فایل‌ها)
+    checksums.sha256  هش تمام فایل‌ها برای بررسی سلامت بسته
 
-        نکات
-        -----------------------------------------------------
-        * فایل‌های CSV با انکودینگ UTF-8 و BOM ذخیره شده‌اند (سازگار با Excel).
-        * مقدار خالیِ واقعی با نشانه‌ی \\N مشخص شده تا با رشته‌ی خالی اشتباه نشود.
-        * برای بازیابی، همین پوشه را در بخش «ورود اطلاعات» برنامه انتخاب کنید.
-        * پیش از بازیابی، برنامه به‌صورت خودکار یک نسخه‌ی ایمنی از وضعیت فعلی می‌گیرد.
-        TXT;
+    نکات
+    -----------------------------------------------------
+    * فایل‌های CSV با انکودینگ UTF-8 و BOM ذخیره شده‌اند (سازگار با Excel).
+    * مقدار خالیِ واقعی با نشانه‌ی \\N مشخص شده تا با رشته‌ی خالی اشتباه نشود.
+    * برای بازیابی، همین پوشه را در بخش «ورود اطلاعات» برنامه انتخاب کنید.
+    * پیش از بازیابی، برنامه به‌صورت خودکار یک نسخه‌ی ایمنی از وضعیت فعلی می‌گیرد.
+    TXT;
 
         file_put_contents(
             $runPath . DIRECTORY_SEPARATOR . config('backup.paths.readme_file', 'README.txt'),
-            str_replace('{Jalalian::now()->format(\'Y/m/d H:i\')}', Jalalian::now()->format('Y/m/d H:i'), $content)
+            $content
         );
     }
 
@@ -602,8 +617,12 @@ class BackupService
     private function assertCompatible(?array $manifest, BackupRun $run): void
     {
         if ($manifest === null) {
-            $this->recorder->event($run, 'warning', 'import.no_manifest',
-                'فایل manifest.json یافت نشد؛ ایمپورت در حالت سازگاری انجام می‌شود.');
+            $this->recorder->event(
+                $run,
+                'warning',
+                'import.no_manifest',
+                'فایل manifest.json یافت نشد؛ ایمپورت در حالت سازگاری انجام می‌شود.'
+            );
 
             return;
         }
@@ -662,17 +681,19 @@ class BackupService
         $databaseDir  = config('backup.paths.database_dir', 'database');
         $mediaDir     = config('backup.paths.media_dir', 'media');
 
-        if (is_file($path . DIRECTORY_SEPARATOR . $manifestFile)
+        if (
+            is_file($path . DIRECTORY_SEPARATOR . $manifestFile)
             || is_dir($path . DIRECTORY_SEPARATOR . $databaseDir)
-            || is_dir($path . DIRECTORY_SEPARATOR . $mediaDir)) {
+            || is_dir($path . DIRECTORY_SEPARATOR . $mediaDir)
+        ) {
             return $path;
         }
 
         $candidates = glob($path . DIRECTORY_SEPARATOR . '*', GLOB_ONLYDIR) ?: [];
-        $valid      = array_values(array_filter($candidates, fn ($dir) => is_file($dir . DIRECTORY_SEPARATOR . $manifestFile)));
+        $valid      = array_values(array_filter($candidates, fn($dir) => is_file($dir . DIRECTORY_SEPARATOR . $manifestFile)));
 
         if ($valid !== []) {
-            usort($valid, fn ($a, $b) => filemtime($b) <=> filemtime($a));
+            usort($valid, fn($a, $b) => filemtime($b) <=> filemtime($a));
 
             return $valid[0];
         }
@@ -681,35 +702,6 @@ class BackupService
     }
 
     /** نگهداری فقط N نسخه‌ی آخر در پوشه‌ی خروجی. */
-    private function applyRetention(string $root, BackupRun $current): void
-    {
-        $keep = $this->settings->int('retention_copies', (int) config('backup.runtime.retention_copies', 10));
-
-        if ($keep <= 0) {
-            return;
-        }
-
-        $runs = BackupRun::query()
-            ->exports()
-            ->where('root_path', $root)
-            ->where('is_safety_copy', false)
-            ->whereNotNull('run_path')
-            ->orderByDesc('id')
-            ->get();
-
-        foreach ($runs->slice($keep) as $old) {
-            if ($old->id === $current->id) {
-                continue;
-            }
-
-            if ($old->run_path && is_dir($old->run_path)) {
-                $this->deleteDirectory($old->run_path);
-            }
-
-            $old->delete();
-        }
-    }
-
     private function deleteDirectory(string $path): void
     {
         $this->paths->assertSafePath($path);
@@ -791,5 +783,63 @@ class BackupService
             'created_at_jalali' => $run->created_at ? Jalalian::fromCarbon($run->created_at)->format('Y/m/d H:i') : null,
             'error'       => $run->error_message,
         ];
+    }
+    private function applyRetention(string $root, BackupRun $current): void
+    {
+        $keep = $this->settings->int('retention_copies', (int) config('backup.runtime.retention_copies', 10));
+
+        if ($keep > 0) {
+            $runs = BackupRun::query()
+                ->exports()
+                ->where('root_path', $root)
+                ->where('is_safety_copy', false)
+                ->whereNotNull('run_path')
+                ->orderByDesc('id')
+                ->get();
+
+            foreach ($runs->slice($keep) as $old) {
+                if ($old->id === $current->id) {
+                    continue;
+                }
+
+                if ($old->run_path && is_dir($old->run_path)) {
+                    $this->deleteDirectory($old->run_path);
+                }
+
+                $old->delete();
+            }
+        }
+
+        $this->applySafetyRetention($root, $current);
+    }
+
+    /** نگهداری فقط N نسخه‌ی ایمنی آخر (safety copies جدا از بکاپ‌های دستی/معمولی مدیریت می‌شوند). */
+    private function applySafetyRetention(string $root, BackupRun $current): void
+    {
+        $keep = (int) config('backup.runtime.safety_retention_copies', 3);
+
+        if ($keep <= 0) {
+            return;
+        }
+
+        $runs = BackupRun::query()
+            ->exports()
+            ->where('root_path', $root)
+            ->where('is_safety_copy', true)
+            ->whereNotNull('run_path')
+            ->orderByDesc('id')
+            ->get();
+
+        foreach ($runs->slice($keep) as $old) {
+            if ($old->id === $current->id) {
+                continue;
+            }
+
+            if ($old->run_path && is_dir($old->run_path)) {
+                $this->deleteDirectory($old->run_path);
+            }
+
+            $old->delete();
+        }
     }
 }

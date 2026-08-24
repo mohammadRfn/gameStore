@@ -8,7 +8,7 @@ use App\Services\ArchiveService;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\Export;
 use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -24,7 +24,7 @@ class ArchivedServiceJobsExport implements
     WithMapping,
     WithStyles,
     WithEvents,
-    ShouldAutoSize,
+    WithColumnWidths,
     WithTitle
 {
     use FormatsArchiveExports;
@@ -123,6 +123,37 @@ class ArchivedServiceJobsExport implements
         ];
     }
 
+    public function columnWidths(): array
+    {
+        return [
+            'A' => 6,
+            'B' => 12,
+            'C' => 14,
+            'D' => 16,
+            'E' => 16,
+            'F' => 10,
+            'G' => 24,
+            'H' => 28,
+            'I' => 28,
+            'J' => 30,
+            'K' => 14,
+            'L' => 14,
+            'M' => 16,
+            'N' => 16,
+            'O' => 32,
+            'P' => 22,
+            'Q' => 16,
+            'R' => 14,
+            'S' => 14,
+            'T' => 16,
+            'U' => 16,
+            'V' => 22,
+            'W' => 16,
+            'X' => 16,
+            'Y' => 20,
+        ];
+    }
+
     public function styles(Worksheet $sheet): array
     {
         return [];
@@ -136,7 +167,8 @@ class ArchivedServiceJobsExport implements
     public function registerEvents(): array
     {
         return [
-            AfterSheet::class => $this->luxuryAfterSheetEvent('Y'), // 25 ستون = A تا Y
+            // ستون‌های چندخطی: G,H,I,J (نوع سرویس/ایراد/تشخیص/قطعات) و O,P (اقلام و تعدیلات فاکتور)
+            AfterSheet::class => $this->luxuryAfterSheetEvent('Y', ['G', 'H', 'I', 'J', 'O', 'P']),
         ];
     }
 }

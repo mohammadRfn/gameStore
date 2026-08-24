@@ -54,7 +54,7 @@ class ItemRequest extends FormRequest
             'purchase_price' => 'required|numeric|min:0',
             'sale_price'     => 'required|numeric|min:0',
             'description' => 'nullable|string|max:1000',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
             'category_id'  => 'nullable|exists:categories,id',
             'tracks_stock' => 'boolean',
         ];

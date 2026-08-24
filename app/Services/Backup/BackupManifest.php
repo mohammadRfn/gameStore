@@ -21,16 +21,20 @@ class BackupManifest
     public function all(): array
     {
         $entities = [];
+        $excluded = (array) config('backup.excluded_tables', []);
 
         foreach ((array) config('backup.entities', []) as $key => $definition) {
             $definition = $this->normalize($key, $definition);
+
+            if (in_array($definition['table'], $excluded, true)) {
+                continue;
+            }
 
             if (! Schema::hasTable($definition['table'])) {
                 if (! empty($definition['optional'])) {
                     continue;
                 }
 
-                // جدول اجباری ولی ناموجود: با فلگ missing برگردانده می‌شود تا گزارش شود.
                 $definition['missing'] = true;
             }
 
@@ -61,7 +65,7 @@ class BackupManifest
         }
 
         // ترتیب مانیفست (وابستگی FK) حفظ می‌شود، نه ترتیب ورودی کاربر.
-        return array_filter($all, fn ($key) => in_array($key, $keys, true), ARRAY_FILTER_USE_KEY);
+        return array_filter($all, fn($key) => in_array($key, $keys, true), ARRAY_FILTER_USE_KEY);
     }
 
     public function get(string $key): array
@@ -78,7 +82,7 @@ class BackupManifest
     /** موجودیت‌هایی که ستون تصویری دارند. */
     public function withMedia(): array
     {
-        return array_filter($this->all(), fn ($e) => ! empty($e['media']));
+        return array_filter($this->all(), fn($e) => ! empty($e['media']));
     }
 
     /**
