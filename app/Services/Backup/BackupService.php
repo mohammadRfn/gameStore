@@ -132,9 +132,9 @@ class BackupService
             }
 
             $totals = $this->summarizeExport($report, $mediaStats);
+            $status = $totals['failed_entities'] > 0 ? BackupRun::STATUS_PARTIAL : BackupRun::STATUS_COMPLETED;
 
             $manifestPath = $this->writeManifest($run, $runPath, $entities, $report, $mediaStats, $totals);
-            $checksumPath = $this->writeChecksums($runPath);
             $this->writeReadme($run, $runPath, $totals);
 
             $run->forceFill([
@@ -144,12 +144,15 @@ class BackupService
                 'total_files'    => $totals['files'],
                 'missing_files'  => $mediaStats['missing'] ?? 0,
                 'total_bytes'    => $totals['bytes'],
-                'checksum'       => is_file($checksumPath) ? hash_file('sha256', $checksumPath) : null,
             ])->save();
 
-            $status = $totals['failed_entities'] > 0 ? BackupRun::STATUS_PARTIAL : BackupRun::STATUS_COMPLETED;
-
             $this->recorder->finish($run, $status, $totals + ['media' => $mediaStats]);
+
+            $checksumPath = $this->writeChecksums($runPath);
+
+            $run->forceFill([
+                'checksum' => is_file($checksumPath) ? hash_file('sha256', $checksumPath) : null,
+            ])->save();
 
             $this->applyRetention($root, $run);
 
