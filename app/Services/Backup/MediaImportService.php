@@ -35,11 +35,10 @@ class MediaImportService
     public function __construct(
         private readonly BackupPathResolver $paths,
         private readonly BackupRunRecorder $recorder,
-    ) {
-    }
+    ) {}
 
     /** @return array<string, int> */
-    public function import(BackupRun $run, string $sourcePath, array $options = []): array
+    public function import(BackupRun $run, string $sourcePath, array $idMaps = [], array $options = []): array
     {
         $mediaRoot = $this->locateMediaRoot($sourcePath);
 
@@ -125,7 +124,7 @@ class MediaImportService
                 $relinked = false;
 
                 if ($relink && ! $dryRun && isset($mapping['table'], $mapping['column'])) {
-                    $relinked = $this->relink($mapping, $modelId, $storagePath, $file->getFilename());
+                    $relinked = $this->relink($mapping, $modelId, $storagePath, $file->getFilename(), $idMaps);
 
                     if ($relinked) {
                         $stats['relinked']++;
@@ -150,7 +149,7 @@ class MediaImportService
      *  - اگر شناسه در ساختار پوشه بود: بر اساس id
      *  - در غیر این صورت: تطبیق بر اساس نام فایل قدیمی
      */
-    private function relink(array $mapping, ?int $modelId, string $storagePath, string $originalName): bool
+    private function relink(array $mapping, ?int $modelId, string $storagePath, string $originalName, array $idMaps = []): bool
     {
         $table  = $mapping['table'];
         $column = $mapping['column'];
@@ -160,7 +159,11 @@ class MediaImportService
         }
 
         if ($modelId !== null) {
-            return DB::table($table)->where('id', $modelId)->update([$column => $storagePath]) > 0;
+            // id قدیمیِ داخل مسیر پوشه، مربوط به فضای بکاپه؛ باید به id جدیدِ
+            // بعد از reindex ترجمه بشه، وگرنه به رکورد اشتباه/هیچ‌کدوم می‌خوره.
+            $targetId = $idMaps[$table]['backup'][$modelId] ?? $modelId;
+
+            return DB::table($table)->where('id', $targetId)->update([$column => $storagePath]) > 0;
         }
 
         return DB::table($table)

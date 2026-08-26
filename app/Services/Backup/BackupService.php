@@ -242,7 +242,14 @@ class BackupService
                 }
 
                 if ($mode !== BackupRun::MODE_DATABASE) {
-                    $mediaStats = $this->mediaImporter->import($run, $source, $options + ['dry_run' => $dryRun]);
+                    $idMaps = [];
+                    foreach ($report as $key => $entityReport) {
+                        if (isset($entityReport['idmap'], $entities[$key]['table'])) {
+                            $idMaps[$entities[$key]['table']] = $entityReport['idmap'];
+                        }
+                    }
+
+                    $mediaStats = $this->mediaImporter->import($run, $source, $idMaps, $options + ['dry_run' => $dryRun]);
                 }
 
                 $totals = $this->summarizeImport($report, $mediaStats);

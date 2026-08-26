@@ -304,22 +304,7 @@
                   </button>
                 </div>
 
-                <div class="backup-field">
-                  <label>استراتژی تزریق دیتابیس</label>
-                  <select v-model="importForm.strategy" class="backup-select" :disabled="importForm.mode === 'media'">
-                    <option v-for="strategy in strategyOptions" :key="strategy.key" :value="strategy.key">
-                      {{ strategy.icon }} {{ strategy.label }} — {{ strategy.hint }}
-                    </option>
-                  </select>
-                </div>
 
-                <div v-if="importForm.strategy === 'replace' && importForm.mode !== 'media'" class="rounded-3xl border border-[rgba(240,106,106,.35)] bg-[var(--gs-error-soft)] p-4">
-                  <h4 class="font-black text-[var(--gs-error)]">جایگزینی کامل خطرناک است</h4>
-                  <p class="mt-1 text-[0.8rem] leading-7 text-[var(--gs-text-secondary)]">
-                    برای ادامه باید عبارت REPLACE را وارد کنی. سرویس قبل از ایمپورت یک بکاپ ایمنی می‌گیرد.
-                  </p>
-                  <input v-model="importForm.confirmation" class="backup-input mt-3" dir="ltr" placeholder="REPLACE" />
-                </div>
 
                 <div class="grid gap-3 md:grid-cols-2">
                   <label class="backup-switch">
@@ -574,7 +559,7 @@ const exportForm = reactive({
 const importForm = reactive({
   source_path: '',
   mode: BACKUP_MODES.FULL,
-  strategy: IMPORT_STRATEGIES.MERGE,
+  strategy: IMPORT_STRATEGIES.REINDEX,
   safety_backup: true,
   verify_checksums: true,
   stop_on_error: false,
@@ -619,7 +604,7 @@ const tabs = [
 ]
 
 const modeOptions = Object.entries(MODE_META).map(([key, meta]) => ({ key, ...meta }))
-const strategyOptions = Object.entries(STRATEGY_META).map(([key, meta]) => ({ key, ...meta }))
+
 
 const stat = computed(() => api.statistics.value || {})
 const defaults = computed(() => api.defaults.value || {})
@@ -688,7 +673,6 @@ function seedFromOverview() {
   settingsForm.retention_copies = Number(s.retention_copies || 10)
   settingsForm.auto_safety_backup = boolValue(s.auto_safety_backup, true)
   settingsForm.verify_checksums = boolValue(s.verify_checksums, true)
-  settingsForm.default_import_strategy = s.default_import_strategy || IMPORT_STRATEGIES.MERGE
 }
 
 function boolValue(value, fallback) {

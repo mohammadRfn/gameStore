@@ -270,9 +270,14 @@ class BackupController extends Controller
             $this->settings->set('import_root_path', $data['source_path'], null, $request->user()?->id);
         }
 
+        // ایمپورت همیشه با استراتژی reindex اجرا می‌شود؛ صرف‌نظر از چیزی که فرانت می‌فرستد.
+        $data['strategy'] = BackupRun::STRATEGY_REINDEX;
+
         try {
             $run = $this->backupService->import($data, $request->user()?->id);
-        } catch (Throwable $e) {
+            
+        } 
+        catch (Throwable $e) {
             return $this->error($e, 'بازیابی اطلاعات با خطا مواجه شد.');
         }
 
