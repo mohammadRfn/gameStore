@@ -1,90 +1,74 @@
-<template>
-  <article class="backup-glass backup-section backup-reveal" :style="cardStyle">
-    <div class="relative z-[1] flex items-start justify-between gap-3">
-      <div>
-        <p class="text-[0.72rem] font-extrabold text-[var(--gs-text-muted)]">{{ label }}</p>
-        <div class="mt-2 flex items-end gap-2">
-          <strong class="text-2xl font-black text-[var(--gs-text-primary)] tabular-nums">
-            {{ displayValue }}
-          </strong>
-          <span v-if="suffix" class="pb-1 text-[0.72rem] font-bold text-[var(--gs-text-muted)]">{{ suffix }}</span>
-        </div>
-        <p v-if="hint" class="mt-1 text-[0.73rem] leading-7 text-[var(--gs-text-secondary)]">{{ hint }}</p>
-      </div>
-
-      <div class="grid h-12 w-12 place-items-center rounded-2xl border border-[var(--gs-border)] bg-[var(--gs-gold-muted)] text-2xl shadow-[var(--gs-shadow-sm)]">
-        {{ icon }}
-      </div>
-    </div>
-
-    <div class="relative z-[1] mt-3 flex items-end justify-between gap-3">
-      <div class="backup-mini-chart flex-1">
-        <span
-          v-for="(bar, index) in bars"
-          :key="index"
-          :style="{ height: `${bar}%`, animationDelay: `${index * 45}ms` }"
-        ></span>
-      </div>
-      <span v-if="badge" class="backup-pill" :class="badgeClass">{{ badge }}</span>
-    </div>
-  </article>
-</template>
-
 <script setup>
-import { computed } from 'vue'
-import { faNumber, formatBytes } from '@/Composables/useBackupApi'
+import { computed, onMounted, ref, watch } from 'vue'
+import { faNumber, formatBytes } from '@/Composables/useBackupCenter'
 
+/**
+ * کارت آمار.
+ * تغییرات: برچسب‌های انگلیسی (Audit / Schema / Health) حذف شدند،
+ * همه‌ی کارت‌ها هم‌ارتفاع و با فاصله‌ی یکسان هستند و متن‌ها سرریز نمی‌کنند.
+ */
 const props = defineProps({
   label: { type: String, required: true },
   value: { type: [Number, String], default: 0 },
-  icon: { type: String, default: '◇' },
-  suffix: { type: String, default: '' },
   hint: { type: String, default: '' },
-  badge: { type: String, default: '' },
-  tone: { type: String, default: 'gold' },
-  delay: { type: Number, default: 0 },
+  icon: { type: String, default: '◇' },
+  tone: { type: String, default: 'gold' }, // gold | sky | rose | emerald
   bytes: { type: Boolean, default: false },
+  delay: { type: Number, default: 0 },
 })
 
-const displayValue = computed(() => props.bytes ? formatBytes(props.value) : faNumber(props.value))
+const shown = ref(0)
+const visible = ref(false)
 
-const palette = computed(() => ({
-  gold: 'var(--gs-gold)',
-  blue: 'var(--gs-accent)',
-  green: 'var(--gs-accent-2)',
-  purple: 'var(--gs-accent-3)',
-  red: 'var(--gs-error)',
-}[props.tone] || 'var(--gs-gold)'))
+const tones = {
+  gold: 'from-amber-400/15 text-amber-300 ring-amber-400/20',
+  sky: 'from-sky-400/15 text-sky-300 ring-sky-400/20',
+  rose: 'from-rose-400/15 text-rose-300 ring-rose-400/20',
+  emerald: 'from-emerald-400/15 text-emerald-300 ring-emerald-400/20',
+}
 
-const cardStyle = computed(() => ({
-  '--delay': `${props.delay}ms`,
-  '--stat-color': palette.value,
-}))
+const display = computed(() => (props.bytes ? formatBytes(shown.value) : faNumber(shown.value)))
 
-const bars = computed(() => {
-  const seed = Math.max(1, Number(props.value) || 1)
-  return Array.from({ length: 9 }, (_, i) => 18 + ((seed * (i + 3) * 17) % 72))
+function animate() {
+  const target = Number(props.value) || 0
+  const start = performance.now()
+  const from = shown.value
+  const duration = 700
+
+  const step = (now) => {
+    const progress = Math.min((now - start) / duration, 1)
+    shown.value = Math.round(from + (target - from) * (1 - Math.pow(1 - progress, 3)))
+    if (progress < 1) requestAnimationFrame(step)
+  }
+
+  requestAnimationFrame(step)
+}
+
+onMounted(() => {
+  window.setTimeout(() => {
+    visible.value = true
+    animate()
+  }, props.delay)
 })
 
-const badgeClass = computed(() => ({
-  green: 'backup-pill--ok',
-  blue: 'backup-pill--info',
-  red: 'backup-pill--danger',
-  gold: '',
-  purple: 'backup-pill--info',
-}[props.tone] || ''))
+watch(() => props.value, () => visible.value && animate())
 </script>
 
-<style scoped>
-article::before {
-  content: '';
-  position: absolute;
-  inset: auto 12px 12px auto;
-  width: 86px;
-  height: 86px;
-  border-radius: 999px;
-  background: radial-gradient(circle, color-mix(in srgb, var(--stat-color) 22%, transparent), transparent 70%);
-  filter: blur(4px);
-  pointer-events: none;
-}
-</style>
+<template>
+  <article
+    class="flex h-full flex-col justify-between gap-4 rounded-2xl bg-gradient-to-bl to-transparent p-5 ring-1 transition-all duration-500"
+    :class="[tones[tone] || tones.gold, visible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0']"
+  >
+    <div class="flex items-start justify-between gap-3">
+      <p class="text-[13px] font-semibold leading-5 text-slate-300">{{ label }}</p>
+      <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-white/5 text-base leading-none" aria-hidden="true">
+        {{ icon }}
+      </span>
+    </div>
+
+    <div>
+      <p class="text-2xl font-black tabular-nums tracking-tight text-slate-50">{{ display }}</p>
+      <p v-if="hint" class="mt-1 line-clamp-2 text-xs leading-5 text-slate-400">{{ hint }}</p>
+    </div>
+  </article>
+</template>

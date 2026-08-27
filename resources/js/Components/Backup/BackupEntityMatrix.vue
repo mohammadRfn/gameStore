@@ -1,73 +1,15 @@
-<template>
-  <section class="backup-glass backup-section">
-    <div class="backup-section__head">
-      <div>
-        <h3 class="backup-section__title">
-          <span>🧭</span>
-          انتخاب بخش‌های قابل پشتیبان‌گیری
-        </h3>
-        <p class="backup-section__desc">
-          می‌توانی همه‌ی دیتابیس را بگیری یا فقط جدول‌های موردنیاز را برای خروجی/ورودی انتخاب کنی.
-        </p>
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <button type="button" class="backup-btn backup-btn--sm backup-btn--gold" @click="selectAll">انتخاب همه</button>
-        <button type="button" class="backup-btn backup-btn--sm backup-btn--ghost" @click="clearAll">پاک کردن</button>
-      </div>
-    </div>
-
-    <div class="relative z-[1] grid gap-3">
-      <div v-for="group in groupedEntities" :key="group.key" class="grid gap-2">
-        <div class="flex items-center justify-between gap-2">
-          <button type="button" class="backup-pill" @click="toggleGroup(group)">
-            <span>{{ groupIcon(group.key) }}</span>
-            <b>{{ group.label }}</b>
-            <span>{{ selectedCount(group.items) }} / {{ group.items.length }}</span>
-          </button>
-          <span class="text-[0.72rem] text-[var(--gs-text-muted)]">
-            {{ totalRows(group.items) }} رکورد
-          </span>
-        </div>
-
-        <div class="backup-entity-grid">
-          <button
-            v-for="entity in group.items"
-            :key="entity.key"
-            type="button"
-            class="backup-entity-card text-right"
-            :class="{ 'is-active': isSelected(entity.key), 'is-disabled': entity.available === false }"
-            :disabled="entity.available === false"
-            @click="toggle(entity.key)"
-          >
-            <span class="backup-entity-card__head">
-              <span class="flex items-center gap-2">
-                <span class="grid h-9 w-9 place-items-center rounded-2xl bg-[var(--gs-gold-muted)] text-lg">
-                  {{ entityIcon(entity) }}
-                </span>
-                <span>
-                  <span class="backup-entity-card__title">{{ entity.label }}</span>
-                  <span class="block text-[0.68rem] text-[var(--gs-text-muted)]" dir="ltr">{{ entity.table }}</span>
-                </span>
-              </span>
-              <span class="text-lg">{{ isSelected(entity.key) ? '✓' : '＋' }}</span>
-            </span>
-
-            <span class="backup-entity-card__meta">
-              <span class="backup-pill">{{ formatRows(entity.rows) }} رکورد</span>
-              <span v-if="entity.has_media" class="backup-pill backup-pill--info">تصاویر</span>
-              <span v-if="entity.soft_deletes" class="backup-pill">SoftDelete</span>
-            </span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </section>
-</template>
-
 <script setup>
 import { computed } from 'vue'
-import { faNumber } from '@/Composables/useBackupApi'
+import BackupCard from '@/Components/Backup/BackupCard.vue'
+import { faNumber } from '@/Composables/useBackupCenter'
 
+/**
+ * انتخاب بخش‌های اطلاعات.
+ * تغییرات مهم:
+ *  - نام جدول‌های دیتابیس دیگر نمایش داده نمی‌شود.
+ *  - وضعیت «حذف نرم» بودن جدول‌ها کاملاً از رابط کاربری حذف شد.
+ *  - همه‌ی کارت‌ها هم‌اندازه‌اند و بین آن‌ها فاصله‌ی یکسان وجود دارد.
+ */
 const props = defineProps({
   modelValue: { type: Array, default: () => [] },
   entities: { type: Array, default: () => [] },
@@ -76,30 +18,38 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-const groupedEntities = computed(() => {
+const usable = computed(() => props.entities.filter((entity) => entity.available !== false))
+
+const grouped = computed(() => {
   const map = new Map()
-  props.entities.forEach((entity) => {
+
+  usable.value.forEach((entity) => {
     const key = entity.group || 'other'
-    if (!map.has(key)) {
-      map.set(key, { key, label: props.groups?.[key] || entity.group_label || key, items: [] })
-    }
+    const title = entity.group_label || props.groups?.[key] || 'سایر بخش‌ها'
+    if (!map.has(key)) map.set(key, { key, title, items: [] })
     map.get(key).items.push(entity)
   })
+
   return Array.from(map.values())
 })
+
+const selectedCount = computed(() => props.modelValue.length)
+const allSelected = computed(() => selectedCount.value > 0 && selectedCount.value === usable.value.length)
 
 function isSelected(key) {
   return props.modelValue.includes(key)
 }
 
 function toggle(key) {
-  const next = new Set(props.modelValue)
-  next.has(key) ? next.delete(key) : next.add(key)
-  emit('update:modelValue', Array.from(next))
+  const next = isSelected(key)
+    ? props.modelValue.filter((item) => item !== key)
+    : [...props.modelValue, key]
+
+  emit('update:modelValue', next)
 }
 
 function selectAll() {
-  emit('update:modelValue', props.entities.filter((entity) => entity.available !== false).map((entity) => entity.key))
+  emit('update:modelValue', usable.value.map((entity) => entity.key))
 }
 
 function clearAll() {
@@ -107,44 +57,84 @@ function clearAll() {
 }
 
 function toggleGroup(group) {
-  const available = group.items.filter((item) => item.available !== false).map((item) => item.key)
-  const allSelected = available.every(isSelected)
-  const next = new Set(props.modelValue)
-  available.forEach((key) => allSelected ? next.delete(key) : next.add(key))
-  emit('update:modelValue', Array.from(next))
-}
+  const keys = group.items.map((item) => item.key)
+  const everySelected = keys.every((key) => isSelected(key))
 
-function selectedCount(items) {
-  return faNumber(items.filter((item) => isSelected(item.key)).length)
-}
-
-function totalRows(items) {
-  return faNumber(items.reduce((sum, item) => sum + Number(item.rows || 0), 0))
-}
-
-function formatRows(value) {
-  return faNumber(value || 0)
-}
-
-function groupIcon(key) {
-  if (key.includes('core')) return '◈'
-  if (key.includes('people')) return '👥'
-  if (key.includes('catalog')) return '🎮'
-  if (key.includes('sales')) return '🧾'
-  if (key.includes('services')) return '🔧'
-  if (key.includes('inventory')) return '📦'
-  if (key.includes('analytics')) return '📊'
-  if (key.includes('archive')) return '🗄'
-  return '◇'
-}
-
-function entityIcon(entity) {
-  if (entity.has_media) return '🖼'
-  if (entity.key?.includes('invoice')) return '🧾'
-  if (entity.key?.includes('item')) return '🎮'
-  if (entity.key?.includes('customer')) return '👤'
-  if (entity.key?.includes('service')) return '🔧'
-  if (entity.key?.includes('stock')) return '📦'
-  return '◆'
+  emit(
+    'update:modelValue',
+    everySelected
+      ? props.modelValue.filter((key) => !keys.includes(key))
+      : Array.from(new Set([...props.modelValue, ...keys])),
+  )
 }
 </script>
+
+<template>
+  <BackupCard
+    title="بخش‌های اطلاعات"
+    description="مشخص کن کدام بخش‌های فروشگاه در بسته‌ی پشتیبان قرار بگیرند. اگر چیزی انتخاب نشود، همه‌ی بخش‌ها گرفته می‌شود."
+    icon="🗂"
+  >
+    <template #actions>
+      <span class="rounded-full bg-white/5 px-2.5 py-1 text-[11px] leading-4 text-slate-300 ring-1 ring-white/10">
+        {{ faNumber(selectedCount) }} از {{ faNumber(usable.length) }}
+      </span>
+      <button
+        type="button"
+        class="h-8 rounded-lg bg-white/5 px-3 text-xs font-semibold text-slate-200 ring-1 ring-white/10 transition hover:bg-white/10"
+        @click="allSelected ? clearAll() : selectAll()"
+      >
+        {{ allSelected ? 'پاک کردن انتخاب‌ها' : 'انتخاب همه' }}
+      </button>
+    </template>
+
+    <div v-for="group in grouped" :key="group.key" class="flex flex-col gap-3">
+      <div class="flex items-center justify-between gap-3">
+        <h4 class="text-xs font-bold text-slate-300">{{ group.title }}</h4>
+        <button
+          type="button"
+          class="text-[11px] font-medium text-amber-300/90 transition hover:text-amber-200"
+          @click="toggleGroup(group)"
+        >
+          انتخاب این گروه
+        </button>
+      </div>
+
+      <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <button
+          v-for="entity in group.items"
+          :key="entity.key"
+          type="button"
+          class="flex items-center gap-3 rounded-xl px-4 py-3 text-right ring-1 transition-colors duration-200"
+          :class="isSelected(entity.key)
+            ? 'bg-amber-400/10 ring-amber-400/40'
+            : 'bg-white/[0.03] ring-white/5 hover:bg-white/[0.06]'"
+          :aria-pressed="isSelected(entity.key)"
+          @click="toggle(entity.key)"
+        >
+          <span
+            class="grid size-5 shrink-0 place-items-center rounded-md text-[11px] leading-none transition"
+            :class="isSelected(entity.key) ? 'bg-amber-400 text-slate-900' : 'bg-white/10 text-transparent'"
+            aria-hidden="true"
+          >✓</span>
+
+          <span class="min-w-0 flex-1">
+            <span class="block truncate text-[13px] font-semibold leading-5 text-slate-100">{{ entity.label }}</span>
+            <span class="mt-0.5 block text-[11px] leading-4 text-slate-400">
+              {{ faNumber(entity.rows) }} مورد
+            </span>
+          </span>
+
+          <span
+            v-if="entity.has_media"
+            class="shrink-0 rounded-full bg-white/5 px-2 py-0.5 text-[10px] leading-4 text-slate-300 ring-1 ring-white/10"
+          >تصویر دارد</span>
+        </button>
+      </div>
+    </div>
+
+    <p v-if="!grouped.length" class="rounded-xl bg-white/[0.03] px-4 py-6 text-center text-xs text-slate-400">
+      فهرست بخش‌ها هنوز بارگذاری نشده است.
+    </p>
+  </BackupCard>
+</template>

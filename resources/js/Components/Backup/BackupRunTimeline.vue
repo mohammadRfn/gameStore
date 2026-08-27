@@ -1,115 +1,180 @@
-<template>
-  <section class="backup-glass backup-section">
-    <div class="backup-section__head">
-      <div>
-        <h3 class="backup-section__title">🕰 تاریخچه‌ی اجراها</h3>
-        <p class="backup-section__desc">همه‌ی خروجی‌ها، ورودی‌ها، dry-runها و بکاپ‌های ایمنی در اینجا قابل ردیابی هستند.</p>
-      </div>
-      <button type="button" class="backup-btn backup-btn--sm backup-btn--ghost" :disabled="loading" @click="$emit('refresh')">
-        <span v-if="loading" class="backup-spinner"></span>
-        تازه‌سازی
-      </button>
-    </div>
-
-    <div class="relative z-[1] grid gap-3">
-      <div class="grid gap-2 md:grid-cols-4">
-        <select :value="filters.direction" class="backup-select" @change="update('direction', $event.target.value)">
-          <option value="">همه جهت‌ها</option>
-          <option value="export">خروجی</option>
-          <option value="import">ورودی</option>
-        </select>
-        <select :value="filters.status" class="backup-select" @change="update('status', $event.target.value)">
-          <option value="">همه وضعیت‌ها</option>
-          <option value="completed">موفق</option>
-          <option value="partial">نیمه‌موفق</option>
-          <option value="failed">ناموفق</option>
-          <option value="running">در حال اجرا</option>
-        </select>
-        <select :value="filters.mode" class="backup-select" @change="update('mode', $event.target.value)">
-          <option value="">همه حالت‌ها</option>
-          <option value="full">کامل</option>
-          <option value="database">دیتابیس</option>
-          <option value="media">تصاویر</option>
-        </select>
-        <label class="backup-switch !py-2">
-          <input :checked="filters.include_auto" type="checkbox" @change="update('include_auto', $event.target.checked)" />
-          <span class="backup-switch__text"><span class="backup-switch__title">نمایش خودکارها</span></span>
-          <span class="backup-switch__track"><span class="backup-switch__dot"></span></span>
-        </label>
-      </div>
-
-      <div v-if="loading" class="grid gap-2">
-        <div v-for="i in 5" :key="i" class="backup-skeleton h-20"></div>
-      </div>
-
-      <div v-else-if="!runs.length" class="backup-empty-state">
-        <div>
-          <div class="backup-empty-state__icon">🕰</div>
-          <h4 class="backup-empty-state__title">هنوز اجرایی ثبت نشده</h4>
-          <p class="backup-empty-state__text">اولین خروجی یا ایمپورت که انجام شود، گزارش کامل آن در این بخش نمایش داده می‌شود.</p>
-        </div>
-      </div>
-
-      <div v-else class="overflow-x-auto">
-        <table class="backup-table">
-          <thead>
-            <tr>
-              <th>شناسه</th>
-              <th>نوع</th>
-              <th>وضعیت</th>
-              <th>حالت</th>
-              <th>رکورد/فایل</th>
-              <th>حجم</th>
-              <th>زمان</th>
-              <th>عملیات</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="run in runs" :key="run.id">
-              <td>
-                <b>#{{ faNumber(run.id) }}</b>
-                <small v-if="run.uuid" class="block max-w-[160px] truncate text-[var(--gs-text-muted)]" dir="ltr">{{ run.uuid }}</small>
-              </td>
-              <td><span class="backup-pill">{{ presentDirection(run.direction).icon }} {{ presentDirection(run.direction).label }}</span></td>
-              <td><span :class="presentStatus(run.status).className">{{ presentStatus(run.status).label }}</span></td>
-              <td><span class="backup-pill">{{ presentMode(run.mode).icon }} {{ presentMode(run.mode).label }}</span></td>
-              <td>{{ faNumber(run.total_rows ?? run.rows) }} / {{ faNumber(run.total_files ?? run.files) }}</td>
-              <td>{{ run.total_bytes !== undefined ? formatBytes(run.total_bytes) : `${faNumber(run.size_mb)} MB` }}</td>
-              <td>{{ formatDateTime(run.created_at) }}</td>
-              <td>
-                <div class="flex flex-wrap gap-1">
-                  <button type="button" class="backup-btn backup-btn--sm backup-btn--info" @click="$emit('view', run)">جزئیات</button>
-                  <button type="button" class="backup-btn backup-btn--sm backup-btn--ghost" @click="$emit('log', run)">لاگ</button>
-                  <button type="button" class="backup-btn backup-btn--sm backup-btn--danger" @click="$emit('delete', run)">حذف</button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <nav v-if="pagination.last_page > 1" class="flex flex-wrap items-center justify-center gap-2">
-        <button class="backup-btn backup-btn--sm" :disabled="pagination.current_page <= 1 || loading" @click="$emit('page', pagination.current_page - 1)">قبلی</button>
-        <span class="backup-pill">صفحه {{ faNumber(pagination.current_page) }} از {{ faNumber(pagination.last_page) }}</span>
-        <button class="backup-btn backup-btn--sm" :disabled="pagination.current_page >= pagination.last_page || loading" @click="$emit('page', pagination.current_page + 1)">بعدی</button>
-      </nav>
-    </div>
-  </section>
-</template>
-
 <script setup>
-import { faNumber, formatBytes, formatDateTime, presentDirection, presentMode, presentStatus } from '@/Composables/useBackupApi'
+import { computed } from 'vue'
+import BackupCard from '@/Components/Backup/BackupCard.vue'
+import { faNumber, formatBytes, formatDateTime, presentDirection, presentMode, presentStatus } from '@/Composables/useBackupCenter'
 
+/**
+ * تاریخچه‌ی اجراها.
+ * تغییرات: ردیف‌ها با فاصله‌ی یکسان، ستون‌ها هم‌تراز و برچسب وضعیت‌ها فارسی است.
+ */
 const props = defineProps({
   runs: { type: Array, default: () => [] },
-  filters: { type: Object, required: true },
-  pagination: { type: Object, required: true },
+  filters: { type: Object, default: () => ({}) },
+  pagination: { type: Object, default: () => ({ current_page: 1, last_page: 1, total: 0 }) },
   loading: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['update:filters', 'refresh', 'view', 'log', 'delete', 'page'])
+const emit = defineEmits(['update:filters', 'refresh', 'page', 'view', 'log', 'delete'])
 
-function update(key, value) {
+const statusTones = {
+  emerald: 'bg-emerald-400/10 text-emerald-300 ring-emerald-400/20',
+  amber: 'bg-amber-400/10 text-amber-300 ring-amber-400/20',
+  rose: 'bg-rose-400/10 text-rose-300 ring-rose-400/20',
+  sky: 'bg-sky-400/10 text-sky-300 ring-sky-400/20',
+  slate: 'bg-white/5 text-slate-300 ring-white/10',
+}
+
+const canPrev = computed(() => (props.pagination.current_page || 1) > 1)
+const canNext = computed(() => (props.pagination.current_page || 1) < (props.pagination.last_page || 1))
+
+function patch(key, value) {
   emit('update:filters', { ...props.filters, [key]: value })
 }
+
+function statusClass(status) {
+  return statusTones[presentStatus(status).tone] || statusTones.slate
+}
 </script>
+
+<template>
+  <BackupCard
+    title="تاریخچه‌ی پشتیبان‌گیری"
+    description="همه‌ی خروجی‌ها، بازیابی‌ها و اجراهای آزمایشی به‌ترتیب زمان."
+    icon="🕰"
+  >
+    <template #actions>
+      <button
+        type="button"
+        class="h-8 rounded-lg bg-white/5 px-3 text-xs font-semibold text-slate-200 ring-1 ring-white/10 transition hover:bg-white/10"
+        @click="emit('refresh')"
+      >
+        به‌روزرسانی
+      </button>
+    </template>
+
+    <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <select
+        class="h-11 w-full rounded-xl bg-slate-950/50 px-3 text-[13px] text-slate-200 ring-1 ring-white/10 outline-none focus:ring-2 focus:ring-amber-400/60"
+        :value="filters.direction"
+        @change="patch('direction', $event.target.value)"
+      >
+        <option value="">همه‌ی عملیات‌ها</option>
+        <option value="export">خروجی گرفتن</option>
+        <option value="import">بازیابی</option>
+      </select>
+
+      <select
+        class="h-11 w-full rounded-xl bg-slate-950/50 px-3 text-[13px] text-slate-200 ring-1 ring-white/10 outline-none focus:ring-2 focus:ring-amber-400/60"
+        :value="filters.status"
+        @change="patch('status', $event.target.value)"
+      >
+        <option value="">همه‌ی وضعیت‌ها</option>
+        <option value="completed">موفق</option>
+        <option value="partial">نیمه‌موفق</option>
+        <option value="failed">ناموفق</option>
+        <option value="running">در حال اجرا</option>
+      </select>
+
+      <select
+        class="h-11 w-full rounded-xl bg-slate-950/50 px-3 text-[13px] text-slate-200 ring-1 ring-white/10 outline-none focus:ring-2 focus:ring-amber-400/60"
+        :value="filters.mode"
+        @change="patch('mode', $event.target.value)"
+      >
+        <option value="">همه‌ی نوع‌ها</option>
+        <option value="full">بسته کامل</option>
+        <option value="database">فقط اطلاعات</option>
+        <option value="media">فقط تصاویر</option>
+      </select>
+
+      <label class="flex h-11 items-center gap-2 rounded-xl bg-white/[0.03] px-3.5 text-[13px] text-slate-200 ring-1 ring-white/5">
+        <input
+          type="checkbox"
+          class="size-4 accent-amber-400"
+          :checked="filters.include_auto"
+          @change="patch('include_auto', $event.target.checked)"
+        >
+        نمایش نسخه‌های خودکار
+      </label>
+    </div>
+
+    <div class="flex flex-col gap-3">
+      <p v-if="loading" class="rounded-xl bg-white/[0.03] px-4 py-6 text-center text-xs text-slate-400">
+        در حال دریافت تاریخچه…
+      </p>
+
+      <p v-else-if="!runs.length" class="rounded-xl bg-white/[0.03] px-4 py-6 text-center text-xs text-slate-400">
+        هنوز هیچ عملیاتی ثبت نشده است.
+      </p>
+
+      <template v-else>
+      <article
+        v-for="run in runs"
+        :key="run.id"
+        class="flex flex-col gap-4 rounded-xl bg-white/[0.03] p-4 ring-1 ring-white/5 transition hover:bg-white/[0.06] lg:flex-row lg:items-center"
+      >
+        <div class="flex min-w-0 flex-1 items-center gap-3">
+          <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-white/5 text-base" aria-hidden="true">
+            {{ presentDirection(run.direction).icon }}
+          </span>
+
+          <div class="min-w-0">
+            <p class="truncate text-[13px] font-bold text-slate-100">
+              {{ presentDirection(run.direction).label }} · {{ presentMode(run.mode).label }}
+              <span v-if="run.is_dry_run" class="text-amber-300/90">(آزمایشی)</span>
+            </p>
+            <p class="mt-0.5 truncate text-[11px] leading-5 text-slate-400">
+              {{ formatDateTime(run.started_at || run.created_at) }}
+              <span v-if="run.label"> · {{ run.label }}</span>
+            </p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 lg:justify-end">
+          <span class="rounded-full px-2.5 py-1 text-[11px] font-semibold leading-4 ring-1" :class="statusClass(run.status)">
+            {{ presentStatus(run.status).icon }} {{ presentStatus(run.status).label }}
+          </span>
+
+          <span class="rounded-full bg-white/5 px-2.5 py-1 text-[11px] leading-4 text-slate-300 ring-1 ring-white/10">
+            {{ faNumber(run.records_count || 0) }} رکورد
+          </span>
+
+          <span class="rounded-full bg-white/5 px-2.5 py-1 text-[11px] leading-4 text-slate-300 ring-1 ring-white/10">
+            {{ formatBytes(run.size_bytes || run.total_bytes || 0) }}
+          </span>
+
+          <span class="mx-1 hidden h-6 w-px bg-white/10 lg:block" aria-hidden="true" />
+
+          <button type="button" class="h-8 rounded-lg bg-white/5 px-3 text-xs font-semibold text-slate-200 ring-1 ring-white/10 transition hover:bg-white/10" @click="emit('view', run)">جزئیات</button>
+          <button type="button" class="h-8 rounded-lg bg-white/5 px-3 text-xs font-semibold text-slate-200 ring-1 ring-white/10 transition hover:bg-white/10" @click="emit('log', run)">گزارش</button>
+          <button type="button" class="h-8 rounded-lg bg-rose-400/10 px-3 text-xs font-semibold text-rose-300 ring-1 ring-rose-400/20 transition hover:bg-rose-400/20" @click="emit('delete', run)">حذف</button>
+        </div>
+      </article>
+      </template>
+    </div>
+
+    <template #footer>
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="text-[11px] text-slate-400">
+          صفحه {{ faNumber(pagination.current_page) }} از {{ faNumber(pagination.last_page) }} ·
+          {{ faNumber(pagination.total) }} مورد
+        </p>
+
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="h-9 rounded-lg bg-white/5 px-3 text-xs font-semibold text-slate-200 ring-1 ring-white/10 transition enabled:hover:bg-white/10 disabled:opacity-40"
+            :disabled="!canPrev"
+            @click="emit('page', pagination.current_page - 1)"
+          >قبلی</button>
+
+          <button
+            type="button"
+            class="h-9 rounded-lg bg-white/5 px-3 text-xs font-semibold text-slate-200 ring-1 ring-white/10 transition enabled:hover:bg-white/10 disabled:opacity-40"
+            :disabled="!canNext"
+            @click="emit('page', pagination.current_page + 1)"
+          >بعدی</button>
+        </div>
+      </div>
+    </template>
+  </BackupCard>
+</template>
