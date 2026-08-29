@@ -9,13 +9,20 @@ import BackupPathPicker from '@/Components/Backup/BackupPathPicker.vue'
 import BackupRunTimeline from '@/Components/Backup/BackupRunTimeline.vue'
 import BackupStatCard from '@/Components/Backup/BackupStatCard.vue'
 import BackupToggleRow from '@/Components/Backup/BackupToggleRow.vue'
+import BackupToaster from '@/Components/Backup/BackupToaster.vue'
 import JalaliDateInput from '@/Components/JalaliDateInput.vue'
 import { faNumber, MODE_META, readableError, STRATEGY_META, useBackupCenter } from '@/Composables/useBackupCenter'
 
 /* --------------------------------------------------------------------------
- * صفحه‌ی مرکز پشتیبان‌گیری
- * بازطراحی‌شده: فاصله‌ها یکنواخت، کادرها اندازه‌ی محتوای خودشان،
- * بدون نمایش نام جدول‌ها، وضعیت حذف نرم و اصطلاحات انگلیسی.
+ * مرکز پشتیبان‌گیری — نسخه‌ی Royal
+ *
+ * چه چیزی نسبت به نسخه‌ی قبلی عوض شد؟
+ * ۱) کل تمپلیت از utility های Tailwind به کلاس‌های backup-* منتقل شد؛
+ *    یعنی همان چیزی که resources/css/backup-royal.css تعریف کرده و تا امروز
+ *    حتی یک بار هم روی این صفحه استفاده نشده بود.
+ * ۲) انیمیشن‌ها فعال شدند: backup-reveal روی هر بلوک، backup-hero-scan روی
+ *    هدر، backup-float روی گوی سه‌بعدی و backup-pop روی نوتیفیکیشن‌ها.
+ * ۳) BackupToaster که ساخته شده بود ولی هرگز mount نمی‌شد، وصل شد.
  * -------------------------------------------------------------------------- */
 
 const api = useBackupCenter()
@@ -29,8 +36,11 @@ const tabs = [
 
 const activeTab = ref('export')
 const selectedEntities = ref([])
-const toast = reactive({ show: false, tone: 'ok', text: '' })
-let toastTimer = null
+
+/* نوتیفیکیشن: قبلاً یک آبجکت تکی بود و به BackupToaster وصل نمی‌شد.
+   حالا صف است تا transition های backup-pop واقعاً دیده شوند. */
+const toasts = ref([])
+let toastSeq = 0
 
 const exportForm = reactive({
   destination_path: '',
@@ -79,12 +89,17 @@ const selectionSummary = computed(() =>
     : 'همه‌ی بخش‌ها',
 )
 
+function dismissToast(id) {
+  toasts.value = toasts.value.filter((item) => item.id !== id)
+}
+
 function notify(text, tone = 'ok') {
-  toast.text = text
-  toast.tone = tone
-  toast.show = true
-  window.clearTimeout(toastTimer)
-  toastTimer = window.setTimeout(() => { toast.show = false }, 4200)
+  const type = { ok: 'success', warn: 'warning', error: 'error', info: 'info' }[tone] || 'info'
+  const id = ++toastSeq
+  const title = { success: 'انجام شد', warning: 'هشدار', error: 'خطا', info: 'اطلاع' }[type]
+
+  toasts.value = [...toasts.value, { id, type, title, message: text }]
+  window.setTimeout(() => dismissToast(id), 4200)
 }
 
 function bridgeMissing() {
@@ -199,54 +214,69 @@ async function openRun(run) {
 }
 
 const inspection = api.inspection
+
+/* کمک‌کننده‌ی تاخیر انیمیشن ورود؛ backup-reveal متغیر --delay را می‌خواند. */
+function reveal(ms) {
+  return { '--delay': ms + 'ms' }
+}
 </script>
 
 <template>
   <AppLayout>
     <Head title="پشتیبان‌گیری" />
 
-    <!-- ریتم فاصله‌ی واحد برای کل صفحه: هیچ کارتی به کارت دیگر نمی‌چسبد -->
-    <div class="mx-auto flex w-full max-w-[1180px] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8" dir="rtl">
-      <!-- سربرگ -->
-      <section class="grid items-center gap-6 rounded-2xl bg-gradient-to-bl from-amber-400/10 via-slate-900/60 to-slate-900/60 p-6 ring-1 ring-white/10 lg:grid-cols-[minmax(0,1fr)_260px]">
-        <div class="flex flex-col gap-3">
-          <span class="w-fit rounded-full bg-white/5 px-3 py-1 text-[11px] font-semibold leading-5 text-amber-300 ring-1 ring-amber-400/20">
-            مرکز پشتیبان‌گیری فروشگاه
-          </span>
-
-          <h2 class="text-2xl font-black leading-9 text-slate-50 sm:text-3xl sm:leading-11">
-            نگهداری اطلاعات، به‌سادگی و با خیال راحت
-          </h2>
-
-          <p class="max-w-2xl text-[13px] leading-7 text-slate-300">
-            یک نسخه‌ی مرتب از اطلاعات فروشگاه و تصاویر آن بگیر، هر زمان خواستی همان نسخه را برگردان.
-            پیش از هر بازیابی، یک نسخه‌ی ایمنی از وضعیت فعلی ساخته می‌شود تا همیشه راه برگشت داشته باشی.
-          </p>
-
-          <div class="mt-1 flex flex-wrap gap-2">
-            <button
-              type="button"
-              class="h-11 rounded-xl bg-amber-400/90 px-5 text-[13px] font-bold text-slate-900 transition hover:bg-amber-300"
-              @click="activeTab = 'export'"
-            >
-              شروع خروجی گرفتن
-            </button>
-
-            <button
-              type="button"
-              class="h-11 rounded-xl bg-white/5 px-5 text-[13px] font-semibold text-slate-200 ring-1 ring-white/10 transition hover:bg-white/10"
-              @click="activeTab = 'import'"
-            >
-              بازیابی از یک بسته
-            </button>
-          </div>
+    <div class="backup-page" dir="rtl">
+      <!-- سربرگ کوچک بالای صفحه -->
+      <div class="backup-topline backup-reveal" :style="reveal(0)">
+        <div>
+          <span class="backup-kicker">مرکز پشتیبان‌گیری</span>
+          <p class="backup-section__desc">وضعیت لحظه‌ای نسخه‌های پشتیبان فروشگاه</p>
         </div>
 
-        <BackupOrbitScene />
+        <div class="backup-head-badges">
+          <span class="backup-pill backup-pill--ok">سامانه فعال</span>
+          <span class="backup-pill backup-pill--info">{{ selectionSummary }}</span>
+          <span v-if="api.loading.runs" class="backup-pill backup-pill--warn">
+            <i class="backup-spinner" aria-hidden="true" /> در حال هم‌گام‌سازی
+          </span>
+        </div>
+      </div>
+
+      <!-- هدر اصلی: انیمیشن backup-hero-scan روی این کادر اجرا می‌شود -->
+      <section class="backup-hero backup-reveal" :style="reveal(70)">
+        <div class="backup-hero__content">
+          <div>
+            <span class="backup-kicker">نسخه‌ی سلطنتی</span>
+
+            <h1 class="backup-hero__title">
+              نگهداری اطلاعات،
+              <span class="backup-gradient-text">با خیال راحت</span>
+            </h1>
+
+            <p class="backup-hero__desc">
+              یک نسخه‌ی مرتب از اطلاعات فروشگاه و تصاویر آن بگیر، هر زمان خواستی همان نسخه را برگردان.
+              پیش از هر بازیابی یک نسخه‌ی ایمنی از وضعیت فعلی ساخته می‌شود تا همیشه راه برگشت داشته باشی.
+            </p>
+
+            <div class="backup-hero__actions">
+              <button type="button" class="backup-btn backup-btn--gold backup-btn--wide" @click="activeTab = 'export'">
+                شروع خروجی گرفتن
+              </button>
+
+              <button type="button" class="backup-btn backup-btn--ghost" @click="activeTab = 'import'">
+                بازیابی از یک بسته
+              </button>
+            </div>
+          </div>
+
+          <div class="backup-orb-stage">
+            <BackupOrbitScene />
+          </div>
+        </div>
       </section>
 
       <!-- آمار -->
-      <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section class="backup-grid backup-grid--4 backup-reveal" :style="reveal(140)">
         <BackupStatCard label="کل عملیات‌ها" :value="stat.total_runs || 0" icon="🕰" hint="خروجی‌ها، بازیابی‌ها و اجراهای آزمایشی" :delay="40" />
         <BackupStatCard label="بخش‌های قابل پشتیبان" :value="stat.entities_count || api.entities.value.length || 0" icon="🗂" hint="بخش‌های اطلاعاتی فروشگاه" tone="sky" :delay="100" />
         <BackupStatCard label="عملیات ناموفق" :value="stat.failed_runs || 0" icon="⚠" hint="برای بررسی، وارد تاریخچه شو" tone="rose" :delay="160" />
@@ -254,334 +284,269 @@ const inspection = api.inspection
       </section>
 
       <!-- زبانه‌ها -->
-      <nav class="flex flex-wrap gap-1.5 rounded-2xl bg-slate-900/60 p-1.5 ring-1 ring-white/10" aria-label="بخش‌های پشتیبان‌گیری">
+      <nav class="backup-tabs backup-reveal" :style="reveal(200)" aria-label="بخش‌های پشتیبان‌گیری">
         <button
           v-for="tab in tabs"
           :key="tab.key"
           type="button"
-          class="h-10 flex-1 rounded-xl px-4 text-[13px] font-semibold transition-colors duration-200 sm:flex-none"
-          :class="activeTab === tab.key
-            ? 'bg-amber-400/90 text-slate-900'
-            : 'text-slate-300 hover:bg-white/5'"
+          class="backup-tab"
+          :class="{ 'is-active': activeTab === tab.key }"
           @click="activeTab = tab.key"
         >
-          <span class="ml-1.5" aria-hidden="true">{{ tab.icon }}</span>{{ tab.label }}
+          <span aria-hidden="true">{{ tab.icon }}</span>
+          {{ tab.label }}
         </button>
       </nav>
 
-      <!-- خروجی -->
-      <div v-if="activeTab === 'export'" class="grid items-start gap-6 xl:grid-cols-12">
-        <div class="flex flex-col gap-6 xl:col-span-7">
-          <BackupCard title="نوع خروجی" description="بسته‌ی کامل، فقط اطلاعات، یا فقط تصاویر." icon="👑" tone="gold">
-            <div class="grid gap-3 sm:grid-cols-3">
-              <button
-                v-for="mode in modeList"
-                :key="mode.key"
-                type="button"
-                class="flex flex-col gap-1 rounded-xl px-4 py-3 text-right ring-1 transition-colors duration-200"
-                :class="exportForm.mode === mode.key
-                  ? 'bg-amber-400/10 ring-amber-400/40'
-                  : 'bg-white/[0.03] ring-white/5 hover:bg-white/[0.06]'"
-                @click="exportForm.mode = mode.key"
-              >
-                <span class="text-base leading-none" aria-hidden="true">{{ mode.icon }}</span>
-                <span class="text-[13px] font-bold text-slate-100">{{ mode.label }}</span>
-                <span class="text-[11px] leading-5 text-slate-400">{{ mode.hint }}</span>
-              </button>
-            </div>
-          </BackupCard>
+      <Transition name="backup-fade" mode="out-in">
+        <!-- ================= خروجی ================= -->
+        <div v-if="activeTab === 'export'" key="export" class="backup-grid backup-grid--2">
+          <div class="backup-grid">
+            <BackupCard title="نوع خروجی" description="بسته‌ی کامل، فقط اطلاعات، یا فقط تصاویر." icon="👑" tone="gold" :delay="60">
+              <div class="backup-grid backup-grid--3">
+                <button
+                  v-for="mode in modeList"
+                  :key="mode.key"
+                  type="button"
+                  class="backup-mode-card"
+                  :class="{ 'is-active': exportForm.mode === mode.key }"
+                  @click="exportForm.mode = mode.key"
+                >
+                  <span class="backup-mode-card__icon" aria-hidden="true">{{ mode.icon }}</span>
+                  <span class="backup-mode-card__title">{{ mode.label }}</span>
+                  <span class="backup-mode-card__hint">{{ mode.hint }}</span>
+                </button>
+              </div>
+            </BackupCard>
 
-          <BackupPathPicker
-            v-model="exportForm.destination_path"
-            title="مسیر ذخیره‌ی خروجی"
-            icon="📤"
-            description="پوشه‌ای که بسته‌ی پشتیبان داخل آن ساخته می‌شود."
-            :default-path="defaults.export_root || ''"
-            :validated="exportPath.validated"
-            :free-space="exportPath.freeSpace"
-            :loading="api.loading.validate"
-            hint="بهتر است پوشه‌ای بیرون از محل نصب برنامه (مثلاً روی درایو دیگر) انتخاب شود."
-            @validate="validateExportPath"
-            @bridge-missing="bridgeMissing"
-          />
+            <BackupPathPicker
+              v-model="exportForm.destination_path"
+              title="مسیر ذخیره‌ی خروجی"
+              icon="📤"
+              description="پوشه‌ای که بسته‌ی پشتیبان داخل آن ساخته می‌شود."
+              :default-path="defaults.export_root || ''"
+              :validated="exportPath.validated"
+              :free-space="exportPath.freeSpace"
+              :loading="api.loading.validate"
+              hint="بهتر است پوشه‌ای بیرون از محل نصب برنامه (مثلاً روی درایو دیگر) انتخاب شود."
+              @validate="validateExportPath"
+              @bridge-missing="bridgeMissing"
+            />
 
-          <BackupEntityMatrix
-            v-model="selectedEntities"
-            :entities="api.entities.value"
-            :groups="api.groups.value"
-          />
+            <BackupEntityMatrix
+              v-model="selectedEntities"
+              :entities="api.entities.value"
+              :groups="api.groups.value"
+            />
+          </div>
+
+          <div class="backup-grid">
+            <BackupCard title="تنظیمات این خروجی" description="نام بسته، بازه‌ی زمانی و گزینه‌های تکمیلی." icon="⚙" :delay="120">
+              <label class="backup-field">
+                <span class="backup-field__label">نام بسته</span>
+                <input v-model="exportForm.label" type="text" class="backup-input" placeholder="مثلاً: پشتیبان پایان هفته">
+              </label>
+
+              <div class="backup-grid backup-grid--2">
+                <label class="backup-field">
+                  <span class="backup-field__label">از تاریخ</span>
+                  <JalaliDateInput v-model="exportForm.from_date" placeholder="از تاریخ" />
+                </label>
+
+                <label class="backup-field">
+                  <span class="backup-field__label">تا تاریخ</span>
+                  <JalaliDateInput v-model="exportForm.to_date" placeholder="تا تاریخ" />
+                </label>
+              </div>
+
+              <div class="backup-grid">
+                <BackupToggleRow v-model="exportForm.include_media" label="همراه با تصاویر" hint="تصاویر کالاها، اقلام فاکتور و رسیدها" :disabled="exportForm.mode === 'media'" />
+                <BackupToggleRow v-model="exportForm.include_soft_deleted" label="شامل موارد حذف‌شده" hint="برای اینکه سوابق قدیمی هم قابل بازگردانی باشند" />
+                <BackupToggleRow v-model="exportForm.include_orphan_media" label="تصاویر بدون مالک" hint="فایل‌هایی که به هیچ رکوردی وصل نیستند" />
+                <BackupToggleRow v-model="exportForm.remember_path" label="این مسیر را به خاطر بسپار" hint="دفعه‌ی بعد همین مسیر پیشنهاد می‌شود" />
+              </div>
+
+              <template #footer>
+                <div class="backup-topline">
+                  <p class="backup-section__desc">{{ selectionSummary }}</p>
+
+                  <button type="button" class="backup-btn backup-btn--gold" :disabled="api.loading.export" @click="submitExport">
+                    <i v-if="api.loading.export" class="backup-spinner" aria-hidden="true" />
+                    {{ api.loading.export ? 'در حال ساخت بسته…' : 'ساخت بسته‌ی پشتیبان' }}
+                  </button>
+                </div>
+              </template>
+            </BackupCard>
+
+            <BackupCard title="یادآوری کوتاه" description="سه نکته که جلوی دردسر را می‌گیرد." icon="🧾" :delay="180">
+              <div class="backup-grid">
+                <p class="backup-section__desc">۱. هفته‌ای یک بسته‌ی کامل روی یک درایو جدا بگیر.</p>
+                <p class="backup-section__desc">۲. پیش از به‌روزرسانی برنامه، تصاویر را هم در بسته بگذار.</p>
+                <p class="backup-section__desc">۳. مسیر خروجی را بیرون از پوشه‌ی نصب برنامه انتخاب کن.</p>
+              </div>
+            </BackupCard>
+          </div>
         </div>
 
-        <div class="flex flex-col gap-6 xl:col-span-5">
-          <BackupCard title="تنظیمات این خروجی" description="نام بسته، بازه‌ی زمانی و گزینه‌های تکمیلی." icon="⚙">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold text-slate-300">نام بسته</label>
-              <input
-                v-model="exportForm.label"
-                type="text"
-                placeholder="مثلاً: پشتیبان پایان هفته"
-                class="h-11 w-full rounded-xl bg-slate-950/50 px-3.5 text-[13px] text-slate-100 ring-1 ring-white/10 outline-none transition placeholder:text-slate-500 focus:ring-2 focus:ring-amber-400/60"
-              >
-            </div>
+        <!-- ================= بازیابی ================= -->
+        <div v-else-if="activeTab === 'import'" key="import" class="backup-grid backup-grid--2">
+          <div class="backup-grid">
+            <BackupPathPicker
+              v-model="importForm.source_path"
+              title="مسیر بسته‌ی ورودی"
+              icon="📥"
+              description="پوشه‌ی بسته‌ی پشتیبانی که می‌خواهی برگردانی."
+              :default-path="defaults.import_root || ''"
+              action-label="بررسی بسته"
+              :loading="api.loading.inspect"
+              hint="اگر پوشه‌ی والد را انتخاب کنی، تازه‌ترین بسته‌ی معتبر به‌صورت خودکار پیدا می‌شود."
+              @validate="inspectPackage"
+              @bridge-missing="bridgeMissing"
+            />
 
-            <div class="grid gap-4 sm:grid-cols-2">
-              <div class="flex flex-col gap-1.5">
-                <label class="text-xs font-semibold text-slate-300">از تاریخ</label>
-                <JalaliDateInput v-model="exportForm.from_date" placeholder="از تاریخ" />
+            <BackupCard title="نتیجه‌ی بررسی بسته" description="پیش از بازیابی، محتوای بسته را ببین." icon="🔎" :delay="120">
+              <div v-if="inspection" class="backup-grid backup-grid--3">
+                <div class="backup-entity-card">
+                  <div class="backup-entity-card__head">
+                    <span class="backup-entity-card__title">تعداد بخش‌ها</span>
+                  </div>
+                  <span class="backup-entity-card__meta">{{ faNumber(inspection.entities_count || (inspection.entities || []).length) }}</span>
+                </div>
+
+                <div class="backup-entity-card">
+                  <div class="backup-entity-card__head">
+                    <span class="backup-entity-card__title">تعداد رکوردها</span>
+                  </div>
+                  <span class="backup-entity-card__meta">{{ faNumber(inspection.records_count || 0) }}</span>
+                </div>
+
+                <div class="backup-entity-card">
+                  <div class="backup-entity-card__head">
+                    <span class="backup-entity-card__title">تعداد تصاویر</span>
+                  </div>
+                  <span class="backup-entity-card__meta">{{ faNumber(inspection.media_count || 0) }}</span>
+                </div>
               </div>
 
-              <div class="flex flex-col gap-1.5">
-                <label class="text-xs font-semibold text-slate-300">تا تاریخ</label>
-                <JalaliDateInput v-model="exportForm.to_date" placeholder="تا تاریخ" />
+              <div v-else class="backup-empty-state">
+                <span class="backup-empty-state__icon" aria-hidden="true">🗃</span>
+                <p class="backup-empty-state__title">هنوز بسته‌ای بررسی نشده است</p>
+                <p class="backup-empty-state__text">مسیر بسته را وارد کن و دکمه‌ی «بررسی بسته» را بزن.</p>
               </div>
-            </div>
+            </BackupCard>
+          </div>
 
-            <div class="grid gap-3">
-              <BackupToggleRow
-                v-model="exportForm.include_media"
-                label="همراه با تصاویر"
-                hint="تصاویر کالاها، اقلام فاکتور و رسیدها"
-                :disabled="exportForm.mode === 'media'"
-              />
-              <BackupToggleRow
-                v-model="exportForm.include_soft_deleted"
-                label="شامل موارد حذف‌شده"
-                hint="برای اینکه سوابق قدیمی هم قابل بازگردانی باشند"
-              />
-              <BackupToggleRow
-                v-model="exportForm.include_orphan_media"
-                label="تصاویر بدون مالک"
-                hint="فایل‌هایی که به هیچ رکوردی وصل نیستند"
-              />
-              <BackupToggleRow
-                v-model="exportForm.remember_path"
-                label="این مسیر را به خاطر بسپار"
-                hint="دفعه‌ی بعد همین مسیر پیشنهاد می‌شود"
-              />
+          <div class="backup-grid">
+            <BackupCard title="روش بازیابی" description="مشخص کن با اطلاعات فعلی چه کار شود." icon="🧩" :delay="60">
+              <div class="backup-grid">
+                <button
+                  v-for="strategy in strategyList"
+                  :key="strategy.key"
+                  type="button"
+                  class="backup-mode-card"
+                  :class="{ 'is-active': importForm.strategy === strategy.key }"
+                  @click="importForm.strategy = strategy.key"
+                >
+                  <span class="backup-mode-card__icon" aria-hidden="true">{{ strategy.icon }}</span>
+                  <span class="backup-mode-card__title">{{ strategy.label }}</span>
+                  <span class="backup-mode-card__hint">{{ strategy.hint }}</span>
+                </button>
+              </div>
+            </BackupCard>
+
+            <BackupCard title="گزینه‌های ایمنی" :description="activeStrategy.hint || ''" icon="🛡" tone="emerald" :delay="140">
+              <div class="backup-grid">
+                <BackupToggleRow v-model="importForm.safety_backup" label="نسخه‌ی ایمنی پیش از بازیابی" hint="اگر نتیجه مطلوب نبود، همه‌چیز برمی‌گردد" />
+                <BackupToggleRow v-model="importForm.verify_checksums" label="بررسی سلامت فایل‌ها" hint="تشخیص فایل ناقص یا دست‌کاری‌شده" />
+                <BackupToggleRow v-model="importForm.relink" label="اصلاح مسیر تصاویر" hint="تصاویر دوباره به رکوردهای خودشان وصل می‌شوند" />
+                <BackupToggleRow v-model="importForm.remember_path" label="این مسیر را به خاطر بسپار" hint="دفعه‌ی بعد همین مسیر پیشنهاد می‌شود" />
+              </div>
+
+              <label v-if="needsConfirmation" class="backup-field">
+                <span class="backup-field__label">برای جایگزینی کامل، عبارت REPLACE را وارد کن</span>
+                <input v-model="importForm.confirmation" type="text" dir="ltr" class="backup-input" placeholder="REPLACE">
+              </label>
+
+              <template #footer>
+                <div class="backup-hero__actions">
+                  <button type="button" class="backup-btn backup-btn--ghost" :disabled="api.loading.import" @click="submitImport(true)">
+                    اجرای آزمایشی
+                  </button>
+
+                  <button type="button" class="backup-btn backup-btn--success" :disabled="api.loading.import" @click="submitImport(false)">
+                    <i v-if="api.loading.import" class="backup-spinner" aria-hidden="true" />
+                    {{ api.loading.import ? 'در حال بازیابی…' : 'شروع بازیابی' }}
+                  </button>
+                </div>
+              </template>
+            </BackupCard>
+          </div>
+        </div>
+
+        <!-- ================= تاریخچه ================= -->
+        <BackupRunTimeline
+          v-else-if="activeTab === 'history'"
+          key="history"
+          :runs="api.runs.value"
+          :filters="api.runFilters"
+          :pagination="api.pagination"
+          :loading="api.loading.runs"
+          @update:filters="updateRunFilters"
+          @refresh="api.fetchRuns(api.pagination.current_page)"
+          @page="api.fetchRuns"
+          @view="openRun"
+          @log="(run) => api.downloadLog(run.id)"
+          @delete="askDeleteRun"
+        />
+
+        <!-- ================= تنظیمات ================= -->
+        <div v-else key="settings" class="backup-grid backup-grid--2">
+          <BackupCard title="تنظیمات پیش‌فرض" description="مسیرها و رفتار همیشگی پشتیبان‌گیری." icon="⚙" :delay="60">
+            <label class="backup-field">
+              <span class="backup-field__label">مسیر پیش‌فرض خروجی</span>
+              <input v-model="settingsForm.export_root_path" type="text" dir="ltr" class="backup-input">
+            </label>
+
+            <label class="backup-field">
+              <span class="backup-field__label">مسیر پیش‌فرض ورودی</span>
+              <input v-model="settingsForm.import_root_path" type="text" dir="ltr" class="backup-input">
+            </label>
+
+            <div class="backup-grid backup-grid--3">
+              <label class="backup-field">
+                <span class="backup-field__label">تعداد نسخه‌های نگهداری</span>
+                <input v-model.number="settingsForm.retention_copies" type="number" min="0" max="200" class="backup-input">
+              </label>
+
+              <label class="backup-field">
+                <span class="backup-field__label">اندازه‌ی هر دسته پردازش</span>
+                <input v-model.number="settingsForm.chunk_size" type="number" min="100" max="20000" class="backup-input">
+              </label>
+
+              <label class="backup-field">
+                <span class="backup-field__label">نشانه‌ی مقدار خالی</span>
+                <input v-model="settingsForm.csv_null_marker" type="text" dir="ltr" class="backup-input" placeholder="NULL">
+              </label>
             </div>
 
             <template #footer>
-              <div class="flex flex-wrap items-center justify-between gap-3">
-                <p class="text-[11px] leading-5 text-slate-400">{{ selectionSummary }}</p>
-
-                <button
-                  type="button"
-                  class="h-11 rounded-xl bg-amber-400/90 px-5 text-[13px] font-bold text-slate-900 transition hover:bg-amber-300 disabled:opacity-60"
-                  :disabled="api.loading.export"
-                  @click="submitExport"
-                >
-                  {{ api.loading.export ? 'در حال ساخت بسته…' : 'ساخت بسته‌ی پشتیبان' }}
-                </button>
-              </div>
-            </template>
-          </BackupCard>
-
-          <BackupCard title="یادآوری کوتاه" description="سه نکته که جلوی دردسر را می‌گیرد." icon="🧾">
-            <ul class="flex flex-col gap-2.5 text-[13px] leading-6 text-slate-300">
-              <li class="flex gap-2"><span class="text-amber-300">۱.</span> هفته‌ای یک بسته‌ی کامل روی یک درایو جدا بگیر.</li>
-              <li class="flex gap-2"><span class="text-amber-300">۲.</span> پیش از به‌روزرسانی برنامه، تصاویر را هم در بسته بگذار.</li>
-              <li class="flex gap-2"><span class="text-amber-300">۳.</span> مسیر خروجی را بیرون از پوشه‌ی نصب برنامه انتخاب کن.</li>
-            </ul>
-          </BackupCard>
-        </div>
-      </div>
-
-      <!-- بازیابی -->
-      <div v-else-if="activeTab === 'import'" class="grid items-start gap-6 xl:grid-cols-12">
-        <div class="flex flex-col gap-6 xl:col-span-7">
-          <BackupPathPicker
-            v-model="importForm.source_path"
-            title="مسیر بسته‌ی ورودی"
-            icon="📥"
-            description="پوشه‌ی بسته‌ی پشتیبانی که می‌خواهی برگردانی."
-            :default-path="defaults.import_root || ''"
-            action-label="بررسی بسته"
-            :loading="api.loading.inspect"
-            hint="اگر پوشه‌ی والد را انتخاب کنی، تازه‌ترین بسته‌ی معتبر به‌صورت خودکار پیدا می‌شود."
-            @validate="inspectPackage"
-            @bridge-missing="bridgeMissing"
-          />
-
-          <BackupCard title="نتیجه‌ی بررسی بسته" description="پیش از بازیابی، محتوای بسته را ببین." icon="🔎">
-            <div v-if="inspection" class="grid gap-3 sm:grid-cols-3">
-              <div class="rounded-xl bg-white/[0.03] px-4 py-3 ring-1 ring-white/5">
-                <p class="text-[11px] text-slate-400">تعداد بخش‌ها</p>
-                <p class="mt-1 text-lg font-black text-slate-100">{{ faNumber(inspection.entities_count || (inspection.entities || []).length) }}</p>
-              </div>
-              <div class="rounded-xl bg-white/[0.03] px-4 py-3 ring-1 ring-white/5">
-                <p class="text-[11px] text-slate-400">تعداد رکوردها</p>
-                <p class="mt-1 text-lg font-black text-slate-100">{{ faNumber(inspection.records_count || 0) }}</p>
-              </div>
-              <div class="rounded-xl bg-white/[0.03] px-4 py-3 ring-1 ring-white/5">
-                <p class="text-[11px] text-slate-400">تعداد تصاویر</p>
-                <p class="mt-1 text-lg font-black text-slate-100">{{ faNumber(inspection.media_count || 0) }}</p>
-              </div>
-            </div>
-
-            <p v-else class="rounded-xl bg-white/[0.03] px-4 py-6 text-center text-xs text-slate-400">
-              هنوز بسته‌ای بررسی نشده است.
-            </p>
-          </BackupCard>
-        </div>
-
-        <div class="flex flex-col gap-6 xl:col-span-5">
-          <BackupCard title="روش بازیابی" description="مشخص کن با اطلاعات فعلی چه کار شود." icon="🧩">
-            <div class="grid gap-3">
-              <button
-                v-for="strategy in strategyList"
-                :key="strategy.key"
-                type="button"
-                class="flex items-start gap-3 rounded-xl px-4 py-3 text-right ring-1 transition-colors duration-200"
-                :class="importForm.strategy === strategy.key
-                  ? 'bg-amber-400/10 ring-amber-400/40'
-                  : 'bg-white/[0.03] ring-white/5 hover:bg-white/[0.06]'"
-                @click="importForm.strategy = strategy.key"
-              >
-                <span class="mt-0.5 text-base leading-none" aria-hidden="true">{{ strategy.icon }}</span>
-                <span class="min-w-0 flex-1">
-                  <span class="block text-[13px] font-bold text-slate-100">{{ strategy.label }}</span>
-                  <span class="mt-0.5 block text-[11px] leading-5 text-slate-400">{{ strategy.hint }}</span>
-                </span>
+              <button type="button" class="backup-btn backup-btn--gold backup-btn--wide" @click="submitSettings">
+                ذخیره‌ی تنظیمات
               </button>
-            </div>
-          </BackupCard>
-
-          <BackupCard title="گزینه‌های ایمنی" :description="activeStrategy.hint || ''" icon="🛡" tone="emerald">
-            <div class="grid gap-3">
-              <BackupToggleRow v-model="importForm.safety_backup" label="نسخه‌ی ایمنی پیش از بازیابی" hint="اگر نتیجه مطلوب نبود، همه‌چیز برمی‌گردد" />
-              <BackupToggleRow v-model="importForm.verify_checksums" label="بررسی سلامت فایل‌ها" hint="تشخیص فایل ناقص یا دست‌کاری‌شده" />
-              <BackupToggleRow v-model="importForm.relink" label="اصلاح مسیر تصاویر" hint="تصاویر دوباره به رکوردهای خودشان وصل می‌شوند" />
-              <BackupToggleRow v-model="importForm.remember_path" label="این مسیر را به خاطر بسپار" hint="دفعه‌ی بعد همین مسیر پیشنهاد می‌شود" />
-            </div>
-
-            <div v-if="needsConfirmation" class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold text-rose-300">برای جایگزینی کامل، عبارت REPLACE را وارد کن</label>
-              <input
-                v-model="importForm.confirmation"
-                type="text"
-                dir="ltr"
-                placeholder="REPLACE"
-                class="h-11 w-full rounded-xl bg-slate-950/50 px-3.5 text-[13px] text-slate-100 ring-1 ring-rose-400/30 outline-none transition placeholder:text-slate-500 focus:ring-2 focus:ring-rose-400/60"
-              >
-            </div>
-
-            <template #footer>
-              <div class="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  class="h-11 flex-1 rounded-xl bg-white/5 px-4 text-[13px] font-semibold text-slate-200 ring-1 ring-white/10 transition hover:bg-white/10 disabled:opacity-60"
-                  :disabled="api.loading.import"
-                  @click="submitImport(true)"
-                >
-                  اجرای آزمایشی
-                </button>
-
-                <button
-                  type="button"
-                  class="h-11 flex-1 rounded-xl bg-emerald-400/90 px-4 text-[13px] font-bold text-slate-900 transition hover:bg-emerald-300 disabled:opacity-60"
-                  :disabled="api.loading.import"
-                  @click="submitImport(false)"
-                >
-                  {{ api.loading.import ? 'در حال بازیابی…' : 'شروع بازیابی' }}
-                </button>
-              </div>
             </template>
           </BackupCard>
+
+          <BackupCard title="رفتار پیش‌فرض" description="این گزینه‌ها برای همه‌ی عملیات‌های بعدی اعمال می‌شوند." icon="🛡" tone="emerald" :delay="120">
+            <div class="backup-grid">
+              <BackupToggleRow v-model="settingsForm.include_media" label="همیشه تصاویر را هم بگیر" hint="بسته سنگین‌تر ولی کامل‌تر می‌شود" />
+              <BackupToggleRow v-model="settingsForm.auto_safety_backup" label="نسخه‌ی ایمنی خودکار" hint="پیش از هر بازیابی به‌صورت خودکار ساخته می‌شود" />
+            </div>
+          </BackupCard>
         </div>
-      </div>
-
-      <!-- تاریخچه -->
-      <BackupRunTimeline
-        v-else-if="activeTab === 'history'"
-        :runs="api.runs.value"
-        :filters="api.runFilters"
-        :pagination="api.pagination"
-        :loading="api.loading.runs"
-        @update:filters="updateRunFilters"
-        @refresh="api.fetchRuns(api.pagination.current_page)"
-        @page="api.fetchRuns"
-        @view="openRun"
-        @log="(run) => api.downloadLog(run.id)"
-        @delete="askDeleteRun"
-      />
-
-      <!-- تنظیمات -->
-      <div v-else class="grid items-start gap-6 lg:grid-cols-2">
-        <BackupCard title="تنظیمات پیش‌فرض" description="مسیرها و رفتار همیشگی پشتیبان‌گیری." icon="⚙">
-          <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold text-slate-300">مسیر پیش‌فرض خروجی</label>
-            <input v-model="settingsForm.export_root_path" type="text" dir="ltr" class="h-11 w-full rounded-xl bg-slate-950/50 px-3.5 text-[13px] text-slate-100 ring-1 ring-white/10 outline-none focus:ring-2 focus:ring-amber-400/60">
-          </div>
-
-          <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold text-slate-300">مسیر پیش‌فرض ورودی</label>
-            <input v-model="settingsForm.import_root_path" type="text" dir="ltr" class="h-11 w-full rounded-xl bg-slate-950/50 px-3.5 text-[13px] text-slate-100 ring-1 ring-white/10 outline-none focus:ring-2 focus:ring-amber-400/60">
-          </div>
-
-          <div class="grid gap-4 sm:grid-cols-3">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold text-slate-300">تعداد نسخه‌های نگهداری</label>
-              <input v-model.number="settingsForm.retention_copies" type="number" min="0" max="200" class="h-11 w-full rounded-xl bg-slate-950/50 px-3.5 text-[13px] text-slate-100 ring-1 ring-white/10 outline-none focus:ring-2 focus:ring-amber-400/60">
-            </div>
-
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold text-slate-300">اندازه‌ی هر دسته پردازش</label>
-              <input v-model.number="settingsForm.chunk_size" type="number" min="100" max="20000" class="h-11 w-full rounded-xl bg-slate-950/50 px-3.5 text-[13px] text-slate-100 ring-1 ring-white/10 outline-none focus:ring-2 focus:ring-amber-400/60">
-            </div>
-
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold text-slate-300">نشانه‌ی مقدار خالی</label>
-              <input v-model="settingsForm.csv_null_marker" type="text" maxlength="5" dir="ltr" class="h-11 w-full rounded-xl bg-slate-950/50 px-3.5 text-[13px] text-slate-100 ring-1 ring-white/10 outline-none focus:ring-2 focus:ring-amber-400/60">
-            </div>
-          </div>
-
-          <div class="grid gap-3 sm:grid-cols-2">
-            <BackupToggleRow v-model="settingsForm.include_media" label="تصاویر به‌صورت پیش‌فرض" hint="در بسته‌های بعدی هم گرفته شود" />
-            <BackupToggleRow v-model="settingsForm.auto_safety_backup" label="نسخه‌ی ایمنی خودکار" hint="پیش از هر بازیابی ساخته شود" />
-          </div>
-
-          <template #footer>
-            <button
-              type="button"
-              class="h-11 w-full rounded-xl bg-amber-400/90 px-5 text-[13px] font-bold text-slate-900 transition hover:bg-amber-300 disabled:opacity-60 sm:w-auto"
-              :disabled="api.loading.settings"
-              @click="submitSettings"
-            >
-              {{ api.loading.settings ? 'در حال ذخیره…' : 'ذخیره‌ی تنظیمات' }}
-            </button>
-          </template>
-        </BackupCard>
-
-        <BackupCard title="راهنمای سریع" description="بهترین روال پیشنهادی برای فروشگاه." icon="🧾">
-          <ol class="flex flex-col gap-3 text-[13px] leading-7 text-slate-300">
-            <li class="rounded-xl bg-white/[0.03] px-4 py-3 ring-1 ring-white/5">هفته‌ای حداقل یک بسته‌ی کامل روی درایو جداگانه بگیر.</li>
-            <li class="rounded-xl bg-white/[0.03] px-4 py-3 ring-1 ring-white/5">پیش از به‌روزرسانی برنامه، تصاویر را هم در بسته قرار بده.</li>
-            <li class="rounded-xl bg-white/[0.03] px-4 py-3 ring-1 ring-white/5">قبل از بازیابی واقعی، یک بار اجرای آزمایشی بگیر.</li>
-            <li class="rounded-xl bg-white/[0.03] px-4 py-3 ring-1 ring-white/5">مسیرها را بیرون از پوشه‌ی نصب برنامه نگه دار.</li>
-          </ol>
-        </BackupCard>
-      </div>
+      </Transition>
     </div>
 
-    <!-- پیام‌ها -->
-    <transition
-      enter-active-class="transition duration-200"
-      enter-from-class="translate-y-2 opacity-0"
-      leave-active-class="transition duration-200"
-      leave-to-class="translate-y-2 opacity-0"
-    >
-      <div
-        v-if="toast.show"
-        class="fixed inset-x-0 bottom-5 z-50 mx-auto w-fit max-w-[90vw] rounded-xl px-4 py-3 text-[13px] font-semibold shadow-lg ring-1"
-        :class="{
-          'bg-emerald-500 text-slate-950 ring-emerald-300/40': toast.tone === 'ok',
-          'bg-amber-400 text-slate-950 ring-amber-300/40': toast.tone === 'warn',
-          'bg-rose-500 text-white ring-rose-300/40': toast.tone === 'error',
-        }"
-        role="status"
-      >
-        {{ toast.text }}
-      </div>
-    </transition>
+    <!-- این کامپوننت ساخته شده بود ولی هیچ‌جا mount نمی‌شد -->
+    <BackupToaster :toasts="toasts" @dismiss="dismissToast" />
   </AppLayout>
 </template>
