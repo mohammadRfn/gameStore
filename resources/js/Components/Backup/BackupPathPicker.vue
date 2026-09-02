@@ -4,9 +4,8 @@ import BackupCard from '@/Components/Backup/BackupCard.vue'
 import { formatBytes } from '@/Composables/useBackupCenter'
 
 /**
- * انتخاب مسیر (ورودی یا خروجی).
- * تغییرات: برچسب‌های انگلیسی فارسی شدند، ورودی و دکمه‌ها هم‌قد (۴۴px) شدند
- * و ارتفاع کادر دقیقاً به اندازه‌ی محتوای داخلش است.
+ * انتخاب مسیر (ورودی/خروجی) — نسخه‌ی هماهنگ با تم (dark/light).
+ * منطق و props مثل قبل؛ فقط رنگ‌ها با توکن --gs-* جایگزین شد.
  */
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -44,28 +43,24 @@ async function pickFolder() {
 
 <template>
   <BackupCard :title="title" :description="description" :icon="icon" :tone="tone">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+    <div class="bk-path__row">
       <input
         :value="modelValue"
         type="text"
         dir="ltr"
         :placeholder="placeholder || defaultPath"
-        class="h-11 w-full min-w-0 flex-1 rounded-xl bg-slate-950/50 px-3.5 text-[13px] text-slate-100 ring-1 ring-white/10 outline-none transition placeholder:text-slate-500 focus:ring-2 focus:ring-amber-400/60"
+        class="bk-input"
         @input="$emit('update:modelValue', $event.target.value)"
       >
 
-      <div class="flex shrink-0 gap-2">
-        <button
-          type="button"
-          class="h-11 rounded-xl bg-white/5 px-4 text-[13px] font-semibold text-slate-200 ring-1 ring-white/10 transition hover:bg-white/10"
-          @click="pickFolder"
-        >
+      <div class="bk-path__actions">
+        <button type="button" class="bk-btn-soft" @click="pickFolder">
           انتخاب پوشه
         </button>
 
         <button
           type="button"
-          class="h-11 rounded-xl bg-amber-400/90 px-4 text-[13px] font-bold text-slate-900 transition hover:bg-amber-300 disabled:opacity-60"
+          class="bk-btn-gold"
           :disabled="loading"
           @click="$emit('validate')"
         >
@@ -74,27 +69,119 @@ async function pickFolder() {
       </div>
     </div>
 
-    <div class="flex flex-wrap items-center gap-2">
-      <span
-        v-if="validated"
-        class="rounded-full bg-emerald-400/10 px-2.5 py-1 text-[11px] font-semibold leading-4 text-emerald-300 ring-1 ring-emerald-400/20"
-      >مسیر تأیید شد</span>
+    <div class="bk-path__meta">
+      <span v-if="validated" class="bk-tag bk-tag--ok">مسیر تأیید شد</span>
 
-      <span
-        v-if="freeSpaceLabel"
-        class="rounded-full bg-white/5 px-2.5 py-1 text-[11px] leading-4 text-slate-300 ring-1 ring-white/10"
-      >فضای آزاد: {{ freeSpaceLabel }}</span>
+      <span v-if="freeSpaceLabel" class="bk-tag">فضای آزاد: {{ freeSpaceLabel }}</span>
 
       <button
         v-if="defaultPath"
         type="button"
-        class="rounded-full bg-white/5 px-2.5 py-1 text-[11px] leading-4 text-slate-300 ring-1 ring-white/10 transition hover:bg-white/10"
+        class="bk-tag bk-tag--btn"
         @click="$emit('update:modelValue', defaultPath)"
       >
         استفاده از مسیر پیش‌فرض
       </button>
     </div>
 
-    <p v-if="hint" class="text-xs leading-6 text-slate-400">{{ hint }}</p>
+    <p v-if="hint" class="bk-path__hint">{{ hint }}</p>
   </BackupCard>
 </template>
+
+<style scoped>
+.bk-path__row {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+@media (min-width: 640px) {
+  .bk-path__row { flex-direction: row; align-items: center; }
+}
+
+.bk-input {
+  height: 2.75rem;
+  width: 100%;
+  min-width: 0;
+  flex: 1;
+  border-radius: .75rem;
+  border: 1px solid var(--gs-border);
+  background: var(--gs-bg-soft);
+  padding: 0 .875rem;
+  font-size: 13px;
+  color: var(--gs-text-primary);
+  outline: none;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.bk-input::placeholder { color: var(--gs-text-muted); }
+.bk-input:focus {
+  border-color: var(--gs-border-hover);
+  box-shadow: 0 0 0 3px var(--gs-gold-muted);
+}
+
+.bk-path__actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: .5rem;
+}
+
+.bk-btn-soft {
+  height: 2.75rem;
+  border-radius: .75rem;
+  border: 1px solid var(--gs-border-soft);
+  background: color-mix(in srgb, var(--gs-text-primary) 6%, transparent);
+  padding: 0 1rem;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gs-text-primary);
+  transition: background-color .2s ease, border-color .2s ease;
+}
+.bk-btn-soft:hover {
+  background: color-mix(in srgb, var(--gs-text-primary) 11%, transparent);
+  border-color: var(--gs-border);
+}
+
+.bk-btn-gold {
+  height: 2.75rem;
+  border-radius: .75rem;
+  border: none;
+  background: var(--gs-gold-grad);
+  padding: 0 1rem;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gs-bg);
+  transition: filter .2s ease, opacity .2s ease;
+}
+.bk-btn-gold:hover { filter: brightness(1.06); }
+.bk-btn-gold:disabled { opacity: .6; cursor: not-allowed; }
+
+.bk-path__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+}
+
+.bk-tag {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gs-text-primary) 6%, transparent);
+  border: 1px solid var(--gs-border-soft);
+  padding: .25rem .625rem;
+  font-size: 11px;
+  line-height: 1rem;
+  color: var(--gs-text-secondary);
+}
+.bk-tag--ok {
+  background: var(--gs-success-soft);
+  border-color: color-mix(in srgb, var(--gs-success) 30%, transparent);
+  color: var(--gs-success);
+  font-weight: 600;
+}
+.bk-tag--btn { transition: background-color .2s ease; }
+.bk-tag--btn:hover { background: color-mix(in srgb, var(--gs-text-primary) 11%, transparent); }
+
+.bk-path__hint {
+  font-size: .75rem;
+  line-height: 1.5rem;
+  color: var(--gs-text-muted);
+}
+</style>

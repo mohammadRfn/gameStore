@@ -246,7 +246,7 @@ function reveal(ms) {
       <section class="backup-hero backup-reveal" :style="reveal(70)">
         <div class="backup-hero__content">
           <div>
-            <span class="backup-kicker">نسخه‌ی سلطنتی</span>
+            <span class="backup-kicker">بکاپ  هوشمند</span>
 
             <h1 class="backup-hero__title">
               نگهداری اطلاعات،

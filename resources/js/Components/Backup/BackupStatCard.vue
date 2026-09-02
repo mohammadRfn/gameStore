@@ -3,9 +3,10 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { faNumber, formatBytes } from '@/Composables/useBackupCenter'
 
 /**
- * کارت آمار.
- * تغییرات: برچسب‌های انگلیسی (Audit / Schema / Health) حذف شدند،
- * همه‌ی کارت‌ها هم‌ارتفاع و با فاصله‌ی یکسان هستند و متن‌ها سرریز نمی‌کنند.
+ * کارت آمار — نسخه‌ی هماهنگ با تم (dark/light).
+ * تغییر مهم: تمام رنگ‌های ثابت Tailwind (slate/amber/white...) حذف و با
+ * توکن‌های --gs-* پروژه جایگزین شد؛ حالا در تم روشن هم کاملاً درست دیده می‌شود.
+ * منطق و props دقیقاً مثل قبل است.
  */
 const props = defineProps({
   label: { type: String, required: true },
@@ -20,12 +21,23 @@ const props = defineProps({
 const shown = ref(0)
 const visible = ref(false)
 
-const tones = {
-  gold: 'from-amber-400/15 text-amber-300 ring-amber-400/20',
-  sky: 'from-sky-400/15 text-sky-300 ring-sky-400/20',
-  rose: 'from-rose-400/15 text-rose-300 ring-rose-400/20',
-  emerald: 'from-emerald-400/15 text-emerald-300 ring-emerald-400/20',
+/* هر تون به یک متغیر رنگی --gs-* نگاشت می‌شود */
+const toneColor = {
+  gold: 'var(--gs-gold)',
+  sky: 'var(--gs-info)',
+  rose: 'var(--gs-error)',
+  emerald: 'var(--gs-success)',
 }
+
+const cardStyle = computed(() => {
+  const c = toneColor[props.tone] || toneColor.gold
+  return {
+    '--tone': c,
+    borderColor: `color-mix(in srgb, ${c} 30%, transparent)`,
+    background: `linear-gradient(155deg, color-mix(in srgb, ${c} 10%, var(--gs-bg-card)) 0%, var(--gs-bg-card) 70%)`,
+    boxShadow: 'var(--gs-shadow-sm)',
+  }
+})
 
 const display = computed(() => (props.bytes ? formatBytes(shown.value) : faNumber(shown.value)))
 
@@ -56,19 +68,86 @@ watch(() => props.value, () => visible.value && animate())
 
 <template>
   <article
-    class="flex h-full flex-col justify-between gap-4 rounded-2xl bg-gradient-to-bl to-transparent p-5 ring-1 transition-all duration-500"
-    :class="[tones[tone] || tones.gold, visible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0']"
+    class="bk-stat"
+    :class="visible ? 'is-in' : ''"
+    :style="cardStyle"
   >
-    <div class="flex items-start justify-between gap-3">
-      <p class="text-[13px] font-semibold leading-5 text-slate-300">{{ label }}</p>
-      <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-white/5 text-base leading-none" aria-hidden="true">
-        {{ icon }}
-      </span>
+    <div class="bk-stat__top">
+      <p class="bk-stat__label">{{ label }}</p>
+      <span class="bk-stat__icon" aria-hidden="true">{{ icon }}</span>
     </div>
 
     <div>
-      <p class="text-2xl font-black tabular-nums tracking-tight text-slate-50">{{ display }}</p>
-      <p v-if="hint" class="mt-1 line-clamp-2 text-xs leading-5 text-slate-400">{{ hint }}</p>
+      <p class="bk-stat__value">{{ display }}</p>
+      <p v-if="hint" class="bk-stat__hint">{{ hint }}</p>
     </div>
   </article>
 </template>
+
+<style scoped>
+.bk-stat {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  border-radius: 1rem;
+  border: 1px solid var(--gs-border);
+  padding: 1.25rem;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity .5s ease, transform .5s ease, border-color .3s ease;
+}
+
+.bk-stat.is-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.bk-stat__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: .75rem;
+}
+
+.bk-stat__label {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25rem;
+  color: var(--gs-text-secondary);
+}
+
+.bk-stat__icon {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border-radius: .75rem;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tone) 22%, transparent);
+}
+
+.bk-stat__value {
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--gs-text-primary);
+}
+
+.bk-stat__hint {
+  margin-top: .25rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: .75rem;
+  line-height: 1.25rem;
+  color: var(--gs-text-muted);
+}
+</style>

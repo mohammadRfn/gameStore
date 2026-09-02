@@ -4,8 +4,8 @@ import BackupCard from '@/Components/Backup/BackupCard.vue'
 import { faNumber, formatBytes, formatDateTime, presentDirection, presentMode, presentStatus } from '@/Composables/useBackupCenter'
 
 /**
- * تاریخچه‌ی اجراها.
- * تغییرات: ردیف‌ها با فاصله‌ی یکسان، ستون‌ها هم‌تراز و برچسب وضعیت‌ها فارسی است.
+ * تاریخچه‌ی اجراها — نسخه‌ی هماهنگ با تم (dark/light).
+ * منطق و emit مثل قبل؛ رنگ‌های ثابت با توکن --gs-* جایگزین شد.
  */
 const props = defineProps({
   runs: { type: Array, default: () => [] },
@@ -16,12 +16,13 @@ const props = defineProps({
 
 const emit = defineEmits(['update:filters', 'refresh', 'page', 'view', 'log', 'delete'])
 
-const statusTones = {
-  emerald: 'bg-emerald-400/10 text-emerald-300 ring-emerald-400/20',
-  amber: 'bg-amber-400/10 text-amber-300 ring-amber-400/20',
-  rose: 'bg-rose-400/10 text-rose-300 ring-rose-400/20',
-  sky: 'bg-sky-400/10 text-sky-300 ring-sky-400/20',
-  slate: 'bg-white/5 text-slate-300 ring-white/10',
+/* هر تون به یک متغیر --gs-* نگاشت می‌شود (به‌جای رنگ ثابت Tailwind) */
+const statusToneColor = {
+  emerald: 'var(--gs-success)',
+  amber: 'var(--gs-warning)',
+  rose: 'var(--gs-error)',
+  sky: 'var(--gs-info)',
+  slate: 'var(--gs-text-secondary)',
 }
 
 const canPrev = computed(() => (props.pagination.current_page || 1) > 1)
@@ -31,8 +32,13 @@ function patch(key, value) {
   emit('update:filters', { ...props.filters, [key]: value })
 }
 
-function statusClass(status) {
-  return statusTones[presentStatus(status).tone] || statusTones.slate
+function statusStyle(status) {
+  const c = statusToneColor[presentStatus(status).tone] || statusToneColor.slate
+  return {
+    background: `color-mix(in srgb, ${c} 12%, transparent)`,
+    borderColor: `color-mix(in srgb, ${c} 26%, transparent)`,
+    color: c,
+  }
 }
 </script>
 
@@ -43,31 +49,17 @@ function statusClass(status) {
     icon="🕰"
   >
     <template #actions>
-      <button
-        type="button"
-        class="h-8 rounded-lg bg-white/5 px-3 text-xs font-semibold text-slate-200 ring-1 ring-white/10 transition hover:bg-white/10"
-        @click="emit('refresh')"
-      >
-        به‌روزرسانی
-      </button>
+      <button type="button" class="bk-btn-soft" @click="emit('refresh')">به‌روزرسانی</button>
     </template>
 
-    <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <select
-        class="h-11 w-full rounded-xl bg-slate-950/50 px-3 text-[13px] text-slate-200 ring-1 ring-white/10 outline-none focus:ring-2 focus:ring-amber-400/60"
-        :value="filters.direction"
-        @change="patch('direction', $event.target.value)"
-      >
+    <div class="bk-filters">
+      <select class="bk-select" :value="filters.direction" @change="patch('direction', $event.target.value)">
         <option value="">همه‌ی عملیات‌ها</option>
         <option value="export">خروجی گرفتن</option>
         <option value="import">بازیابی</option>
       </select>
 
-      <select
-        class="h-11 w-full rounded-xl bg-slate-950/50 px-3 text-[13px] text-slate-200 ring-1 ring-white/10 outline-none focus:ring-2 focus:ring-amber-400/60"
-        :value="filters.status"
-        @change="patch('status', $event.target.value)"
-      >
+      <select class="bk-select" :value="filters.status" @change="patch('status', $event.target.value)">
         <option value="">همه‌ی وضعیت‌ها</option>
         <option value="completed">موفق</option>
         <option value="partial">نیمه‌موفق</option>
@@ -75,21 +67,16 @@ function statusClass(status) {
         <option value="running">در حال اجرا</option>
       </select>
 
-      <select
-        class="h-11 w-full rounded-xl bg-slate-950/50 px-3 text-[13px] text-slate-200 ring-1 ring-white/10 outline-none focus:ring-2 focus:ring-amber-400/60"
-        :value="filters.mode"
-        @change="patch('mode', $event.target.value)"
-      >
+      <select class="bk-select" :value="filters.mode" @change="patch('mode', $event.target.value)">
         <option value="">همه‌ی نوع‌ها</option>
         <option value="full">بسته کامل</option>
         <option value="database">فقط اطلاعات</option>
         <option value="media">فقط تصاویر</option>
       </select>
 
-      <label class="flex h-11 items-center gap-2 rounded-xl bg-white/[0.03] px-3.5 text-[13px] text-slate-200 ring-1 ring-white/5">
+      <label class="bk-check">
         <input
           type="checkbox"
-          class="size-4 accent-amber-400"
           :checked="filters.include_auto"
           @change="patch('include_auto', $event.target.checked)"
         >
@@ -97,84 +84,241 @@ function statusClass(status) {
       </label>
     </div>
 
-    <div class="flex flex-col gap-3">
-      <p v-if="loading" class="rounded-xl bg-white/[0.03] px-4 py-6 text-center text-xs text-slate-400">
-        در حال دریافت تاریخچه…
-      </p>
-
-      <p v-else-if="!runs.length" class="rounded-xl bg-white/[0.03] px-4 py-6 text-center text-xs text-slate-400">
-        هنوز هیچ عملیاتی ثبت نشده است.
-      </p>
+    <div class="bk-runs">
+      <p v-if="loading" class="bk-empty">در حال دریافت تاریخچه…</p>
+      <p v-else-if="!runs.length" class="bk-empty">هنوز هیچ عملیاتی ثبت نشده است.</p>
 
       <template v-else>
-      <article
-        v-for="run in runs"
-        :key="run.id"
-        class="flex flex-col gap-4 rounded-xl bg-white/[0.03] p-4 ring-1 ring-white/5 transition hover:bg-white/[0.06] lg:flex-row lg:items-center"
-      >
-        <div class="flex min-w-0 flex-1 items-center gap-3">
-          <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-white/5 text-base" aria-hidden="true">
-            {{ presentDirection(run.direction).icon }}
-          </span>
+        <article v-for="run in runs" :key="run.id" class="bk-run">
+          <div class="bk-run__main">
+            <span class="bk-run__icon" aria-hidden="true">{{ presentDirection(run.direction).icon }}</span>
 
-          <div class="min-w-0">
-            <p class="truncate text-[13px] font-bold text-slate-100">
-              {{ presentDirection(run.direction).label }} · {{ presentMode(run.mode).label }}
-              <span v-if="run.is_dry_run" class="text-amber-300/90">(آزمایشی)</span>
-            </p>
-            <p class="mt-0.5 truncate text-[11px] leading-5 text-slate-400">
-              {{ formatDateTime(run.started_at || run.created_at) }}
-              <span v-if="run.label"> · {{ run.label }}</span>
-            </p>
+            <div class="bk-run__info">
+              <p class="bk-run__title">
+                {{ presentDirection(run.direction).label }} · {{ presentMode(run.mode).label }}
+                <span v-if="run.is_dry_run" class="bk-run__dry">(آزمایشی)</span>
+              </p>
+              <p class="bk-run__time">
+                {{ formatDateTime(run.started_at || run.created_at) }}
+                <span v-if="run.label"> · {{ run.label }}</span>
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div class="flex flex-wrap items-center gap-2 lg:justify-end">
-          <span class="rounded-full px-2.5 py-1 text-[11px] font-semibold leading-4 ring-1" :class="statusClass(run.status)">
-            {{ presentStatus(run.status).icon }} {{ presentStatus(run.status).label }}
-          </span>
+          <div class="bk-run__side">
+            <span class="bk-status" :style="statusStyle(run.status)">
+              {{ presentStatus(run.status).icon }} {{ presentStatus(run.status).label }}
+            </span>
 
-          <span class="rounded-full bg-white/5 px-2.5 py-1 text-[11px] leading-4 text-slate-300 ring-1 ring-white/10">
-            {{ faNumber(run.records_count || 0) }} رکورد
-          </span>
+            <span class="bk-tag">{{ faNumber(run.records_count || 0) }} رکورد</span>
+            <span class="bk-tag">{{ formatBytes(run.size_bytes || run.total_bytes || 0) }}</span>
 
-          <span class="rounded-full bg-white/5 px-2.5 py-1 text-[11px] leading-4 text-slate-300 ring-1 ring-white/10">
-            {{ formatBytes(run.size_bytes || run.total_bytes || 0) }}
-          </span>
+            <span class="bk-run__divider" aria-hidden="true" />
 
-          <span class="mx-1 hidden h-6 w-px bg-white/10 lg:block" aria-hidden="true" />
-
-          <button type="button" class="h-8 rounded-lg bg-white/5 px-3 text-xs font-semibold text-slate-200 ring-1 ring-white/10 transition hover:bg-white/10" @click="emit('view', run)">جزئیات</button>
-          <button type="button" class="h-8 rounded-lg bg-white/5 px-3 text-xs font-semibold text-slate-200 ring-1 ring-white/10 transition hover:bg-white/10" @click="emit('log', run)">گزارش</button>
-          <button type="button" class="h-8 rounded-lg bg-rose-400/10 px-3 text-xs font-semibold text-rose-300 ring-1 ring-rose-400/20 transition hover:bg-rose-400/20" @click="emit('delete', run)">حذف</button>
-        </div>
-      </article>
+            <button type="button" class="bk-btn-soft bk-btn-soft--sm" @click="emit('view', run)">جزئیات</button>
+            <button type="button" class="bk-btn-soft bk-btn-soft--sm" @click="emit('log', run)">گزارش</button>
+            <button type="button" class="bk-btn-danger" @click="emit('delete', run)">حذف</button>
+          </div>
+        </article>
       </template>
     </div>
 
     <template #footer>
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <p class="text-[11px] text-slate-400">
+      <div class="bk-pager">
+        <p class="bk-pager__info">
           صفحه {{ faNumber(pagination.current_page) }} از {{ faNumber(pagination.last_page) }} ·
           {{ faNumber(pagination.total) }} مورد
         </p>
 
-        <div class="flex items-center gap-2">
-          <button
-            type="button"
-            class="h-9 rounded-lg bg-white/5 px-3 text-xs font-semibold text-slate-200 ring-1 ring-white/10 transition enabled:hover:bg-white/10 disabled:opacity-40"
-            :disabled="!canPrev"
-            @click="emit('page', pagination.current_page - 1)"
-          >قبلی</button>
-
-          <button
-            type="button"
-            class="h-9 rounded-lg bg-white/5 px-3 text-xs font-semibold text-slate-200 ring-1 ring-white/10 transition enabled:hover:bg-white/10 disabled:opacity-40"
-            :disabled="!canNext"
-            @click="emit('page', pagination.current_page + 1)"
-          >بعدی</button>
+        <div class="bk-pager__nav">
+          <button type="button" class="bk-btn-soft bk-btn-soft--sm" :disabled="!canPrev" @click="emit('page', pagination.current_page - 1)">قبلی</button>
+          <button type="button" class="bk-btn-soft bk-btn-soft--sm" :disabled="!canNext" @click="emit('page', pagination.current_page + 1)">بعدی</button>
         </div>
       </div>
     </template>
   </BackupCard>
 </template>
+
+<style scoped>
+.bk-btn-soft {
+  height: 2rem;
+  border-radius: .5rem;
+  border: 1px solid var(--gs-border-soft);
+  background: color-mix(in srgb, var(--gs-text-primary) 6%, transparent);
+  padding: 0 .75rem;
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--gs-text-primary);
+  transition: background-color .2s ease, border-color .2s ease;
+}
+.bk-btn-soft:hover:enabled {
+  background: color-mix(in srgb, var(--gs-text-primary) 11%, transparent);
+  border-color: var(--gs-border);
+}
+.bk-btn-soft:disabled { opacity: .4; cursor: not-allowed; }
+.bk-btn-soft--sm { height: 2.25rem; }
+
+.bk-btn-danger {
+  height: 2rem;
+  border-radius: .5rem;
+  border: 1px solid color-mix(in srgb, var(--gs-error) 24%, transparent);
+  background: var(--gs-error-soft);
+  padding: 0 .75rem;
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--gs-error);
+  transition: background-color .2s ease;
+}
+.bk-btn-danger:hover { background: color-mix(in srgb, var(--gs-error) 20%, transparent); }
+
+.bk-filters {
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 640px) { .bk-filters { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1280px) { .bk-filters { grid-template-columns: repeat(4, 1fr); } }
+
+.bk-select {
+  height: 2.75rem;
+  width: 100%;
+  border-radius: .75rem;
+  border: 1px solid var(--gs-border);
+  background: var(--gs-bg-soft);
+  padding: 0 .75rem;
+  font-size: 13px;
+  color: var(--gs-text-primary);
+  outline: none;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.bk-select:focus {
+  border-color: var(--gs-border-hover);
+  box-shadow: 0 0 0 3px var(--gs-gold-muted);
+}
+
+.bk-check {
+  display: flex;
+  height: 2.75rem;
+  align-items: center;
+  gap: .5rem;
+  border-radius: .75rem;
+  border: 1px solid var(--gs-border-soft);
+  background: color-mix(in srgb, var(--gs-text-primary) 3%, transparent);
+  padding: 0 .875rem;
+  font-size: 13px;
+  color: var(--gs-text-primary);
+}
+.bk-check input { width: 1rem; height: 1rem; accent-color: var(--gs-gold); }
+
+.bk-runs {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+
+.bk-empty {
+  border-radius: .75rem;
+  background: color-mix(in srgb, var(--gs-text-primary) 3%, transparent);
+  padding: 1.5rem 1rem;
+  text-align: center;
+  font-size: .75rem;
+  color: var(--gs-text-muted);
+}
+
+.bk-run {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  border-radius: .75rem;
+  border: 1px solid var(--gs-border-soft);
+  background: color-mix(in srgb, var(--gs-text-primary) 3%, transparent);
+  padding: 1rem;
+  transition: background-color .2s ease;
+}
+.bk-run:hover { background: color-mix(in srgb, var(--gs-text-primary) 6%, transparent); }
+@media (min-width: 1024px) { .bk-run { flex-direction: row; align-items: center; } }
+
+.bk-run__main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: .75rem;
+}
+.bk-run__icon {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  border-radius: .75rem;
+  font-size: 1rem;
+  background: color-mix(in srgb, var(--gs-text-primary) 6%, transparent);
+  border: 1px solid var(--gs-border-soft);
+}
+.bk-run__info { min-width: 0; }
+.bk-run__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gs-text-primary);
+}
+.bk-run__dry { color: var(--gs-warning); }
+.bk-run__time {
+  margin-top: .125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 1.25rem;
+  color: var(--gs-text-muted);
+}
+
+.bk-run__side {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+}
+@media (min-width: 1024px) { .bk-run__side { justify-content: flex-end; } }
+
+.bk-status {
+  border-radius: 999px;
+  border: 1px solid transparent;
+  padding: .25rem .625rem;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1rem;
+}
+
+.bk-tag {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gs-text-primary) 6%, transparent);
+  border: 1px solid var(--gs-border-soft);
+  padding: .25rem .625rem;
+  font-size: 11px;
+  line-height: 1rem;
+  color: var(--gs-text-secondary);
+}
+
+.bk-run__divider {
+  margin: 0 .25rem;
+  display: none;
+  height: 1.5rem;
+  width: 1px;
+  background: var(--gs-border);
+}
+@media (min-width: 1024px) { .bk-run__divider { display: block; } }
+
+.bk-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+}
+.bk-pager__info { font-size: 11px; color: var(--gs-text-muted); }
+.bk-pager__nav { display: flex; align-items: center; gap: .5rem; }
+</style>
