@@ -29,15 +29,19 @@ const freeSpaceLabel = computed(() =>
 )
 
 async function pickFolder() {
-  const bridge = typeof window !== 'undefined' ? (window.gameStoreBridge || window.electronBridge) : null
+  try {
+    const { data } = await axios.post('/backup/pick-directory', {
+      default_path: props.modelValue || props.defaultPath,
+    })
 
-  if (!bridge?.selectDirectory) {
-    emit('bridge-missing')
-    return
+    if (data?.data?.path) emit('update:modelValue', data.data.path)
+  } catch (e) {
+    const status = e?.response?.status
+    const detail = e?.response?.data?.message
+
+    console.error('pick-directory failed:', status, detail || e.message)
+    emit('bridge-missing', detail ? `${detail} (کد ${status})` : null)
   }
-
-  const selected = await bridge.selectDirectory()
-  if (selected) emit('update:modelValue', selected)
 }
 </script>
 

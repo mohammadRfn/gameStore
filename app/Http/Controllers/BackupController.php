@@ -13,6 +13,8 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
+use Native\Desktop\Dialog;
+use Native\Laravel\Dialog as LaravelDialog;
 
 /**
  * کنترلر ماژول پشتیبان‌گیری و بازیابی.
@@ -69,6 +71,75 @@ class BackupController extends Controller
         ]);
     }
 
+    /** باز کردن دیالوگ بومی انتخاب پوشه؛ هم داخل اپ Electron هم روی وب‌سرور محلی. */
+    public function pickDirectory(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'default_path' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $default  = $data['default_path'] ?: $this->paths->defaultExportRoot();
+        $selected = null;
+
+        if (config('backup.native_dialog', true)) {
+            try {
+                // حالت اجرا داخل اپ Electron/NativePHP
+                $selected = LaravelDialog::new()
+                    ->title('انتخاب پوشه')
+                    ->defaultPath($default)
+                    ->folders()
+                    ->open();
+            } catch (Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('[backup] native dialog threw', ['error' => $e->getMessage()]);
+                $selected = null;
+            }
+        } else {
+            // حالت وب‌سرور محلی: صریحاً سراغ NativePHP نمی‌رویم (چون بدون خطا
+            // فقط null برمی‌گرداند) و مستقیم دیالوگ بومی سیستم‌عامل را از شل باز می‌کنیم.
+            $selected = $this->openNativeDialogViaShell($default);
+        }
+
+        if ($selected === null) {
+            return response()->json(['message' => 'دیالوگ انتخاب پوشه در این محیط در دسترس نیست.'], 422);
+        }
+
+        return response()->json(['data' => ['path' => $selected]]);
+    }
+
+    /** @return string|null مسیر انتخاب‌شده، یا null اگر کاربر لغو کرد یا ابزاری پیدا نشد. */
+    private function openNativeDialogViaShell(string $default): ?string
+    {
+        if (! function_exists('shell_exec')) {
+            return null;
+        }
+
+        $command = match (PHP_OS_FAMILY) {
+            'Windows' => sprintf(
+                'powershell -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; ' .
+                    '$f = New-Object System.Windows.Forms.FolderBrowserDialog; ' .
+                    'if (Test-Path %1$s) { $f.SelectedPath = %1$s }; ' .
+                    'if ($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $f.SelectedPath }"',
+                "'" . str_replace("'", "''", $default) . "'",
+            ),
+            'Darwin' => "osascript -e 'POSIX path of (choose folder with prompt \"پوشه را انتخاب کنید\")' 2>/dev/null",
+            default  => $this->commandExists('zenity')
+                ? 'zenity --file-selection --directory --filename=' . escapeshellarg($default ?: $this->paths->userHomePath()) . ' 2>/dev/null'
+                : ($this->commandExists('kdialog') ? 'kdialog --getexistingdirectory ' . escapeshellarg($default) . ' 2>/dev/null' : null),
+        };
+
+        if ($command === null) {
+            return null;
+        }
+
+        $path = trim((string) @shell_exec($command));
+
+        return $path === '' ? null : $this->paths->normalize($path);
+    }
+
+    private function commandExists(string $binary): bool
+    {
+        return trim((string) @shell_exec('command -v ' . escapeshellarg($binary))) !== '';
+    }
     /** لیست موجودیت‌ها به همراه تعداد رکورد فعلی (برای انتخاب دستی کاربر). */
     public function entities(): JsonResponse
     {
@@ -106,8 +177,11 @@ class BackupController extends Controller
     public function export(Request $request): JsonResponse
     {
         $this->castBooleans($request, [
-            'include_media', 'include_soft_deleted', 'include_orphan_media',
-            'redact_sensitive', 'remember_path',
+            'include_media',
+            'include_soft_deleted',
+            'include_orphan_media',
+            'redact_sensitive',
+            'remember_path',
         ]);
 
         $data = $request->validate([
@@ -230,8 +304,13 @@ class BackupController extends Controller
     public function import(Request $request): JsonResponse
     {
         $this->castBooleans($request, [
-            'dry_run', 'safety_backup', 'verify_checksums',
-            'stop_on_error', 'relink', 'ignore_fk_violations', 'remember_path',
+            'dry_run',
+            'safety_backup',
+            'verify_checksums',
+            'stop_on_error',
+            'relink',
+            'ignore_fk_violations',
+            'remember_path',
         ]);
 
         $data = $request->validate([
@@ -275,9 +354,7 @@ class BackupController extends Controller
 
         try {
             $run = $this->backupService->import($data, $request->user()?->id);
-            
-        } 
-        catch (Throwable $e) {
+        } catch (Throwable $e) {
             return $this->error($e, 'بازیابی اطلاعات با خطا مواجه شد.');
         }
 
@@ -399,8 +476,11 @@ class BackupController extends Controller
     public function updateSettings(Request $request): JsonResponse
     {
         $this->castBooleans($request, [
-            'include_media', 'include_soft_deleted', 'csv_bom',
-            'auto_safety_backup', 'verify_checksums',
+            'include_media',
+            'include_soft_deleted',
+            'csv_bom',
+            'auto_safety_backup',
+            'verify_checksums',
         ]);
 
         $data = $request->validate([

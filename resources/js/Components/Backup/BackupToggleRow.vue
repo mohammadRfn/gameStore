@@ -91,9 +91,12 @@ defineEmits(['update:modelValue'])
   width: 1rem;
   height: 1rem;
   border-radius: 999px;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .35);
-  transition: transform .2s ease;
+  background: var(--gs-text-muted);
+  box-shadow: var(--gs-shadow-sm);
+  transition: transform .2s ease, background-color .2s ease;
+}
+.bk-toggle__knob.is-on {
+  background: var(--gs-bg);
 }
 
 .bk-toggle__knob.is-on {

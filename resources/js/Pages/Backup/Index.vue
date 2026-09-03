@@ -102,8 +102,8 @@ function notify(text, tone = 'ok') {
   window.setTimeout(() => dismissToast(id), 4200)
 }
 
-function bridgeMissing() {
-  notify('پنجره‌ی انتخاب پوشه در دسترس نیست؛ مسیر را دستی وارد کن.', 'warn')
+function bridgeMissing(detail) {
+  notify(detail || 'پنجره‌ی انتخاب پوشه در دسترس نیست؛ مسیر را دستی وارد کن.', 'warn')
 }
 
 function applyDefaults() {

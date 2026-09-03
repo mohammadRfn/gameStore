@@ -485,6 +485,9 @@
 
 .backup-mode-card {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   min-height: 118px;
   padding: 1rem;
   border-radius: 20px;

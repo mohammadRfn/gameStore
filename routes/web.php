@@ -76,7 +76,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('invoices/{invoice}/receipt', [InvoiceController::class, 'removeReceipt'])->name('invoices.receipt.destroy');
     // Categories
     Route::resource('categories', CategoryController::class)->only(['index', 'store', 'destroy']);
-
+    Route::post('/backup/pick-directory', [BackupController::class, 'pickDirectory']);
     // Service Jobs
     Route::resource('service-jobs', ServiceJobController::class);
     Route::get('stats', [StatsController::class, 'index'])->name('stats.index');
