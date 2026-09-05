@@ -393,8 +393,8 @@ class BackupService
     private function normalizeExportOptions(array $options): array
     {
         return array_merge([
-            'include_media'        => $this->settings->bool('include_media', true),
-            'include_soft_deleted' => $this->settings->bool('include_soft_deleted', true),
+            'include_media'        => true,
+            'include_soft_deleted' => true,
             'include_orphan_media' => false,
             'redact_sensitive'     => false,
             'chunk_size'           => $this->settings->int('chunk_size', 1000),
@@ -411,7 +411,7 @@ class BackupService
     private function normalizeImportOptions(array $options): array
     {
         return array_merge([
-            'verify_checksums' => $this->settings->bool('verify_checksums', true),
+            'verify_checksums' => true,
             'chunk_size'       => $this->settings->int('chunk_size', 1000),
             'csv_delimiter'    => $this->settings->get('csv_delimiter', config('backup.csv.delimiter')),
             'csv_null_marker'  => $this->settings->get('csv_null_marker', config('backup.csv.null_marker')),

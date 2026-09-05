@@ -96,9 +96,6 @@ const settingsForm = reactive({
   retention_copies: 10,
   chunk_size: 1000,
   csv_null_marker: '',
-  include_media: true,
-  include_soft_deleted: true,
-  verify_checksums: true,
 })
 
 const exportPath = reactive({ validated: false, freeSpace: null })
@@ -147,9 +144,6 @@ function applyDefaults() {
   settingsForm.retention_copies = Number(settings.retention_copies ?? 10)
   settingsForm.chunk_size = Number(settings.chunk_size ?? 1000)
   settingsForm.csv_null_marker = settings.csv_null_marker ?? ''
-  settingsForm.include_media = settings.include_media !== false
-  settingsForm.include_soft_deleted = settings.include_soft_deleted !== false
-  settingsForm.verify_checksums = settings.verify_checksums !== false
 }
 
 onMounted(async () => {
@@ -562,7 +556,7 @@ function reveal(ms) {
         />
 
         <!-- ================= تنظیمات ================= -->
-        <div v-else key="settings" class="backup-grid backup-grid--2">
+        <div v-else key="settings" class="backup-grid">
           <BackupCard title="تنظیمات پیش‌فرض" description="مسیرها و رفتار همیشگی پشتیبان‌گیری." icon="⚙" :delay="60">
             <label class="backup-field">
               <span class="backup-field__label">مسیر پیش‌فرض خروجی</span>
@@ -598,13 +592,7 @@ function reveal(ms) {
             </template>
           </BackupCard>
 
-          <BackupCard title="رفتار پیش‌فرض" description="این گزینه‌ها برای همه‌ی عملیات‌های بعدی اعمال می‌شوند." icon="🛡" tone="emerald" :delay="120">
-            <div class="backup-grid">
-              <BackupToggleRow v-model="settingsForm.include_media" label="همیشه تصاویر را هم بگیر" hint="بسته سنگین‌تر ولی کامل‌تر می‌شود" />
-              <BackupToggleRow v-model="settingsForm.include_soft_deleted" label="شامل موارد حذف‌شده" hint="پیش‌فرض خروجی گرفتن؛ در تب خروجی هم قابل تغییره" />
-              <BackupToggleRow v-model="settingsForm.verify_checksums" label="بررسی سلامت فایل‌ها هنگام بازیابی" hint="پیش‌فرض بازیابی؛ در تب بازیابی هم قابل تغییره" />
-            </div>
-          </BackupCard>
+
         </div>
       </Transition>
     </div>

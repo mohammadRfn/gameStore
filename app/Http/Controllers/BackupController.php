@@ -476,23 +476,17 @@ class BackupController extends Controller
     public function updateSettings(Request $request): JsonResponse
     {
         $this->castBooleans($request, [
-            'include_media',
-            'include_soft_deleted',
             'csv_bom',
-            'verify_checksums',
         ]);
 
         $data = $request->validate([
             'export_root_path'       => ['nullable', 'string', 'max:1000'],
             'import_root_path'       => ['nullable', 'string', 'max:1000'],
-            'include_media'          => ['nullable', 'boolean'],
-            'include_soft_deleted'   => ['nullable', 'boolean'],
             'csv_delimiter'          => ['nullable', 'string', 'max:2'],
             'csv_bom'                => ['nullable', 'boolean'],
             'csv_null_marker'        => ['nullable', 'string', 'max:5'],
             'chunk_size'             => ['nullable', 'integer', 'min:100', 'max:20000'],
             'retention_copies'       => ['nullable', 'integer', 'min:0', 'max:200'],
-            'verify_checksums'       => ['nullable', 'boolean'],
             'default_import_strategy' => ['nullable', Rule::in([
                 BackupRun::STRATEGY_MERGE,
                 BackupRun::STRATEGY_REPLACE,
