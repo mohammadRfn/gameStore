@@ -190,6 +190,7 @@ class BackupService
             $source   = $this->resolvePackageRoot($source);
 
             $entities = $this->manifest->only($options['entities'] ?? []);
+            $options  = $this->normalizeImportOptions($options);
 
             $run = $this->createRun([
                 'direction'     => BackupRun::DIRECTION_IMPORT,
@@ -211,13 +212,13 @@ class BackupService
 
                 $this->assertCompatible($manifest, $run);
 
-                if (($options['verify_checksums'] ?? $this->settings->bool('verify_checksums', true)) && ! $dryRun) {
+                if ($options['verify_checksums'] && ! $dryRun) {
                     $this->verifyChecksums($run, $source);
                 }
 
                 // بکاپ ایمنی قبل از تغییر داده‌ها (قابل بازگشت بودن عملیات)
                 $safety = null;
-                if (! $dryRun && ($options['safety_backup'] ?? $this->settings->bool('auto_safety_backup', true))) {
+                if (! $dryRun && ($options['safety_backup'] ?? true)) {
                     $safety = $this->performExport([
                         'label'          => 'pre-import-safety',
                         'is_auto'        => true,
@@ -400,6 +401,20 @@ class BackupService
             'csv_delimiter'        => $this->settings->get('csv_delimiter', config('backup.csv.delimiter')),
             'csv_null_marker'      => $this->settings->get('csv_null_marker', config('backup.csv.null_marker')),
             'csv_bom'              => $this->settings->bool('csv_bom', true),
+        ], array_filter($options, fn($v) => $v !== null));
+    }
+
+    /**
+     * برخلاف export، فرم بازیابی فیلدی برای chunk_size/csv_delimiter/csv_null_marker
+     * ندارد؛ پس این‌ها باید همیشه از تنظیمات ذخیره‌شده بیایند، نه از config() مستقیم.
+     */
+    private function normalizeImportOptions(array $options): array
+    {
+        return array_merge([
+            'verify_checksums' => $this->settings->bool('verify_checksums', true),
+            'chunk_size'       => $this->settings->int('chunk_size', 1000),
+            'csv_delimiter'    => $this->settings->get('csv_delimiter', config('backup.csv.delimiter')),
+            'csv_null_marker'  => $this->settings->get('csv_null_marker', config('backup.csv.null_marker')),
         ], array_filter($options, fn($v) => $v !== null));
     }
 

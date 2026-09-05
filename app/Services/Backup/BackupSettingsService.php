@@ -128,10 +128,9 @@ class BackupSettingsService
             'csv_bom'                 => 'csv.bom',
             'chunk_size'              => 'runtime.chunk_size',
             'retention_copies'        => 'runtime.retention_copies',
-            'auto_safety_backup'      => 'runtime.auto_safety_backup',
             'verify_checksums'        => 'runtime.verify_checksums',
             'include_soft_deleted'    => 'runtime.include_soft_deleted',
-            'include_media'           => 'media.disk',
+            'include_media'           => 'runtime.include_media',
             default                   => "runtime.{$key}",
         };
     }

@@ -42,25 +42,51 @@ const selectedEntities = ref([])
 const toasts = ref([])
 let toastSeq = 0
 
+const EXPORT_TOGGLES_KEY = 'backup:export-toggles'
+
+function loadExportToggles() {
+  try {
+    const raw = window.localStorage.getItem(EXPORT_TOGGLES_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch (e) {
+    return {}
+  }
+}
+
+const savedExportToggles = loadExportToggles()
+
 const exportForm = reactive({
   destination_path: '',
   mode: 'full',
   label: '',
   from_date: '',
   to_date: '',
-  include_media: true,
-  include_soft_deleted: false,
-  include_orphan_media: false,
-  remember_path: true,
+  include_media: true, // مقدار واقعی در applyDefaults() از settings.include_media ست میشه
+  include_soft_deleted: false, // همینطور از settings.include_soft_deleted
+  include_orphan_media: savedExportToggles.include_orphan_media ?? false,
+  remember_path: savedExportToggles.remember_path ?? true,
 })
+
+const IMPORT_TOGGLES_KEY = 'backup:import-toggles'
+
+function loadImportToggles() {
+  try {
+    const raw = window.localStorage.getItem(IMPORT_TOGGLES_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch (e) {
+    return {}
+  }
+}
+
+const savedImportToggles = loadImportToggles()
 
 const importForm = reactive({
   source_path: '',
   strategy: 'merge',
-  safety_backup: true,
-  verify_checksums: true,
-  relink: true,
-  remember_path: true,
+  safety_backup: true, // فقط محلی؛ معادل سراسری در تنظیمات نداره (قبلاً حذف شد)
+  verify_checksums: true, // مقدار واقعی در applyDefaults() از settings.verify_checksums ست میشه
+  relink: savedImportToggles.relink ?? true,
+  remember_path: savedImportToggles.remember_path ?? true,
   confirmation: '',
 })
 
@@ -71,7 +97,8 @@ const settingsForm = reactive({
   chunk_size: 1000,
   csv_null_marker: '',
   include_media: true,
-  auto_safety_backup: true,
+  include_soft_deleted: true,
+  verify_checksums: true,
 })
 
 const exportPath = reactive({ validated: false, freeSpace: null })
@@ -111,13 +138,18 @@ function applyDefaults() {
   exportForm.destination_path = settings.export_root_path || defaults.value.export_root || ''
   importForm.source_path = settings.import_root_path || defaults.value.import_root || ''
 
+  exportForm.include_media = settings.include_media !== false
+  exportForm.include_soft_deleted = settings.include_soft_deleted !== false
+  importForm.verify_checksums = settings.verify_checksums !== false
+
   settingsForm.export_root_path = settings.export_root_path || defaults.value.export_root || ''
   settingsForm.import_root_path = settings.import_root_path || defaults.value.import_root || ''
   settingsForm.retention_copies = Number(settings.retention_copies ?? 10)
   settingsForm.chunk_size = Number(settings.chunk_size ?? 1000)
   settingsForm.csv_null_marker = settings.csv_null_marker ?? ''
   settingsForm.include_media = settings.include_media !== false
-  settingsForm.auto_safety_backup = settings.auto_safety_backup !== false
+  settingsForm.include_soft_deleted = settings.include_soft_deleted !== false
+  settingsForm.verify_checksums = settings.verify_checksums !== false
 }
 
 onMounted(async () => {
@@ -136,6 +168,36 @@ watch(() => exportForm.mode, (mode) => {
 })
 
 watch(() => exportForm.destination_path, () => { exportPath.validated = false })
+
+watch(
+  () => ({
+    include_orphan_media: exportForm.include_orphan_media,
+    remember_path: exportForm.remember_path,
+  }),
+  (toggles) => {
+    try {
+      window.localStorage.setItem(EXPORT_TOGGLES_KEY, JSON.stringify(toggles))
+    } catch (e) {
+      /* localStorage در دسترس نبود؛ بی‌خیال شو */
+    }
+  },
+  { deep: true },
+)
+
+watch(
+  () => ({
+    relink: importForm.relink,
+    remember_path: importForm.remember_path,
+  }),
+  (toggles) => {
+    try {
+      window.localStorage.setItem(IMPORT_TOGGLES_KEY, JSON.stringify(toggles))
+    } catch (e) {
+      /* localStorage در دسترس نبود؛ بی‌خیال شو */
+    }
+  },
+  { deep: true },
+)
 
 async function validateExportPath() {
   try {
@@ -539,7 +601,8 @@ function reveal(ms) {
           <BackupCard title="رفتار پیش‌فرض" description="این گزینه‌ها برای همه‌ی عملیات‌های بعدی اعمال می‌شوند." icon="🛡" tone="emerald" :delay="120">
             <div class="backup-grid">
               <BackupToggleRow v-model="settingsForm.include_media" label="همیشه تصاویر را هم بگیر" hint="بسته سنگین‌تر ولی کامل‌تر می‌شود" />
-              <BackupToggleRow v-model="settingsForm.auto_safety_backup" label="نسخه‌ی ایمنی خودکار" hint="پیش از هر بازیابی به‌صورت خودکار ساخته می‌شود" />
+              <BackupToggleRow v-model="settingsForm.include_soft_deleted" label="شامل موارد حذف‌شده" hint="پیش‌فرض خروجی گرفتن؛ در تب خروجی هم قابل تغییره" />
+              <BackupToggleRow v-model="settingsForm.verify_checksums" label="بررسی سلامت فایل‌ها هنگام بازیابی" hint="پیش‌فرض بازیابی؛ در تب بازیابی هم قابل تغییره" />
             </div>
           </BackupCard>
         </div>

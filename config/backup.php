@@ -95,7 +95,7 @@ return [
         'lock_seconds'        => 1800,
         'retention_copies'         => (int) env('BACKUP_RETENTION', 10),
         'safety_retention_copies'  => (int) env('BACKUP_SAFETY_RETENTION', 3),
-        'auto_safety_backup'  => true,   // قبل از ایمپورت، بکاپ ایمنی بگیر
+        'include_media'       => true,
         'verify_checksums'    => true,
         'include_soft_deleted' => true,
         'vacuum_after_import' => true,

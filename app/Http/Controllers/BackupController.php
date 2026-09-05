@@ -479,7 +479,6 @@ class BackupController extends Controller
             'include_media',
             'include_soft_deleted',
             'csv_bom',
-            'auto_safety_backup',
             'verify_checksums',
         ]);
 
@@ -493,7 +492,6 @@ class BackupController extends Controller
             'csv_null_marker'        => ['nullable', 'string', 'max:5'],
             'chunk_size'             => ['nullable', 'integer', 'min:100', 'max:20000'],
             'retention_copies'       => ['nullable', 'integer', 'min:0', 'max:200'],
-            'auto_safety_backup'     => ['nullable', 'boolean'],
             'verify_checksums'       => ['nullable', 'boolean'],
             'default_import_strategy' => ['nullable', Rule::in([
                 BackupRun::STRATEGY_MERGE,
