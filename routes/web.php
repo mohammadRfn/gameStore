@@ -185,16 +185,12 @@ Route::middleware('auth')->group(function () {
 | JSON API (Electron renderer / local API) — Sanctum or same-session auth
 |--------------------------------------------------------------------------
 */
-    Route::middleware('auth:sanctum')->prefix('api')->group(function () {
         Route::get('store-profiles', [StoreProfileController::class, 'index']);
         Route::post('store-profiles', [StoreProfileController::class, 'store']);
         Route::put('store-profiles/{id}', [StoreProfileController::class, 'update']);
         Route::delete('store-profiles/{id}', [StoreProfileController::class, 'destroy']);
 
-        Route::get('settings', [AppSettingController::class, 'index']);
-        Route::put('settings', [AppSettingController::class, 'update']);
-        Route::post('settings/bulk', [AppSettingController::class, 'update']);
-    });
+        
     Route::prefix('backups')->name('backups.')->group(function () {
 
         // ---- داشبورد و متادیتا -------------------------------------------------
