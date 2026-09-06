@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Listeners;
+namespace Modules\Setting\Listeners;
 
-use App\Events\SettingsChanged;
-use App\Services\Setting\Contracts\SettingRepositoryContract;
+use Modules\Setting\Events\SettingsChanged;
+use Modules\Setting\Services\Setting\Contracts\SettingRepositoryContract;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Support\Facades\Log;
 

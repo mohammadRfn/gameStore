@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Setting;
+namespace Modules\Setting\Services\Setting;
 
-use App\Enums\Settings\BackupSchedule;
-use App\Enums\Settings\CalendarType;
-use App\Enums\Settings\PaperSize;
-use App\Enums\Settings\PriceDisplayMode;
-use App\Enums\Settings\PrinterType;
-use App\Enums\Settings\SettingGroup;
-use App\Enums\Settings\TaxMode;
-use App\Enums\Settings\ThemeMode;
-use App\Enums\Settings\TimeFormat;
-use App\Events\SettingsChanged;
-use App\Services\Setting\Contracts\SettingRepositoryContract;
+use Modules\Setting\Enums\Settings\BackupSchedule;
+use Modules\Setting\Enums\Settings\CalendarType;
+use Modules\Setting\Enums\Settings\PaperSize;
+use Modules\Setting\Enums\Settings\PriceDisplayMode;
+use Modules\Setting\Enums\Settings\PrinterType;
+use Modules\Setting\Enums\Settings\SettingGroup;
+use Modules\Setting\Enums\Settings\TaxMode;
+use Modules\Setting\Enums\Settings\ThemeMode;
+use Modules\Setting\Enums\Settings\TimeFormat;
+use Modules\Setting\Events\SettingsChanged;
+use Modules\Setting\Services\Setting\Contracts\SettingRepositoryContract;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Facades\Validator;

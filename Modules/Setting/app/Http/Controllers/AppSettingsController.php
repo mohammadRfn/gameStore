@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Controllers\Setting;
+namespace Modules\Setting\Http\Controllers;
 
-use App\Enums\Settings\SettingGroup;
-use App\Events\SettingsChanged;
+use Modules\Setting\Enums\Settings\SettingGroup;
+use Modules\Setting\Events\SettingsChanged;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Setting\UpdateSettingRequest;
-use App\Services\Setting\SettingService;
+use Modules\Setting\Http\Requests\UpdateSettingRequest;
+use Modules\Setting\Services\Setting\SettingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;

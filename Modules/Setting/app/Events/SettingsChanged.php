@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Events;
+namespace Modules\Setting\Events;
 
-use App\Enums\Settings\SettingGroup;
+use Modules\Setting\Enums\Settings\SettingGroup;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 

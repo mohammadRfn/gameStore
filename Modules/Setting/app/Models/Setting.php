@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modules\App\Models;
+namespace Modules\Setting\Models;
 
 use Modules\Setting\Enums\Settings\SettingGroup;
 use Illuminate\Database\Eloquent\Model;

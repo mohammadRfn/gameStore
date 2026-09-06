@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Setting\Contracts;
+namespace Modules\Setting\Services\Setting\Contracts;
 
-use App\Enums\Settings\SettingGroup;
+use Modules\Setting\Enums\Settings\SettingGroup;
 
 /**
  * قرارداد رسمی برای مخزن تنظیمات.

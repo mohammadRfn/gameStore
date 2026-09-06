@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Setting;
+namespace Modules\Setting\Services\Setting;
 
-use App\Enums\Settings\SettingGroup;
+use Modules\Setting\Enums\Settings\SettingGroup;
 
 /**
  * کلاس مرکزی برای نگه‌داری مقادیر پیش‌فرض تنظیمات.

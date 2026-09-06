@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Setting\Repositories;
+namespace Modules\Setting\Services\Setting\Repositories;
 
-use App\Enums\Settings\SettingGroup;
-use App\Models\Setting;
-use App\Services\Setting\Contracts\SettingRepositoryContract;
+use Modules\Setting\Enums\Settings\SettingGroup;
+use Modules\Setting\Models\Setting;
+use Modules\Setting\Services\Setting\Contracts\SettingRepositoryContract;
 
 /**
  * پیاده‌سازی repository مبتنی بر دیتابیس.

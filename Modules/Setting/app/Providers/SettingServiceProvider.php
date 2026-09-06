@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Modules\Setting\Providers;
 
-use App\Enums\Settings\BackupSchedule;
-use App\Events\SettingsChanged;
-use App\Listeners\InvalidateSettingCache;
-use App\Services\Setting\Contracts\SettingRepositoryContract;
-use App\Services\Setting\Repositories\DatabaseSettingRepository;
-use App\Services\Setting\SettingDefaults;
-use App\Services\Setting\SettingService;
+use Modules\Setting\Enums\Settings\BackupSchedule;
+use Modules\Setting\Events\SettingsChanged;
+use Modules\Setting\Listeners\InvalidateSettingCache;
+use Modules\Setting\Services\Setting\Contracts\SettingRepositoryContract;
+use Modules\Setting\Services\Setting\Repositories\DatabaseSettingRepository;
+use Modules\Setting\Services\Setting\SettingDefaults;
+use Modules\Setting\Services\Setting\SettingService;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
