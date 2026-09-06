@@ -1,96 +1,385 @@
 <?php
 
-/*
-|--------------------------------------------------------------------------
-| GameStore — Enterprise Settings Registry
-|--------------------------------------------------------------------------
-| Single Source of Truth for every application setting.
-| Used by: SettingsService (cache/typed getters), install/sync commands,
-| AppSettingsController (form schemas), Requests (validation rules).
-|
-| type: string | integer | float | boolean | json | select
-| locked:  only install/sync may touch it (system-critical)
-| autoload: loaded into memory cache on first request
-| encrypted: stored encrypted (Crypt::encryptString) — secrets only
-*/
+declare(strict_types=1);
 
+use App\Enums\Settings\BackupSchedule;
+use App\Enums\Settings\CalendarType;
+use App\Enums\Settings\PaperSize;
+use App\Enums\Settings\PriceDisplayMode;
+use App\Enums\Settings\PrinterType;
+use App\Enums\Settings\SettingGroup;
+use App\Enums\Settings\TaxMode;
+use App\Enums\Settings\ThemeMode;
+use App\Enums\Settings\TimeFormat;
+
+/**
+ * پیکربندی مرکزی ماژول تنظیمات.
+ *
+ * این فایل دو وظیفه دارد:
+ *  1) تعریف «متادیتای» هر تنظیم (کلید، نوع، گروه، اعتبارسنجی، مقدار پیش‌فرض).
+ *  2) نگه‌داری مقادیر پیش‌فرض به‌عنوان single source of truth؛ در نبود مقدار
+ *     ذخیره‌شده در دیتابیس، همین مقادیر استفاده می‌شوند.
+ *
+ * نکته‌ی مهم: مقادیر «واقعی» در جدول settings نگهداری می‌شوند، نه در این فایل.
+ * این فایل فقط ساختار و defaults را توصیف می‌کند.
+ */
 return [
 
-    'cache_key' => 'app_settings.all',
+    /*
+    |--------------------------------------------------------------------------
+    | ران Driver برای ذخیره‌سازی
+    |--------------------------------------------------------------------------
+    |
+    | - database: تنظیمات در جدول `settings` ذخیره می‌شوند (پیشنهادی).
+    | - file:     در فایل bootstrap/cache/settings.php (فقط در حالت read-only).
+    |
+    */
+    'driver' => env('SETTING_DRIVER', 'database'),
 
-    'groups' => [
-        ['code' => 'general',       'label' => 'تنظیمات عمومی',     'icon' => '⚙️', 'sort_order' => 1],
-        ['code' => 'store',         'label' => 'مشخصات فروشگاه',   'icon' => '🏪', 'sort_order' => 2],
-        ['code' => 'invoice',       'label' => 'فاکتور و رسید',     'icon' => '🧾', 'sort_order' => 3],
-        ['code' => 'inventory',     'label' => 'انبارداری',         'icon' => '📦', 'sort_order' => 4],
-        ['code' => 'notification',  'label' => 'اعلان‌ها',           'icon' => '🔔', 'sort_order' => 5],
-        ['code' => 'backup',        'label' => 'پشتیبان‌گیری',      'icon' => '💾', 'sort_order' => 6],
-        ['code' => 'security',      'label' => 'امنیت',             'icon' => '🔐', 'sort_order' => 7],
-        ['code' => 'electron',      'label' => 'اپ دسکتاپ',         'icon' => '🖥️', 'sort_order' => 8],
+    /*
+    |--------------------------------------------------------------------------
+    | کلید کش تنظیمات
+    |--------------------------------------------------------------------------
+    */
+    'cache' => [
+        'enabled' => (bool) env('SETTING_CACHE_ENABLED', true),
+        'store'   => env('SETTING_CACHE_STORE', 'file'),
+        'key'     => 'app.settings.v1',
+        'ttl'     => (int) env('SETTING_CACHE_TTL', 86400), // یک روز
     ],
 
     /*
-    | Each item: [key, label, type, default, group, options...]
+    |--------------------------------------------------------------------------
+    | نام جدول تنظیمات
+    |--------------------------------------------------------------------------
     */
-    'settings' => [
+    'table' => 'settings',
 
-        // ---------------------------------------------------------- GENERAL
-        ['key' => 'general.app_name',        'label' => 'نام برنامه',              'type' => 'string',  'default' => 'GameStore Pro', 'group' => 'general', 'locked' => false, 'autoload' => true],
-        ['key' => 'general.app_locale',      'label' => 'زبان پیش‌فرض',             'type' => 'select',  'default' => 'fa', 'options' => ['fa' => 'فارسی', 'en' => 'English'], 'group' => 'general', 'autoload' => true],
-        ['key' => 'general.timezone',        'label' => 'منطقه زمانی',             'type' => 'select',  'default' => 'Asia/Tehran', 'options' => ['Asia/Tehran' => 'تهران', 'UTC' => 'UTC'], 'group' => 'general', 'autoload' => true],
-        ['key' => 'general.date_format',     'label' => 'فرمت تاریخ',              'type' => 'select',  'default' => 'jalali', 'options' => ['jalali' => 'شمسی', 'gregorian' => 'میلادی'], 'group' => 'general'],
-        ['key' => 'general.decimal_precision','label' => 'دقت اعشار قیمت',         'type' => 'integer', 'default' => 0, 'group' => 'general'],
-        ['key' => 'general.currency_code',   'label' => 'کد ارز',                  'type' => 'string',  'default' => 'IRR', 'group' => 'general', 'autoload' => true],
-        ['key' => 'general.currency_symbol', 'label' => 'نماد ارز',                'type' => 'string',  'default' => 'تومان', 'group' => 'general', 'autoload' => true],
-        ['key' => 'general.direction',       'label' => 'جهت رابط کاربری',         'type' => 'select',  'default' => 'rtl', 'options' => ['rtl' => 'راست‌به‌چپ', 'ltr' => 'چپ‌به‌راست'], 'group' => 'general', 'autoload' => true],
+    /*
+    |--------------------------------------------------------------------------
+    | Meta هر تنظیم
+    |--------------------------------------------------------------------------
+    |
+    | هر ورودی شامل:
+    |   key     -> کلید یکتا (dot-notation برای زیرمجموعه مجاز است)
+    |   group   -> گروه تنظیم (SettingGroup)
+    |   type    -> نوع داده برای cast هنگام خواندن
+    |   rules   -> Laravel validation rules
+    |   default -> مقدار پیش‌فرض
+    |   label   -> برچسب فارسی
+    |   section -> تب/بخش UI برای گروه‌بندی دقیق‌تر
+    */
+    'meta' => [
 
-        // ------------------------------------------------------------ STORE
-        ['key' => 'store.name',              'label' => 'نام نمایشی فروشگاه',      'type' => 'string',  'default' => 'فروشگاه من', 'group' => 'store', 'autoload' => true],
-        ['key' => 'store.phone',             'label' => 'تلفن فروشگاه',            'type' => 'string',  'default' => '', 'group' => 'store', 'autoload' => true],
-        ['key' => 'store.address',           'label' => 'آدرس فروشگاه',            'type' => 'string',  'default' => '', 'group' => 'store'],
-        ['key' => 'store.fiscal_year_start', 'label' => 'ماه شروع سال مالی',        'type' => 'integer', 'default' => 1, 'group' => 'store'],
+        /*
+        |--------------------------------------------------------------
+        | گروه عمومی / محلی‌سازی
+        |--------------------------------------------------------------
+        */
+        'general.calendar' => [
+            'group'   => SettingGroup::General,
+            'type'    => 'enum',
+            'enum'    => CalendarType::class,
+            'rules'   => ['sometimes', 'string'],
+            'default' => CalendarType::Jalali,
+            'label'   => 'تقویم',
+            'section' => 'locale',
+        ],
 
-        // ----------------------------------------------------------- INVOICE
-        ['key' => 'invoice.prefix',          'label' => 'پیشوند شماره فاکتور',     'type' => 'string',  'default' => 'INV-', 'group' => 'invoice', 'locked' => false],
-        ['key' => 'invoice.suffix',          'label' => 'پسوند شماره فاکتور',      'type' => 'string',  'default' => '', 'group' => 'invoice'],
-        ['key' => 'invoice.start_number',    'label' => 'شماره شروع فاکتور',       'type' => 'integer', 'default' => 1001, 'group' => 'invoice'],
-        ['key' => 'invoice.tax_rate',        'label' => 'نرخ مالیات بر ارزش افزوده (%)', 'type' => 'integer', 'default' => 9, 'group' => 'invoice', 'locked' => true],
-        ['key' => 'invoice.show_tax',        'label' => 'نمایش مالیات در فاکتور',  'type' => 'boolean', 'default' => true, 'group' => 'invoice'],
-        ['key' => 'invoice.footer_text',     'label' => 'متن پایانی فاکتور',       'type' => 'string',  'default' => 'با تشکر از خرید شما', 'group' => 'invoice'],
-        ['key' => 'invoice.auto_deduct_stock','label' => 'کسر خودکار موجودی',      'type' => 'boolean', 'default' => true, 'group' => 'invoice', 'locked' => false],
-        ['key' => 'invoice.receipt_width_mm','label' => 'عرض رسید حرارتی (میلی‌متر)', 'type' => 'integer', 'default' => 80, 'group' => 'invoice'],
-        ['key' => 'invoice.receipt_show_logo','label' => 'چاپ لوگو روی رسید',      'type' => 'boolean', 'default' => true, 'group' => 'invoice'],
-        ['key' => 'invoice.receipt_copies',  'label' => 'تعداد کپی رسید',          'type' => 'integer', 'default' => 1, 'group' => 'invoice'],
+        'general.decimal_separator' => [
+            'group'   => SettingGroup::General,
+            'type'    => 'string',
+            'rules'   => ['sometimes', 'string', 'in:.,،'],
+            'default' => '.',
+            'label'   => 'جداکننده‌ی اعشار',
+            'section' => 'locale',
+        ],
 
-        // --------------------------------------------------------- INVENTORY
-        ['key' => 'inventory.low_stock_threshold','label' => 'آستانه هشدار موجودی', 'type' => 'integer', 'default' => 5, 'group' => 'inventory'],
-        ['key' => 'inventory.allow_negative_stock','label' => 'مجاز بودن موجودی منفی', 'type' => 'boolean', 'default' => false, 'group' => 'inventory', 'locked' => true],
-        ['key' => 'inventory.default_movement_note','label' => 'یادداشت پیش‌فرض نقل‌وانتقال', 'type' => 'string', 'default' => '', 'group' => 'inventory'],
-        ['key' => 'inventory.barcode_prefix', 'label' => 'پیشوند بارکد محصولات',    'type' => 'string',  'default' => '626', 'group' => 'inventory'],
+        'general.thousand_separator' => [
+            'group'   => SettingGroup::General,
+            'type'    => 'string',
+            'rules'   => ['sometimes', 'string', 'in:,,،,\xA0'],
+            'default' => ',',
+            'label'   => 'جداکننده‌ی هزارگان',
+            'section' => 'locale',
+        ],
 
-        // ------------------------------------------------------ NOTIFICATION
-        ['key' => 'notification.low_stock_enabled','label' => 'هشدار موجودی کم',   'type' => 'boolean', 'default' => true, 'group' => 'notification'],
-        ['key' => 'notification.daily_summary_enabled','label' => 'خلاصه فروش روزانه','type' => 'boolean','default' => false, 'group' => 'notification'],
-        ['key' => 'notification.daily_summary_time','label' => 'ساعت خلاصه روزانه', 'type' => 'string',  'default' => '20:00', 'group' => 'notification'],
+        'general.time_format' => [
+            'group'   => SettingGroup::General,
+            'type'    => 'enum',
+            'enum'    => TimeFormat::class,
+            'rules'   => ['sometimes', 'string'],
+            'default' => TimeFormat::H24,
+            'label'   => 'فرمت نمایش ساعت',
+            'section' => 'locale',
+        ],
 
-        // ----------------------------------------------------------- BACKUP
-        ['key' => 'backup.auto_enabled',     'label' => 'پشتیبان‌گیری خودکار',     'type' => 'boolean', 'default' => true, 'group' => 'backup'],
-        ['key' => 'backup.frequency',        'label' => 'بازه پشتیبان‌گیری',       'type' => 'select',  'default' => 'daily', 'options' => ['daily' => 'روزانه', 'weekly' => 'هفتگی', 'monthly' => 'ماهانه'], 'group' => 'backup'],
-        ['key' => 'backup.retention_days',   'label' => 'مدت نگهداری نسخه‌ها (روز)', 'type' => 'integer', 'default' => 30, 'group' => 'backup'],
-        ['key' => 'backup.encrypt',          'label' => 'رمزنگاری فایل بکاپ',      'type' => 'boolean', 'default' => true, 'group' => 'backup'],
+        'general.currency' => [
+            'group'   => SettingGroup::General,
+            'type'    => 'string',
+            'rules'   => ['sometimes', 'string', 'max:10'],
+            'default' => 'تومان',
+            'label'   => 'واحد پول',
+            'section' => 'locale',
+        ],
 
-        // --------------------------------------------------------- SECURITY
-        ['key' => 'security.session_timeout_minutes','label' => 'زمان انقضای نشست (دقیقه)','type' => 'integer','default' => 60, 'group' => 'security'],
-        ['key' => 'security.max_login_attempts','label' => 'حداکثر تلاش ورود',     'type' => 'integer', 'default' => 5, 'group' => 'security', 'locked' => true],
-        ['key' => 'security.password_min_length','label' => 'حداقل طول رمز عبور',  'type' => 'integer', 'default' => 8, 'group' => 'security'],
-        ['key' => 'security.require_strong_password','label' => 'الزام رمز قوی',   'type' => 'boolean', 'default' => true, 'group' => 'security'],
+        'general.currency_code' => [
+            'group'   => SettingGroup::General,
+            'type'    => 'string',
+            'rules'   => ['sometimes', 'string', 'max:10'],
+            'default' => 'IRT',
+            'label'   => 'کد ارز (ISO)',
+            'section' => 'locale',
+        ],
 
-        // --------------------------------------------------------- ELECTRON
-        ['key' => 'electron.window_width',   'label' => 'عرض پنجره',               'type' => 'integer', 'default' => 1280, 'group' => 'electron'],
-        ['key' => 'electron.window_height',  'label' => 'ارتفاع پنجره',            'type' => 'integer', 'default' => 800, 'group' => 'electron'],
-        ['key' => 'electron.minimize_to_tray','label' => 'کوچک‌سازی به سینی',      'type' => 'boolean', 'default' => true, 'group' => 'electron'],
-        ['key' => 'electron.start_minimized','label' => 'اجرای اولیه کمینه',       'type' => 'boolean', 'default' => false, 'group' => 'electron'],
-        ['key' => 'electron.printer_name',   'label' => 'نام چاپگر رسید',          'type' => 'string',  'default' => '', 'group' => 'electron'],
-        ['key' => 'electron.update_channel', 'label' => 'کانال به‌روزرسانی',       'type' => 'select',  'default' => 'stable', 'options' => ['stable' => 'پایدار', 'beta' => 'بتا'], 'group' => 'electron'],
+        'general.price_display' => [
+            'group'   => SettingGroup::General,
+            'type'    => 'enum',
+            'enum'    => PriceDisplayMode::class,
+            'rules'   => ['sometimes', 'string'],
+            'default' => PriceDisplayMode::WithUnit,
+            'label'   => 'نحوه‌ی نمایش قیمت',
+            'section' => 'locale',
+        ],
+
+        'general.theme' => [
+            'group'   => SettingGroup::General,
+            'type'    => 'enum',
+            'enum'    => ThemeMode::class,
+            'rules'   => ['sometimes', 'string'],
+            'default' => ThemeMode::Light,
+            'label'   => 'تم ظاهری',
+            'section' => 'appearance',
+        ],
+
+        'general.locale' => [
+            'group'   => SettingGroup::General,
+            'type'    => 'string',
+            'rules'   => ['sometimes', 'string', 'max:10'],
+            'default' => 'fa',
+            'label'   => 'زبان پیش‌فرض',
+            'section' => 'locale',
+        ],
+
+        /*
+        |--------------------------------------------------------------
+        | گروه مالیات / فاکتور
+        |--------------------------------------------------------------
+        */
+        'invoice.tax_rate' => [
+            'group'   => SettingGroup::Invoice,
+            'type'    => 'float',
+            'rules'   => ['sometimes', 'numeric', 'min:0', 'max:100'],
+            'default' => 9.0,
+            'label'   => 'نرخ مالیات بر ارزش افزوده (%)',
+            'section' => 'tax',
+        ],
+
+        'invoice.tax_mode' => [
+            'group'   => SettingGroup::Invoice,
+            'type'    => 'enum',
+            'enum'    => TaxMode::class,
+            'rules'   => ['sometimes', 'string'],
+            'default' => TaxMode::Exclusive,
+            'label'   => 'نحوه‌ی محاسبه‌ی مالیات',
+            'section' => 'tax',
+        ],
+
+        'invoice.tax_enabled' => [
+            'group'   => SettingGroup::Invoice,
+            'type'    => 'bool',
+            'rules'   => ['sometimes', 'boolean'],
+            'default' => true,
+            'label'   => 'فعال‌سازی مالیات در فاکتورها',
+            'section' => 'tax',
+        ],
+
+        'invoice.prefix' => [
+            'group'   => SettingGroup::Invoice,
+            'type'    => 'string',
+            'rules'   => ['sometimes', 'string', 'max:10', 'regex:/^[A-Za-z0-9\-]*$/'],
+            'default' => 'INV-',
+            'label'   => 'پیشوند شماره فاکتور',
+            'section' => 'invoice',
+        ],
+
+        'invoice.counter' => [
+            'group'   => SettingGroup::Invoice,
+            'type'    => 'int',
+            'rules'   => ['sometimes', 'integer', 'min:0'],
+            'default' => 1,
+            'label'   => 'شمارنده‌ی فعلی شماره فاکتور',
+            'section' => 'invoice',
+        ],
+
+        'invoice.counter_padding' => [
+            'group'   => SettingGroup::Invoice,
+            'type'    => 'int',
+            'rules'   => ['sometimes', 'integer', 'min:3', 'max:10'],
+            'default' => 6,
+            'label'   => 'طول شماره فاکتور (padding با صفر)',
+            'section' => 'invoice',
+        ],
+
+        'invoice.business_registration' => [
+            'group'   => SettingGroup::Invoice,
+            'type'    => 'string',
+            'rules'   => ['sometimes', 'nullable', 'string', 'max:50'],
+            'default' => null,
+            'label'   => 'شماره ثبت رسمی کسب‌وکار',
+            'section' => 'invoice',
+        ],
+
+        'invoice.economic_code' => [
+            'group'   => SettingGroup::Invoice,
+            'type'    => 'string',
+            'rules'   => ['sometimes', 'nullable', 'string', 'max:50'],
+            'default' => null,
+            'label'   => 'کد اقتصادی',
+            'section' => 'invoice',
+        ],
+
+        'invoice.footer_text' => [
+            'group'   => SettingGroup::Invoice,
+            'type'    => 'string',
+            'rules'   => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'default' => "از خرید شما متشکریم.\nشرایط گارانتی و مرجوعی در انتهای فاکتور درج می‌شود.",
+            'label'   => 'متن پیش‌فرض پاورقی فاکتور',
+            'section' => 'invoice',
+        ],
+
+        'invoice.warranty_terms' => [
+            'group'   => SettingGroup::Invoice,
+            'type'    => 'string',
+            'rules'   => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'default' => "کالاهای تعمیرشده دارای ۷ روز گارانتی تعویض هستند.\nدر صورت عدم رضایت، کالا بدون قید و شرط قابل مرجوع است.",
+            'label'   => 'شرایط گارانتی پیش‌فرض',
+            'section' => 'invoice',
+        ],
+
+        'invoice.printer_type' => [
+            'group'   => SettingGroup::Invoice,
+            'type'    => 'enum',
+            'enum'    => PrinterType::class,
+            'rules'   => ['sometimes', 'string'],
+            'default' => PrinterType::Thermal,
+            'label'   => 'نوع چاپگر پیش‌فرض',
+            'section' => 'print',
+        ],
+
+        'invoice.paper_size' => [
+            'group'   => SettingGroup::Invoice,
+            'type'    => 'enum',
+            'enum'    => PaperSize::class,
+            'rules'   => ['sometimes', 'string'],
+            'default' => PaperSize::Roll80,
+            'label'   => 'اندازه‌ی کاغذ چاپگر',
+            'section' => 'print',
+        ],
+
+        'invoice.logo_path' => [
+            'group'   => SettingGroup::Invoice,
+            'type'    => 'string',
+            'rules'   => ['sometimes', 'nullable', 'string', 'max:500'],
+            'default' => null,
+            'label'   => 'مسیر لوگوی چاپ‌شونده روی فاکتور',
+            'section' => 'invoice',
+        ],
+
+        /*
+        |--------------------------------------------------------------
+        | گروه دسکتاپ (NativePHP / Electron)
+        |--------------------------------------------------------------
+        */
+        'desktop.auto_launch' => [
+            'group'   => SettingGroup::Desktop,
+            'type'    => 'bool',
+            'rules'   => ['sometimes', 'boolean'],
+            'default' => false,
+            'label'   => 'اجرای خودکار هنگام روشن‌شدن سیستم',
+            'section' => 'startup',
+        ],
+
+        'desktop.minimize_to_tray' => [
+            'group'   => SettingGroup::Desktop,
+            'type'    => 'bool',
+            'rules'   => ['sometimes', 'boolean'],
+            'default' => true,
+            'label'   => 'کوچک‌شدن به Tray به‌جای خروج کامل',
+            'section' => 'startup',
+        ],
+
+        'desktop.database_path' => [
+            'group'   => SettingGroup::Desktop,
+            'type'    => 'string',
+            'rules'   => ['sometimes', 'string', 'max:1000'],
+            'default' => null, // null یعنی مسیر پیش‌فرض NativePHP
+            'label'   => 'مسیر فایل دیتابیس روی دیسک',
+            'section' => 'paths',
+        ],
+
+        'desktop.backup_path' => [
+            'group'   => SettingGroup::Desktop,
+            'type'    => 'string',
+            'rules'   => ['sometimes', 'string', 'max:1000'],
+            'default' => null, // null یعنی مسیر پیش‌فرض
+            'label'   => 'مسیر ذخیره‌ی بکاپ‌ها',
+            'section' => 'paths',
+        ],
+
+        'desktop.auto_update_url' => [
+            'group'   => SettingGroup::Desktop,
+            'type'    => 'string',
+            'rules'   => ['sometimes', 'nullable', 'url', 'max:500'],
+            'default' => null,
+            'label'   => 'آدرس سرور بروزرسانی خودکار',
+            'section' => 'updates',
+        ],
+
+        'desktop.auto_update_check' => [
+            'group'   => SettingGroup::Desktop,
+            'type'    => 'bool',
+            'rules'   => ['sometimes', 'boolean'],
+            'default' => true,
+            'label'   => 'بررسی خودکار بروزرسانی در شروع',
+            'section' => 'updates',
+        ],
+
+        'desktop.default_printer_name' => [
+            'group'   => SettingGroup::Desktop,
+            'type'    => 'string',
+            'rules'   => ['sometimes', 'nullable', 'string', 'max:200'],
+            'default' => null, // نام چاپگر پیش‌فرض سیستم‌عامل
+            'label'   => 'نام چاپگر پیش‌فرض سیستم',
+            'section' => 'print',
+        ],
+
+        'desktop.backup_schedule' => [
+            'group'   => SettingGroup::Desktop,
+            'type'    => 'enum',
+            'enum'    => BackupSchedule::class,
+            'rules'   => ['sometimes', 'string'],
+            'default' => BackupSchedule::Daily,
+            'label'   => 'زمان‌بندی بکاپ خودکار',
+            'section' => 'backup',
+        ],
+
+        'desktop.backup_retention' => [
+            'group'   => SettingGroup::Desktop,
+            'type'    => 'int',
+            'rules'   => ['sometimes', 'integer', 'min:1', 'max:365'],
+            'default' => 30,
+            'label'   => 'تعداد روز نگهداری بکاپ‌ها',
+            'section' => 'backup',
+        ],
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | نگاشت سریع گروه -> تنظیمات
+    |--------------------------------------------------------------------------
+    | این مقدار در bootstrap توسط SettingService ساخته می‌شود و در config
+    | باقی می‌ماند تا lookup سریع‌تر باشد.
+    */
+    'group_index' => [],
 ];

@@ -22,7 +22,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\CacheMaintenanceController;
 use App\Http\Controllers\StoreProfileController;
-
+use App\Http\Controllers\Setting\AppSettingController;
 // ============================================================
 // Auth
 // ============================================================
@@ -178,14 +178,7 @@ Route::middleware('auth')->group(function () {
     Route::post('store-profiles/{id}/primary', [StoreProfileController::class, 'setPrimary'])->name('store-profiles.primary');
 
     // ---------------- App Settings ----------------
-    Route::get('settings', [AppSettingsController::class, 'index'])->name('settings.index');
-    Route::get('settings/{key}', [AppSettingsController::class, 'show'])->name('settings.show');
-    Route::put('settings/{key}', [AppSettingsController::class, 'update'])->name('settings.update');
-    Route::post('settings/bulk-update', [AppSettingsController::class, 'bulkUpdate'])->name('settings.bulk');
-    Route::post('settings/{key}/reset', [AppSettingsController::class, 'reset'])->name('settings.reset');
-    Route::post('settings/{key}/toggle-lock', [AppSettingsController::class, 'toggleLock'])->name('settings.toggle-lock');
-    Route::post('settings/sync', [AppSettingsController::class, 'sync'])->name('settings.sync');
-
+    require base_path('routes/settings.php');
 
     /*
 |--------------------------------------------------------------------------
@@ -198,10 +191,9 @@ Route::middleware('auth')->group(function () {
         Route::put('store-profiles/{id}', [StoreProfileController::class, 'update']);
         Route::delete('store-profiles/{id}', [StoreProfileController::class, 'destroy']);
 
-        Route::get('settings', [AppSettingsController::class, 'index']);
-        Route::put('settings/{key}', [AppSettingsController::class, 'update']);
-        Route::post('settings/bulk-update', [AppSettingsController::class, 'bulkUpdate']);
-        Route::post('settings/sync', [AppSettingsController::class, 'sync']);
+        Route::get('settings', [AppSettingController::class, 'index']);
+        Route::put('settings', [AppSettingController::class, 'update']);
+        Route::post('settings/bulk', [AppSettingController::class, 'update']);
     });
     Route::prefix('backups')->name('backups.')->group(function () {
 
