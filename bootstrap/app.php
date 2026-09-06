@@ -17,7 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\HandleInertiaRequests::class,
         ]);
         $middleware->alias([
-            'shop.scope' => \App\Http\Middleware\ShopScope::class,
+            // 'shop.scope' => \App\Http\Middleware\ShopScope::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -178,7 +178,7 @@ Route::middleware('auth')->group(function () {
     Route::post('store-profiles/{id}/primary', [StoreProfileController::class, 'setPrimary'])->name('store-profiles.primary');
 
     // ---------------- App Settings ----------------
-    require base_path('routes/settings.php');
+    // require base_path('routes/settings.php');
 
     /*
 |--------------------------------------------------------------------------

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Providers;
+namespace Modules\Setting\Providers;
 
 use App\Enums\Settings\BackupSchedule;
 use App\Events\SettingsChanged;
