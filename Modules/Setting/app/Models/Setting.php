@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Models;
+namespace Modules\App\Models;
 
-use App\Enums\Settings\SettingGroup;
+use Modules\Setting\Enums\Settings\SettingGroup;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 

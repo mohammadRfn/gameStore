@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Console\Commands;
+namespace Modules\Setting\App\Console\Commands;
 
-use App\Enums\Settings\SettingGroup;
-use App\Services\Setting\SettingService;
+use Modules\App\Enums\Settings\SettingGroup;
+use Modules\App\Services\Setting\SettingService;
 use Illuminate\Console\Command;
 
 /**
