@@ -1,10 +1,12 @@
 <?php
 
-namespace App\Services;
+namespace Modules\Profile\Services;
 
 use App\Models\StoreProfile;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
 class StoreProfileService
@@ -51,6 +53,7 @@ class StoreProfileService
             }
 
             $data['is_primary'] = $wantPrimary;
+            $data = $this->applyUploadedFiles($data);
 
             return StoreProfile::create($data);
         });
@@ -61,8 +64,10 @@ class StoreProfileService
         return DB::transaction(function () use ($id, $data) {
             $profile = StoreProfile::findOrFail($id);
 
-            if (isset($data['slug']) && $data['slug'] !== $profile->slug
-                && StoreProfile::where('slug', $data['slug'])->where('id', '!=', $id)->exists()) {
+            if (
+                isset($data['slug']) && $data['slug'] !== $profile->slug
+                && StoreProfile::where('slug', $data['slug'])->where('id', '!=', $id)->exists()
+            ) {
                 throw new RuntimeException('این شناسه (slug) قبلاً برای پروفایل دیگری ثبت شده است.');
             }
 
@@ -70,6 +75,7 @@ class StoreProfileService
                 StoreProfile::where('id', '!=', $id)->update(['is_primary' => false]);
             }
 
+            $data = $this->applyUploadedFiles($data, $profile);
             $profile->update($data);
 
             return $profile->fresh();
@@ -83,6 +89,9 @@ class StoreProfileService
         if ($profile->is_primary) {
             throw new RuntimeException('پروفایل اصلی را نمی‌توان حذف کرد؛ ابتدا پروفایل دیگری را اصلی کنید.');
         }
+
+        $this->deleteStoredFile($profile->logo_path);
+        $this->deleteStoredFile($profile->cover_path);
 
         $profile->delete();
     }
@@ -108,5 +117,42 @@ class StoreProfileService
             ->orWhere('email', 'like', "%{$term}%")
             ->orderBy('updated_at', 'desc')
             ->get();
+    }
+    protected function applyUploadedFiles(array $data, ?StoreProfile $existing = null): array
+    {
+        if (! empty($data['remove_logo']) && $existing) {
+            $this->deleteStoredFile($existing->logo_path);
+            $data['logo_path'] = null;
+        }
+
+        if (! empty($data['remove_cover']) && $existing) {
+            $this->deleteStoredFile($existing->cover_path);
+            $data['cover_path'] = null;
+        }
+
+        if (! empty($data['logo']) && $data['logo'] instanceof UploadedFile) {
+            if ($existing) {
+                $this->deleteStoredFile($existing->logo_path);
+            }
+            $data['logo_path'] = $data['logo']->store('store-profiles/logos', 'public');
+        }
+
+        if (! empty($data['cover']) && $data['cover'] instanceof UploadedFile) {
+            if ($existing) {
+                $this->deleteStoredFile($existing->cover_path);
+            }
+            $data['cover_path'] = $data['cover']->store('store-profiles/covers', 'public');
+        }
+
+        unset($data['logo'], $data['cover'], $data['remove_logo'], $data['remove_cover']);
+
+        return $data;
+    }
+
+    protected function deleteStoredFile(?string $path): void
+    {
+        if ($path && Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
     }
 }

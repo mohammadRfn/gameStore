@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace Modules\Profile\Http\Controllers;
 
-use App\Http\Requests\StoreProfileRequest;
-use App\Services\StoreProfileService;
+use Modules\Profile\Http\Requests\StoreProfileRequest;
+use Modules\Profile\Services\StoreProfileService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use RuntimeException;

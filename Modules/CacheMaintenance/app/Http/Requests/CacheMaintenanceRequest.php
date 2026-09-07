@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests;
+namespace Modules\CacheMaintenance\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -30,12 +30,17 @@ class CacheMaintenanceRequest extends FormRequest
                 'expired_database_cache',
                 'logs',
                 'sessions',
+                'orphan_media',
+                'old_backups',
                 'all',
             ])],
             'dry_run'             => ['nullable', 'boolean'],
             'include_logs'        => ['nullable', 'boolean'],
             'logs_older_than_days'=> ['nullable', 'integer', 'min:0', 'max:3650'],
             'include_sessions'    => ['nullable', 'boolean'],
+            'include_orphan_media'=> ['nullable', 'boolean'],
+            'include_old_backups' => ['nullable', 'boolean'],
+            'keep_last_backups'   => ['nullable', 'integer', 'min:0', 'max:100'],
             'warm_after_clear'    => ['nullable', 'boolean'],
             'warm_config'         => ['nullable', 'boolean'],
             'warm_views'          => ['nullable', 'boolean'],
@@ -53,6 +58,9 @@ class CacheMaintenanceRequest extends FormRequest
             'include_logs'          => 'حذف لاگ‌ها',
             'logs_older_than_days'  => 'سن لاگ‌ها',
             'include_sessions'      => 'حذف نشست‌ها',
+            'include_orphan_media'  => 'حذف فایل‌های بلااستفاده',
+            'include_old_backups'   => 'حذف بک‌آپ‌های قدیمی',
+            'keep_last_backups'     => 'تعداد بک‌آپ نگه‌داشته‌شده',
             'warm_after_clear'      => 'گرم‌سازی بعد از پاکسازی',
             'warm_config'           => 'گرم‌سازی config',
             'warm_views'            => 'گرم‌سازی viewها',

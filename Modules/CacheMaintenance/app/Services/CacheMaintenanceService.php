@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Services;
+namespace Modules\CacheMaintenance\Services;
 
 use App\Models\CacheMaintenanceRun;
+use App\Models\StoreProfile;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -39,6 +40,8 @@ class CacheMaintenanceService
     public const TARGET_EXPIRED_DATABASE_CACHE = 'expired_database_cache';
     public const TARGET_LOGS                   = 'logs';
     public const TARGET_SESSIONS               = 'sessions';
+    public const TARGET_ORPHAN_MEDIA           = 'orphan_media';
+    public const TARGET_OLD_BACKUPS            = 'old_backups';
     public const TARGET_ALL                    = 'all';
 
     public const DEFAULT_TARGETS = [
@@ -68,7 +71,7 @@ class CacheMaintenanceService
             'operation'   => CacheMaintenanceRun::OPERATION_INSPECT,
             'status'      => CacheMaintenanceRun::STATUS_RUNNING,
             'is_dry_run'  => true,
-            'targets_json'=> ['inspect'],
+            'targets_json' => ['inspect'],
             'user_id'     => $userId,
             'started_at'  => now(),
         ]);
@@ -228,8 +231,8 @@ class CacheMaintenanceService
     public function paginateRuns(array $filters = [])
     {
         return CacheMaintenanceRun::query()
-            ->when($filters['operation'] ?? null, fn ($q, $v) => $q->where('operation', $v))
-            ->when($filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
+            ->when($filters['operation'] ?? null, fn($q, $v) => $q->where('operation', $v))
+            ->when($filters['status'] ?? null, fn($q, $v) => $q->where('status', $v))
             ->latest()
             ->paginate(min(100, max(1, (int) ($filters['per_page'] ?? 20))));
     }
@@ -307,6 +310,16 @@ class CacheMaintenanceService
                 'description' => 'حذف session فایل‌ها؛ برای session_driver=file.',
                 'safe' => false,
             ],
+            self::TARGET_ORPHAN_MEDIA => [
+                'label' => 'Orphan Media Files',
+                'description' => 'حذف فایل‌های storage/app/public که به هیچ رکورد دیتابیسی (لوگو/کاور پروفایل و...) وصل نیستن.',
+                'safe' => false,
+            ],
+            self::TARGET_OLD_BACKUPS => [
+                'label' => 'Old Backup Packages',
+                'description' => 'حذف بک‌آپ‌های قدیمی storage/app/backups و نگه‌داشتن فقط N بک‌آپ آخر.',
+                'safe' => false,
+            ],
             self::TARGET_ALL => [
                 'label' => 'All Safe Targets',
                 'description' => 'همه targetهای امن؛ logs و sessions فقط با option جدا فعال می‌شوند.',
@@ -335,6 +348,12 @@ class CacheMaintenanceService
             self::TARGET_SESSIONS => $options['include_sessions']
                 ? $this->clearFileSessions()
                 : ['skipped' => true, 'reason' => 'include_sessions=false'],
+            self::TARGET_ORPHAN_MEDIA => $options['include_orphan_media']
+                ? $this->clearOrphanMedia()
+                : ['skipped' => true, 'reason' => 'include_orphan_media=false'],
+            self::TARGET_OLD_BACKUPS => $options['include_old_backups']
+                ? $this->clearOldBackups((int) $options['keep_last_backups'])
+                : ['skipped' => true, 'reason' => 'include_old_backups=false'],
             default => ['skipped' => true, 'reason' => "Unknown target: {$target}"],
         };
     }
@@ -472,6 +491,8 @@ class CacheMaintenanceService
         $frameworkCache = $this->dirStats(storage_path('framework/cache'));
         $logs = $this->dirStats(storage_path('logs'));
         $sessions = $this->dirStats(storage_path('framework/sessions'));
+        $orphanMedia = $this->orphanMediaMetrics();
+        $backups = $this->backupsMetrics();
 
         return [
             'environment' => [
@@ -490,6 +511,8 @@ class CacheMaintenanceService
             'logs' => $logs,
             'sessions' => $sessions,
             'database_cache' => $this->databaseCacheMetrics(),
+            'orphan_media' => $orphanMedia,
+            'backups' => $backups,
             'settings_cache_key' => config('settings.cache_key', 'app_settings.all'),
             'generated_at' => now()->toIso8601String(),
         ];
@@ -585,6 +608,8 @@ class CacheMaintenanceService
                 'log_files' => $metrics['logs']['files'] ?? 0,
                 'session_files' => $metrics['sessions']['files'] ?? 0,
                 'expired_database_cache_rows' => $metrics['database_cache']['expired_rows'] ?? 0,
+                'orphan_media_files' => $metrics['orphan_media']['orphan_files'] ?? 0,
+                'old_backup_items' => $metrics['backups']['items'] ?? 0,
             ],
         ];
     }
@@ -603,6 +628,14 @@ class CacheMaintenanceService
 
         if (($metrics['logs']['bytes'] ?? 0) > 100 * 1024 * 1024) {
             $items[] = 'حجم لاگ‌ها بالاست؛ include_logs=true با logs_older_than_days مناسب اجرا کنید.';
+        }
+
+        if (($metrics['orphan_media']['orphan_bytes'] ?? 0) > 50 * 1024 * 1024) {
+            $items[] = 'حجم فایل‌های orphan تو storage/app/public بالاست؛ target orphan_media را با include_orphan_media=true اجرا کنید.';
+        }
+
+        if (($metrics['backups']['items'] ?? 0) > 10) {
+            $items[] = 'تعداد بک‌آپ‌های ذخیره‌شده زیاد است؛ target old_backups را با keep_last_backups مناسب اجرا کنید.';
         }
 
         if (empty($items)) {
@@ -644,6 +677,9 @@ class CacheMaintenanceService
             'warm_views' => (bool) ($payload['warm_views'] ?? $this->settings->getBool('maintenance.cache.warm_views', true)),
             'warm_settings' => (bool) ($payload['warm_settings'] ?? $this->settings->getBool('maintenance.cache.warm_settings', true)),
             'run_sqlite_vacuum' => (bool) ($payload['run_sqlite_vacuum'] ?? $this->settings->getBool('maintenance.cache.run_sqlite_vacuum', false)),
+            'include_orphan_media' => (bool) ($payload['include_orphan_media'] ?? $this->settings->getBool('maintenance.cache.allow_orphan_media_cleanup', false)),
+            'include_old_backups' => (bool) ($payload['include_old_backups'] ?? $this->settings->getBool('maintenance.cache.allow_old_backups_cleanup', false)),
+            'keep_last_backups' => (int) ($payload['keep_last_backups'] ?? $this->settings->getInt('maintenance.cache.keep_last_backups', 5)),
             'force' => (bool) ($payload['force'] ?? false),
         ];
     }
@@ -662,5 +698,151 @@ class CacheMaintenanceService
         $bytes = max(0, (float) $bytes);
         $power = $bytes > 0 ? min((int) floor(log($bytes, 1024)), count($units) - 1) : 0;
         return round($bytes / (1024 ** $power), $power ? 2 : 0) . ' ' . $units[$power];
+    }
+    protected function clearOrphanMedia(): array
+    {
+        $referenced = $this->referencedMediaPaths();
+        $baseDir = storage_path('app/public');
+
+        if (! is_dir($baseDir)) {
+            return ['skipped' => true, 'reason' => "Directory does not exist: {$baseDir}"];
+        }
+
+        $deleted = 0;
+        $bytes = 0;
+
+        foreach (File::allFiles($baseDir) as $file) {
+            $relativePath = str_replace('\\', '/', ltrim(str_replace($baseDir, '', $file->getPathname()), '\\/'));
+
+            if (in_array($relativePath, $referenced, true)) {
+                continue;
+            }
+
+            $bytes += $file->getSize();
+            File::delete($file->getPathname());
+            $deleted++;
+        }
+
+        return ['ok' => true, 'deleted' => $deleted, 'bytes' => $bytes, 'referenced_count' => count($referenced)];
+    }
+
+    /**
+     * مسیر فایل‌های media که به یک رکورد دیتابیسی وصل هستن (پس نباید orphan محسوب بشن).
+     * اگه بعداً مدل دیگه‌ای هم فایل تو storage/app/public ذخیره کرد (مثلاً عکس سرویس‌جاب)،
+     * فقط کافیه اینجا اضافه بشه.
+     */
+    protected function referencedMediaPaths(): array
+    {
+        $paths = StoreProfile::query()
+            ->select(['logo_path', 'cover_path'])
+            ->get()
+            ->flatMap(fn($profile) => [$profile->logo_path, $profile->cover_path])
+            ->filter()
+            ->values()
+            ->all();
+
+        return array_map(fn($p) => str_replace('\\', '/', $p), $paths);
+    }
+
+    protected function orphanMediaMetrics(): array
+    {
+        $referenced = $this->referencedMediaPaths();
+        $baseDir = storage_path('app/public');
+
+        if (! is_dir($baseDir)) {
+            return ['exists' => false, 'orphan_files' => 0, 'orphan_bytes' => 0];
+        }
+
+        $orphanFiles = 0;
+        $orphanBytes = 0;
+
+        foreach (File::allFiles($baseDir) as $file) {
+            $relativePath = str_replace('\\', '/', ltrim(str_replace($baseDir, '', $file->getPathname()), '\\/'));
+
+            if (in_array($relativePath, $referenced, true)) {
+                continue;
+            }
+
+            $orphanFiles++;
+            $orphanBytes += $file->getSize();
+        }
+
+        return ['exists' => true, 'orphan_files' => $orphanFiles, 'orphan_bytes' => $orphanBytes];
+    }
+
+    /**
+     * مسیر پیش‌فرض ذخیره‌سازی بک‌آپ. اگه BackupPathResolver مسیر متفاوتی برمی‌گردونه
+     * (مثلاً یه مسیر انتخابی کاربر)، این خط رو با همون جایگزین کن.
+     */
+    protected function clearOldBackups(int $keepLast): array
+    {
+        $dir = storage_path('app/backups');
+
+        if (! is_dir($dir)) {
+            return ['skipped' => true, 'reason' => "Backup directory does not exist: {$dir}"];
+        }
+
+        $items = collect(File::glob($dir . DIRECTORY_SEPARATOR . '*'))
+            ->sortByDesc(fn($path) => filemtime($path))
+            ->values();
+
+        $toDelete = $items->slice(max($keepLast, 0));
+        $deleted = 0;
+        $bytes = 0;
+
+        foreach ($toDelete as $path) {
+            $bytes += is_dir($path) ? ($this->dirStats($path)['bytes'] ?? 0) : (filesize($path) ?: 0);
+            is_dir($path) ? File::deleteDirectory($path) : File::delete($path);
+            $deleted++;
+        }
+
+        return ['ok' => true, 'deleted' => $deleted, 'bytes' => $bytes, 'kept' => min($keepLast, $items->count())];
+    }
+
+    protected function backupsMetrics(): array
+    {
+        $dir = storage_path('app/backups');
+
+        if (! is_dir($dir)) {
+            return ['exists' => false, 'items' => 0, 'bytes' => 0];
+        }
+
+        $items = File::glob($dir . DIRECTORY_SEPARATOR . '*');
+        $bytes = 0;
+
+        foreach ($items as $path) {
+            $bytes += is_dir($path) ? ($this->dirStats($path)['bytes'] ?? 0) : (filesize($path) ?: 0);
+        }
+
+        return ['exists' => true, 'items' => count($items), 'bytes' => $bytes];
+    }
+
+    /**
+     * اگه حجم فایل‌های کش/orphan از آستانه‌ی تنظیم‌شده رد شد، به‌صورت خودکار پاکسازی می‌کند.
+     * از Schedule یا هرجای دیگه‌ای صدا زده می‌شه؛ اگه نیازی نبود، null برمی‌گردونه.
+     */
+    public function autoCleanIfThresholdExceeded(?int $userId = null): ?CacheMaintenanceRun
+    {
+        $metrics = $this->collectMetrics();
+
+        $thresholdBytes = $this->settings->getInt('maintenance.cache.auto_clean_threshold_mb', 500) * 1024 * 1024;
+
+        $trackedBytes = ($metrics['bootstrap_cache']['bytes'] ?? 0)
+            + ($metrics['compiled_views']['bytes'] ?? 0)
+            + ($metrics['framework_cache']['bytes'] ?? 0)
+            + ($metrics['logs']['bytes'] ?? 0)
+            + ($metrics['sessions']['bytes'] ?? 0)
+            + ($metrics['orphan_media']['orphan_bytes'] ?? 0);
+
+        if ($trackedBytes < $thresholdBytes) {
+            return null;
+        }
+
+        return $this->clear([
+            'targets' => array_merge(self::DEFAULT_TARGETS, ['orphan_media']),
+            'dry_run' => false,
+            'include_orphan_media' => true,
+            'force' => true,
+        ], $userId);
     }
 }

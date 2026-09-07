@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace Modules\CacheMaintenance\Http\Controllers;
 
-use App\Http\Requests\CacheMaintenanceRequest;
-use App\Services\CacheMaintenanceService;
+use Modules\CacheMaintenance\Http\Requests\CacheMaintenanceRequest;
+use Modules\CacheMaintenance\Services\CacheMaintenanceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use RuntimeException;

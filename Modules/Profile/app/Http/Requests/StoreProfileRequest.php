@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests;
+namespace Modules\Profile\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -42,8 +42,10 @@ class StoreProfileRequest extends FormRequest
             'currency_code'     => ['nullable', 'string', 'size:3'],
             'currency_symbol'   => ['nullable', 'string', 'max:10'],
             'fiscal_year_start' => ['nullable', 'integer', 'between:1,12'],
-            'logo_path'         => ['nullable', 'string', 'max:500'],
-            'cover_path'        => ['nullable', 'string', 'max:500'],
+            'logo'              => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'cover'             => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'remove_logo'       => ['nullable', 'boolean'],
+            'remove_cover'      => ['nullable', 'boolean'],
             'receipt_footer'    => ['nullable', 'string', 'max:500'],
             'working_hours'     => ['nullable', 'array'],
             'is_primary'        => ['nullable', 'boolean'],
