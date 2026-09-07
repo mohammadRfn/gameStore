@@ -1,56 +1,106 @@
 <?php
 
-namespace Modules\CacheMaintenance\Http\Controllers;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
+use App\Http\Requests\CacheMaintenanceRequest;
+use App\Services\CacheMaintenanceService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use RuntimeException;
 
 class CacheMaintenanceController extends Controller
 {
+    public function __construct(
+        protected CacheMaintenanceService $cacheMaintenance
+    ) {}
+
     /**
-     * Display a listing of the resource.
+     * Overview/Inspect — وضعیت فعلی کش‌ها، حجم فایل‌ها، تعداد رکوردهای cache و پیشنهادها.
      */
-    public function index()
+    public function overview(Request $request): JsonResponse
     {
-        return view('cachemaintenance::index');
+        $data = $this->cacheMaintenance->inspect($request->user()?->id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+        ]);
     }
 
     /**
-     * Show the form for creating a new resource.
+     * لیست targetهای قابل پاکسازی با توضیح و درجه ایمنی.
      */
-    public function create()
+    public function targets(): JsonResponse
     {
-        return view('cachemaintenance::create');
+        return response()->json([
+            'success' => true,
+            'data' => $this->cacheMaintenance->availableTargets(),
+        ]);
     }
 
     /**
-     * Store a newly created resource in storage.
+     * اجرای پاکسازی یا dry-run.
      */
-    public function store(Request $request) {}
-
-    /**
-     * Show the specified resource.
-     */
-    public function show($id)
+    public function clear(CacheMaintenanceRequest $request): JsonResponse
     {
-        return view('cachemaintenance::show');
+        try {
+            $run = $this->cacheMaintenance->clear($request->validated(), $request->user()?->id);
+
+            return response()->json([
+                'success' => in_array($run->status, ['completed', 'partial'], true),
+                'message' => $run->is_dry_run
+                    ? 'بررسی آزمایشی پاکسازی کش انجام شد؛ هیچ چیزی حذف نشد.'
+                    : 'عملیات پاکسازی کش اجرا شد.',
+                'data' => $run,
+            ], $run->status === 'failed' ? 422 : 200);
+        } catch (RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Warm-up/Optimize — بعد از نصب یا آپدیت برنامه.
      */
-    public function edit($id)
+    public function optimize(CacheMaintenanceRequest $request): JsonResponse
     {
-        return view('cachemaintenance::edit');
+        try {
+            $run = $this->cacheMaintenance->optimize($request->validated(), $request->user()?->id);
+
+            return response()->json([
+                'success' => $run->status === 'completed',
+                'message' => 'عملیات بهینه‌سازی و گرم‌سازی کش اجرا شد.',
+                'data' => $run,
+            ], $run->status === 'failed' ? 422 : 200);
+        } catch (RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
     }
 
     /**
-     * Update the specified resource in storage.
+     * تاریخچه اجراها.
      */
-    public function update(Request $request, $id) {}
+    public function index(Request $request): JsonResponse
+    {
+        $filters = $request->validate([
+            'operation' => ['nullable', 'string', 'in:clear,optimize,inspect'],
+            'status'    => ['nullable', 'string', 'in:pending,running,completed,partial,failed'],
+            'per_page'  => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->cacheMaintenance->paginateRuns($filters),
+        ]);
+    }
 
     /**
-     * Remove the specified resource from storage.
+     * جزئیات یک اجرا.
      */
-    public function destroy($id) {}
+    public function show(int $runId): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $this->cacheMaintenance->findRun($runId),
+        ]);
+    }
 }
