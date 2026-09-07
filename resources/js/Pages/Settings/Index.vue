@@ -57,6 +57,7 @@ import GsSelect from '@/Components/Settings/GsSelect.vue'
 import GsField from '@/Components/Settings/GsField.vue'
 import GsTextArea from '@/Components/Settings/GsTextArea.vue'
 import ToastHost from '@/Components/Settings/ToastHost.vue'
+import GearsCluster from '@/Components/Settings/GearsCluster.vue'
 
 const api = useSettingsApi()
 
@@ -462,6 +463,7 @@ onBeforeUnmount(() => {
                             </span>
                         </div>
                     </div>
+                                <GearsCluster />
 
                     <div class="st-hero__actions">
                         <button

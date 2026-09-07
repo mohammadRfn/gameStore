@@ -1,0 +1,11 @@
+{
+    "name": "CacheMaintenance",
+    "alias": "cachemaintenance",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\CacheMaintenance\\Providers\\CacheMaintenanceServiceProvider"
+    ],
+    "files": []
+}

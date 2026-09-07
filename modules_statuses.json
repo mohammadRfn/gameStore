@@ -1,4 +1,5 @@
 {
     "Setting": true,
-    "Profile": true
+    "Profile": true,
+    "CacheMaintenance": true
 }

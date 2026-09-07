@@ -136,8 +136,10 @@ final class SettingService
      */
     public function getAll(): array
     {
+        $fetch = fn () => array_merge($this->defaults->all(), $this->repository->all());
+
         if (! $this->cacheEnabled()) {
-            return $this->repository->all();
+            return $fetch();
         }
 
         $key = $this->cacheKey(self::CACHE_ALL_KEY_SUFFIX);
@@ -145,7 +147,7 @@ final class SettingService
         return $this->cache->remember(
             $key,
             (int) config('setting.cache.ttl', 86400),
-            fn () => $this->repository->all(),
+            $fetch,
         );
     }
 
@@ -156,8 +158,13 @@ final class SettingService
      */
     public function getGroup(SettingGroup $group): array
     {
+        $fetch = fn () => array_merge(
+            $this->defaults->defaultsForGroup($group),
+            $this->repository->getGroup($group),
+        );
+
         if (! $this->cacheEnabled()) {
-            return $this->repository->getGroup($group);
+            return $fetch();
         }
 
         $key = $this->cacheKey(self::CACHE_GROUP_PREFIX . $group->value);
@@ -165,7 +172,7 @@ final class SettingService
         return $this->cache->remember(
             $key,
             (int) config('setting.cache.ttl', 86400),
-            fn () => $this->repository->getGroup($group),
+            $fetch,
         );
     }
 
