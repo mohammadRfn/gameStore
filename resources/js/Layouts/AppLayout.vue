@@ -145,7 +145,7 @@ const quickActions = [
     { label: 'سرویس', icon: '🔧', route: 'service-jobs.index' },
     { label: 'آرشیو', icon: '🧾', route: 'archives.panel' },
     { label: 'بکاپ', icon: '♛', route: 'backups.panel' },
-    { label: 'تنظیمات', icon: '⚙️', route: 'settings.index' },
+    { label: 'تنظیمات', icon: '⚙️', route: 'settings.panel' },
 ]
 
 // Sidebar Groups
@@ -202,7 +202,7 @@ const sidebarGroups = [
     {
         title: 'سیستم',
         items: [
-            { label: 'تنظیمات', icon: '⚙️', route: 'settings.index' },
+            { label: 'تنظیمات', icon: '⚙️', route: 'settings.panel' },
         ],
     },
 ]

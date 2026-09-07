@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 use Modules\Setting\Http\Controllers\AppSettingController;
+use Inertia\Inertia;
 
 Route::prefix('settings')
     ->middleware(['auth'])
     ->name('settings.')
     ->group(function () {
+        Route::get('/panel', fn() => Inertia::render('Settings/Index'))->name('panel');
+
         // ثابت‌ها — باید همه قبل از {key} باشن
         Route::get('/meta', [AppSettingController::class, 'meta'])->name('meta');
         Route::get('/export', [AppSettingController::class, 'export'])->name('export');
