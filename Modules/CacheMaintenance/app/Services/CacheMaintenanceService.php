@@ -2,13 +2,14 @@
 
 namespace Modules\CacheMaintenance\Services;
 
-use App\Models\CacheMaintenanceRun;
-use App\Models\StoreProfile;
+use Modules\Profile\Models\StoreProfile;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
+use Modules\CacheMaintenance\Models\CacheMaintenanceRun;
+use Modules\Setting\Services\Setting\SettingService;
 use RuntimeException;
 use Throwable;
 
@@ -59,7 +60,7 @@ class CacheMaintenanceService
     ];
 
     public function __construct(
-        protected SettingsService $settings
+        protected SettingService $settings
     ) {}
 
     /**

@@ -2,6 +2,7 @@
 
 namespace Modules\CacheMaintenance\Http\Controllers;
 
+use App\Http\Controllers\Controller;
 use Modules\CacheMaintenance\Http\Requests\CacheMaintenanceRequest;
 use Modules\CacheMaintenance\Services\CacheMaintenanceService;
 use Illuminate\Http\JsonResponse;

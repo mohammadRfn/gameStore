@@ -2,6 +2,7 @@
 
 namespace Modules\Profile\Http\Controllers;
 
+use App\Http\Controllers\Controller;
 use Modules\Profile\Http\Requests\StoreProfileRequest;
 use Modules\Profile\Services\StoreProfileService;
 use Illuminate\Http\Request;
