@@ -157,38 +157,7 @@ Route::middleware('auth')->group(function () {
             ->whereNumber('archivedRecordId')
             ->name('destroy');
     });
-    Route::prefix('settings/cache')->name('settings.cache.')->group(function () {
-        Route::get('overview', [CacheMaintenanceController::class, 'overview'])->name('overview');
-        Route::get('targets',  [CacheMaintenanceController::class, 'targets'])->name('targets');
-        Route::post('clear',   [CacheMaintenanceController::class, 'clear'])->name('clear');
-        Route::post('optimize', [CacheMaintenanceController::class, 'optimize'])->name('optimize');
-        Route::get('runs',     [CacheMaintenanceController::class, 'index'])->name('runs.index');
-        Route::get('runs/{runId}', [CacheMaintenanceController::class, 'show'])
-            ->whereNumber('runId')->name('runs.show');
-    });
 
-
-    // ---------------- Store Profiles ----------------
-    Route::get('store-profiles', [StoreProfileController::class, 'index'])->name('store-profiles.index');
-    Route::get('store-profiles/search', [StoreProfileController::class, 'search'])->name('store-profiles.search');
-    Route::get('store-profiles/{id}', [StoreProfileController::class, 'show'])->name('store-profiles.show');
-    Route::post('store-profiles', [StoreProfileController::class, 'store'])->name('store-profiles.store');
-    Route::put('store-profiles/{id}', [StoreProfileController::class, 'update'])->name('store-profiles.update');
-    Route::delete('store-profiles/{id}', [StoreProfileController::class, 'destroy'])->name('store-profiles.destroy');
-    Route::post('store-profiles/{id}/primary', [StoreProfileController::class, 'setPrimary'])->name('store-profiles.primary');
-
-    // ---------------- App Settings ----------------
-    // require base_path('routes/settings.php');
-
-    /*
-|--------------------------------------------------------------------------
-| JSON API (Electron renderer / local API) — Sanctum or same-session auth
-|--------------------------------------------------------------------------
-*/
-        Route::get('store-profiles', [StoreProfileController::class, 'index']);
-        Route::post('store-profiles', [StoreProfileController::class, 'store']);
-        Route::put('store-profiles/{id}', [StoreProfileController::class, 'update']);
-        Route::delete('store-profiles/{id}', [StoreProfileController::class, 'destroy']);
 
         
     Route::prefix('backups')->name('backups.')->group(function () {

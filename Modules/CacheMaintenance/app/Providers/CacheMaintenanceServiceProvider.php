@@ -2,14 +2,22 @@
 
 namespace Modules\CacheMaintenance\Providers;
 
-use Nwidart\Modules\Support\ModuleServiceProvider;
 use Illuminate\Console\Scheduling\Schedule;
+use Modules\CacheMaintenance\Services\CacheMaintenanceService;
+use Nwidart\Modules\Support\ModuleServiceProvider;
 
 class CacheMaintenanceServiceProvider extends ModuleServiceProvider
 {
-    /**
-     * The name of the module.
-     */
+
+    public function boot(): void
+    {
+        parent::boot();
+
+        $this->app->booted(function () {
+            app(CacheMaintenanceService::class)->runDueMaintenanceIfNeeded();
+        });
+    }
+
     protected string $name = 'CacheMaintenance';
 
     /**
@@ -35,12 +43,9 @@ class CacheMaintenanceServiceProvider extends ModuleServiceProvider
     ];
 
     /**
-     * Define module schedules.
-     * 
-     * @param $schedule
+     * این ماژول از Schedule استاندارد لاراول استفاده نمی‌کند، چون اپ به‌صورت
+     * 24 ساعته روشن نیست و cron/schedule:run پیوسته‌ای وجود ندارد.
+     * به‌جایش نگاه کن به CacheMaintenanceService::runDueMaintenanceIfNeeded()
+     * که روی هر boot اپ (از طریق این service provider) صدا زده می‌شود.
      */
-    // protected function configureSchedules(Schedule $schedule): void
-    // {
-    //     $schedule->command('inspire')->hourly();
-    // }
 }

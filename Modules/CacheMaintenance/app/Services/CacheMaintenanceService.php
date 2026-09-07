@@ -846,4 +846,41 @@ class CacheMaintenanceService
             'force' => true,
         ], $userId);
     }
+    /**
+     * روی هر boot اپ صدا زده می‌شود (نه روی cron).
+     * چون اپ به‌صورت 24 ساعته روشن نیست، به‌جای زمان‌بندی ساعتی،
+     * بررسی می‌کنیم که از آخرین اجرا چقدر گذشته و در صورت لزوم اجرا می‌کنیم.
+     */
+    public function runDueMaintenanceIfNeeded(): void
+    {
+        $this->runWeeklyClearIfDue();
+        $this->runThresholdCheckIfDue();
+    }
+
+    protected function runWeeklyClearIfDue(): void
+    {
+        if (Cache::has('cache_maintenance.weekly_clear_marker')) {
+            return;
+        }
+
+        $this->clear([
+            'targets' => self::DEFAULT_TARGETS,
+            'dry_run' => false,
+            'warm_after_clear' => true,
+            'force' => true,
+        ]);
+
+        Cache::put('cache_maintenance.weekly_clear_marker', now()->toIso8601String(), now()->addDays(7));
+    }
+
+    protected function runThresholdCheckIfDue(): void
+    {
+        if (Cache::has('cache_maintenance.threshold_check_marker')) {
+            return;
+        }
+
+        $this->autoCleanIfThresholdExceeded();
+
+        Cache::put('cache_maintenance.threshold_check_marker', now()->toIso8601String(), now()->addDay());
+    }
 }
