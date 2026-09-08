@@ -242,7 +242,6 @@ class CacheMaintenanceService
     {
         return CacheMaintenanceRun::findOrFail($id);
     }
-
     public function availableTargets(): array
     {
         return [

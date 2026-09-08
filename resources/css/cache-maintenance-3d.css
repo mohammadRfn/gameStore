@@ -1,0 +1,635 @@
+/* ==========================================================================
+   GameStore · Cache Maintenance 3D Layer
+   --------------------------------------------------------------------------
+   مسیر فایل: resources/css/cache-maintenance-3d.css
+
+   فعال‌سازی — در resources/css/app.css کنار بقیهٔ ایمپورت‌ها (بالای فایل):
+       @import "tailwindcss";
+       @import "./archive-3d.css";
+       @import "./backup-royal.css";
+       @import "./settings-3d.css";
+       @import "./cache-maintenance-3d.css";   <-- این خط
+
+   این فایل هیچ توکنی را بازنویسی نمی‌کند و کاملاً روی --gs-* سوار است؛
+   کلاس‌های چیدمان عمومی (st-*) و سه‌بعدی (a3d-*) مستقیم استفاده می‌شوند.
+   ========================================================================== */
+
+:root {
+  --cm-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --cm-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* --------------------------------------------------------------------------
+   1) دکمه‌ها
+   -------------------------------------------------------------------------- */
+.cm-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 42px;
+  padding: 0.5rem 1.15rem;
+  border-radius: 12px;
+  border: 1px solid var(--gs-border);
+  background: var(--gs-glass);
+  color: var(--gs-text-primary);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform var(--gs-transition), border-color var(--gs-transition),
+    box-shadow var(--gs-transition), background var(--gs-transition);
+}
+
+.cm-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--gs-border-hover);
+}
+
+.cm-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.cm-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cm-btn--gold {
+  border-color: transparent;
+  background: var(--gs-gold-grad);
+  color: #2a1f06;
+  box-shadow: var(--gs-shadow-gold);
+}
+
+.cm-btn--gold:hover:not(:disabled) {
+  box-shadow: 0 10px 34px var(--gs-gold-glow);
+}
+
+.cm-btn--ghost {
+  background: transparent;
+}
+
+.cm-btn--danger {
+  border-color: color-mix(in srgb, var(--gs-error) 34%, transparent);
+  background: var(--gs-error-soft);
+  color: var(--gs-error);
+}
+
+.cm-btn--block { width: 100%; }
+
+.cm-btn.is-loading .cm-btn__spinner { display: inline-block; }
+
+.cm-btn__spinner {
+  display: none;
+  width: 15px;
+  height: 15px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: cm-spin 0.7s linear infinite;
+}
+
+@keyframes cm-spin { to { transform: rotate(360deg); } }
+
+/* --------------------------------------------------------------------------
+   2) متریک‌ها
+   -------------------------------------------------------------------------- */
+.cm-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+  gap: 0.85rem;
+}
+
+.cm-metric {
+  position: relative;
+  padding: 1.05rem 1.1rem;
+  border-radius: var(--gs-radius);
+  border: 1px solid var(--gs-border);
+  background: var(--gs-bg-card);
+  overflow: hidden;
+  transition: transform var(--gs-transition), border-color var(--gs-transition);
+}
+
+.cm-metric:hover {
+  transform: translateY(-3px);
+  border-color: var(--gs-border-hover);
+}
+
+.cm-metric::after {
+  content: '';
+  position: absolute;
+  right: -20px;
+  top: -20px;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: var(--cm-accent, var(--gs-gold-glow));
+  filter: blur(30px);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.cm-metric__icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--gs-gold-muted);
+  border: 1px solid var(--gs-border);
+  font-size: 1.05rem;
+  margin-bottom: 0.65rem;
+}
+
+.cm-metric__label {
+  font-size: 0.72rem;
+  color: var(--gs-text-secondary);
+  margin-bottom: 0.2rem;
+}
+
+.cm-metric__value {
+  font-size: 1.22rem;
+  font-weight: 800;
+  color: var(--gs-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.cm-metric__sub {
+  margin-top: 0.25rem;
+  font-size: 0.7rem;
+  color: var(--gs-text-muted);
+  font-family: ui-monospace, 'SFMono-Regular', monospace;
+  direction: ltr;
+  text-align: right;
+}
+
+/* --------------------------------------------------------------------------
+   3) کارت target (چک‌لیست)
+   -------------------------------------------------------------------------- */
+.cm-targets {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(228px, 1fr));
+  gap: 0.8rem;
+}
+
+.cm-target {
+  position: relative;
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.95rem 1rem;
+  border-radius: var(--gs-radius);
+  border: 1px solid var(--gs-border);
+  background: var(--gs-bg-card);
+  cursor: pointer;
+  user-select: none;
+  transition: transform var(--gs-transition), border-color var(--gs-transition),
+    background var(--gs-transition), box-shadow var(--gs-transition);
+}
+
+.cm-target:hover {
+  transform: translateY(-2px);
+  border-color: var(--gs-border-hover);
+}
+
+.cm-target.is-on {
+  border-color: var(--gs-border-strong);
+  background: var(--gs-gold-muted);
+  box-shadow: var(--gs-shadow-gold);
+}
+
+.cm-target__icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: var(--gs-glass);
+  border: 1px solid var(--gs-border);
+  font-size: 1.05rem;
+}
+
+.cm-target__check {
+  position: absolute;
+  top: 0.75rem;
+  inset-inline-start: 0.75rem;
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  border: 1.5px solid var(--gs-border-hover);
+  display: grid;
+  place-items: center;
+  font-size: 0.68rem;
+  color: transparent;
+  background: var(--gs-bg-card);
+  transition: all var(--gs-transition);
+}
+
+.cm-target.is-on .cm-target__check {
+  background: var(--gs-gold-grad);
+  border-color: transparent;
+  color: #2a1f06;
+}
+
+.cm-target__title {
+  font-size: 0.83rem;
+  font-weight: 700;
+  color: var(--gs-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.cm-target__desc {
+  margin-top: 0.25rem;
+  font-size: 0.71rem;
+  line-height: 1.75;
+  color: var(--gs-text-secondary);
+}
+
+.cm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.cm-badge--safe {
+  background: var(--gs-success-soft);
+  color: var(--gs-success);
+}
+
+.cm-badge--unsafe {
+  background: var(--gs-warning-soft);
+  color: var(--gs-warning);
+}
+
+/* --------------------------------------------------------------------------
+   4) pill وضعیت
+   -------------------------------------------------------------------------- */
+.cm-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cm-pill--ok { background: var(--gs-success-soft); color: var(--gs-success); }
+.cm-pill--warn { background: var(--gs-warning-soft); color: var(--gs-warning); }
+.cm-pill--danger { background: var(--gs-error-soft); color: var(--gs-error); }
+.cm-pill--info { background: var(--gs-info-soft); color: var(--gs-info); }
+.cm-pill--muted { background: var(--gs-glass); color: var(--gs-text-muted); }
+
+/* --------------------------------------------------------------------------
+   5) جدول تاریخچه
+   -------------------------------------------------------------------------- */
+.cm-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--gs-radius);
+  border: 1px solid var(--gs-border);
+  background: var(--gs-bg-card);
+}
+
+.cm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  min-width: 640px;
+}
+
+.cm-table thead th {
+  text-align: start;
+  padding: 0.85rem 1rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--gs-text-muted);
+  border-bottom: 1px solid var(--gs-border);
+  white-space: nowrap;
+}
+
+.cm-table tbody td {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--gs-border-soft);
+  color: var(--gs-text-secondary);
+  white-space: nowrap;
+}
+
+.cm-table tbody tr:last-child td { border-bottom: 0; }
+
+.cm-table tbody tr {
+  cursor: pointer;
+  transition: background var(--gs-transition);
+}
+
+.cm-table tbody tr:hover { background: var(--gs-glass-hover); }
+
+.cm-table__mono {
+  font-family: ui-monospace, 'SFMono-Regular', monospace;
+  direction: ltr;
+  text-align: right;
+}
+
+/* --------------------------------------------------------------------------
+   6) محیط / پیشنهادها
+   -------------------------------------------------------------------------- */
+.cm-env {
+  display: flex;
+  flex-direction: column;
+}
+
+.cm-env__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.62rem 0;
+  border-bottom: 1px solid var(--gs-border-soft);
+  font-size: 0.78rem;
+}
+
+.cm-env__row:last-child { border-bottom: 0; }
+
+.cm-env__k {
+  color: var(--gs-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cm-env__v {
+  color: var(--gs-text-primary);
+  font-weight: 600;
+  font-family: ui-monospace, 'SFMono-Regular', monospace;
+  direction: ltr;
+}
+
+.cm-reco {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.cm-reco__item {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  padding: 0.7rem 0.85rem;
+  border-radius: 11px;
+  border: 1px solid var(--gs-border);
+  background: var(--gs-glass);
+  font-size: 0.78rem;
+  line-height: 1.85;
+  color: var(--gs-text-secondary);
+}
+
+.cm-reco__item--ok {
+  border-color: color-mix(in srgb, var(--gs-success) 26%, transparent);
+  background: var(--gs-success-soft);
+  color: var(--gs-success);
+}
+
+.cm-reco__dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin-top: 0.5rem;
+  border-radius: 50%;
+  background: var(--gs-gold);
+  box-shadow: 0 0 10px var(--gs-gold-glow);
+}
+
+.cm-reco__item--ok .cm-reco__dot {
+  background: var(--gs-success);
+  box-shadow: 0 0 10px var(--gs-success-soft);
+}
+
+/* --------------------------------------------------------------------------
+   7) خلاصهٔ نتیجهٔ اجرا (بعد از clear/optimize)
+   -------------------------------------------------------------------------- */
+.cm-result {
+  border-radius: var(--gs-radius);
+  border: 1px solid var(--gs-border);
+  overflow: hidden;
+}
+
+.cm-result__head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.9rem 1.1rem;
+  border-bottom: 1px solid var(--gs-border);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.cm-result__head--ok { background: var(--gs-success-soft); color: var(--gs-success); }
+.cm-result__head--partial { background: var(--gs-warning-soft); color: var(--gs-warning); }
+.cm-result__head--fail { background: var(--gs-error-soft); color: var(--gs-error); }
+
+.cm-result__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.85rem 1.1rem;
+  font-size: 0.76rem;
+}
+
+.cm-result__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--gs-text-secondary);
+}
+
+.cm-result__row b { color: var(--gs-text-primary); font-weight: 700; }
+
+/* --------------------------------------------------------------------------
+   8) کشو جزئیات اجرا
+   -------------------------------------------------------------------------- */
+.cm-drawer-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(4, 4, 8, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.cm-drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  inset-inline-end: 0;
+  z-index: 201;
+  width: min(460px, 92vw);
+  background: var(--gs-bg-soft);
+  border-inline-start: 1px solid var(--gs-border);
+  box-shadow: -20px 0 60px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cm-drawer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid var(--gs-border);
+}
+
+.cm-drawer__title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--gs-text-primary);
+}
+
+.cm-drawer__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.cm-drawer-enter-active,
+.cm-drawer-leave-active { transition: transform 0.38s var(--cm-ease), opacity 0.3s ease; }
+.cm-drawer-enter-from,
+.cm-drawer-leave-to { transform: translateX(100%); opacity: 0.4; }
+.cm-drawer-mask-enter-active,
+.cm-drawer-mask-leave-active { transition: opacity 0.3s ease; }
+.cm-drawer-mask-enter-from,
+.cm-drawer-mask-leave-to { opacity: 0; }
+
+/* --------------------------------------------------------------------------
+   9) فیلدها و کنترل‌های فرم
+   -------------------------------------------------------------------------- */
+.cm-field { display: flex; flex-direction: column; gap: 0.4rem; }
+
+.cm-field__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--gs-text-secondary);
+}
+
+.cm-input,
+.cm-select {
+  min-height: 42px;
+  padding: 0.5rem 0.85rem;
+  border-radius: 11px;
+  border: 1px solid var(--gs-border);
+  background: var(--gs-bg-elevated);
+  color: var(--gs-text-primary);
+  font-family: inherit;
+  font-size: 0.82rem;
+  transition: border-color var(--gs-transition), box-shadow var(--gs-transition);
+}
+
+.cm-input:focus,
+.cm-select:focus {
+  outline: none;
+  border-color: var(--gs-border-strong);
+  box-shadow: 0 0 0 3px var(--gs-gold-glow);
+}
+
+.cm-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.78rem;
+  color: var(--gs-text-secondary);
+  cursor: pointer;
+}
+
+.cm-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--gs-gold);
+  cursor: pointer;
+}
+
+.cm-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 0.7rem;
+}
+
+.cm-hint {
+  font-size: 0.7rem;
+  line-height: 1.8;
+  color: var(--gs-text-muted);
+}
+
+.cm-divider {
+  height: 1px;
+  margin: 0.4rem 0;
+  background: var(--gs-border);
+}
+
+/* سربرگ کوچک بخش‌های داخل کشو/جزئیات */
+.cm-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.2rem 0 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--gs-text-primary);
+}
+
+.cm-legend__icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--gs-gold-muted);
+  border: 1px solid var(--gs-border);
+  color: var(--gs-gold);
+}
+
+/* --------------------------------------------------------------------------
+   10) صحنهٔ پس‌زمینهٔ اختصاصی کش (اورب + شبکه)
+   -------------------------------------------------------------------------- */
+.cm-scene { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+
+.cm-scene__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(64px);
+  opacity: 0.4;
+  will-change: transform;
+}
+
+.cm-scene__orb--gold { background: radial-gradient(circle, var(--gs-gold) 0%, transparent 68%); }
+.cm-scene__orb--blue { background: radial-gradient(circle, var(--gs-accent) 0%, transparent 68%); }
+.cm-scene__orb--violet { background: radial-gradient(circle, var(--gs-accent-3) 0%, transparent 68%); }
+
+.cm-scene__float-a { animation: cm-float-a 13s ease-in-out infinite; }
+.cm-scene__float-b { animation: cm-float-b 17s ease-in-out infinite; }
+.cm-scene__float-c { animation: cm-float-c 21s ease-in-out infinite; }
+
+@keyframes cm-float-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(30px, -36px, 0) scale(1.12); }
+}
+@keyframes cm-float-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.05); }
+  50% { transform: translate3d(-36px, 24px, 0) scale(0.94); }
+}
+@keyframes cm-float-c {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(18px, 20px, 0) scale(1.18); }
+}

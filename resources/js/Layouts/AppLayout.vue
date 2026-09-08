@@ -134,7 +134,14 @@ const userInitial = computed(() => {
 
 // Active Route
 function isActive(routeName) {
-    return page.url.startsWith('/' + routeName.split('.')[0])
+    const current = route().current()
+    if (!current) return false
+    if (current === routeName) return true
+
+    const group = (name) => name.split('.').slice(0, -1).join('.')
+    const targetGroup = group(routeName)
+
+    return targetGroup !== '' && group(current) === targetGroup
 }
 
 // Quick Actions (TopBar)
@@ -146,6 +153,8 @@ const quickActions = [
     { label: 'آرشیو', icon: '🧾', route: 'archives.panel' },
     { label: 'بکاپ', icon: '♛', route: 'backups.panel' },
     { label: 'تنظیمات', icon: '⚙️', route: 'settings.panel' },
+    { label: 'نگهداری کش', icon: '🧹', route: 'settings.cache.panel' },
+    { label: 'پروفایل فروشگاه', icon: '🏪', route: 'store-profiles.index' },
 ]
 
 // Sidebar Groups
@@ -203,6 +212,8 @@ const sidebarGroups = [
         title: 'سیستم',
         items: [
             { label: 'تنظیمات', icon: '⚙️', route: 'settings.panel' },
+            { label: 'نگهداری کش', icon: '🧹', route: 'settings.cache.panel' },
+            { label: 'پروفایل فروشگاه', icon: '🏪', route: 'store-profiles.index' },
         ],
     },
 ]

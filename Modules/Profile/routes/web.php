@@ -18,8 +18,5 @@ Route::middleware('auth')->group(function () {
     | JSON API (Electron renderer / local API) — Sanctum or same-session auth
     |--------------------------------------------------------------------------
     */
-    Route::get('store-profiles', [StoreProfileController::class, 'index']);
-    Route::post('store-profiles', [StoreProfileController::class, 'store']);
-    Route::put('store-profiles/{id}', [StoreProfileController::class, 'update']);
-    Route::delete('store-profiles/{id}', [StoreProfileController::class, 'destroy']);
+
 });

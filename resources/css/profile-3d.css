@@ -1,0 +1,418 @@
+/* ==========================================================================
+   GameStore · Store Profile 3D Layer
+   --------------------------------------------------------------------------
+   مسیر فایل: resources/css/profile-3d.css
+
+   فعال‌سازی — در resources/css/app.css کنار بقیهٔ ایمپورت‌ها (بالای فایل):
+       @import "tailwindcss";
+       @import "./archive-3d.css";
+       @import "./backup-royal.css";
+       @import "./settings-3d.css";
+       @import "./cache-maintenance-3d.css";
+       @import "./profile-3d.css";        <-- این خط
+
+   کاملاً روی توکن‌های --gs-* سوار است و با تم روشن/تاریک سازگار می‌ماند.
+   ========================================================================== */
+
+:root {
+  --sp-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --sp-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* --------------------------------------------------------------------------
+   1) دکمه‌ها (مشترک با سایر ماژول‌ها — همان الگوی cm-btn)
+   -------------------------------------------------------------------------- */
+.sp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 42px;
+  padding: 0.5rem 1.15rem;
+  border-radius: 12px;
+  border: 1px solid var(--gs-border);
+  background: var(--gs-glass);
+  color: var(--gs-text-primary);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform var(--gs-transition), border-color var(--gs-transition),
+    box-shadow var(--gs-transition), background var(--gs-transition);
+}
+
+.sp-btn:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--gs-border-hover); }
+.sp-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.sp-btn--gold {
+  border-color: transparent;
+  background: var(--gs-gold-grad);
+  color: #2a1f06;
+  box-shadow: var(--gs-shadow-gold);
+}
+
+.sp-btn--danger {
+  border-color: color-mix(in srgb, var(--gs-error) 34%, transparent);
+  background: var(--gs-error-soft);
+  color: var(--gs-error);
+}
+
+.sp-btn--ghost { background: transparent; }
+
+/* --------------------------------------------------------------------------
+   2) شبکهٔ کارت‌های پروفایل
+   -------------------------------------------------------------------------- */
+.sp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.1rem;
+}
+
+.sp-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--gs-radius-lg);
+  border: 1px solid var(--gs-border);
+  background: var(--gs-bg-card);
+  overflow: hidden;
+  transition: transform var(--gs-transition), border-color var(--gs-transition);
+}
+
+.sp-card:hover { border-color: var(--gs-border-hover); }
+
+.sp-card.is-primary {
+  border-color: var(--gs-border-strong);
+  box-shadow: var(--gs-shadow-gold);
+}
+
+.sp-card__cover {
+  position: relative;
+  height: 92px;
+  background:
+    radial-gradient(120% 160% at 50% 0%, var(--gs-gold-glow), transparent 70%),
+    var(--gs-bg-elevated);
+  overflow: hidden;
+}
+
+.sp-card__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sp-card__badge {
+  position: absolute;
+  top: 0.7rem;
+  inset-inline-start: 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: var(--gs-gold-grad);
+  color: #2a1f06;
+  font-size: 0.64rem;
+  font-weight: 800;
+  box-shadow: var(--gs-shadow-gold);
+}
+
+.sp-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding: 1rem 1.1rem 1.1rem;
+  flex: 1;
+}
+
+.sp-card__head {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.sp-card__avatar {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  border: 1px solid var(--gs-border-hover);
+  background: var(--gs-gold-muted);
+  color: var(--gs-gold);
+  font-size: 1.15rem;
+  font-weight: 800;
+  overflow: hidden;
+}
+
+.sp-card__avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.sp-card__name {
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: var(--gs-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.sp-card__slug {
+  font-size: 0.7rem;
+  color: var(--gs-text-muted);
+  font-family: ui-monospace, 'SFMono-Regular', monospace;
+  direction: ltr;
+  text-align: right;
+}
+
+.sp-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--gs-text-secondary);
+}
+
+.sp-card__meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  line-height: 1.7;
+}
+
+.sp-card__meta-row span:last-child { direction: ltr; unicode-bidi: embed; }
+
+.sp-card__actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--gs-border-soft);
+}
+
+/* --------------------------------------------------------------------------
+   3) pill وضعیت
+   -------------------------------------------------------------------------- */
+.sp-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sp-pill--ok { background: var(--gs-success-soft); color: var(--gs-success); }
+.sp-pill--warn { background: var(--gs-warning-soft); color: var(--gs-warning); }
+.sp-pill--danger { background: var(--gs-error-soft); color: var(--gs-error); }
+.sp-pill--info { background: var(--gs-info-soft); color: var(--gs-info); }
+.sp-pill--muted { background: var(--gs-glass); color: var(--gs-text-muted); }
+
+/* --------------------------------------------------------------------------
+   4) فرم پروفایل (مودال)
+   -------------------------------------------------------------------------- */
+.sp-modal-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(4, 4, 8, 0.6);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.sp-modal {
+  width: min(880px, 100%);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--gs-radius-lg);
+  border: 1px solid var(--gs-border);
+  background: var(--gs-bg-soft);
+  box-shadow: var(--gs-shadow-md);
+  overflow: hidden;
+}
+
+.sp-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 1.4rem;
+  border-bottom: 1px solid var(--gs-border);
+}
+
+.sp-modal__title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--gs-text-primary);
+}
+
+.sp-modal__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+
+.sp-modal__foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  padding: 1rem 1.4rem;
+  border-top: 1px solid var(--gs-border);
+}
+
+.sp-modal-enter-active,
+.sp-modal-leave-active { transition: opacity 0.28s ease; }
+.sp-modal-enter-active .sp-modal,
+.sp-modal-leave-active .sp-modal { transition: transform 0.34s var(--sp-spring), opacity 0.28s ease; }
+.sp-modal-enter-from,
+.sp-modal-leave-to { opacity: 0; }
+.sp-modal-enter-from .sp-modal,
+.sp-modal-leave-to .sp-modal { transform: translateY(18px) scale(0.97); opacity: 0; }
+
+/* --------------------------------------------------------------------------
+   5) فیلدهای فرم
+   -------------------------------------------------------------------------- */
+.sp-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem 1rem;
+}
+
+@media (max-width: 640px) {
+  .sp-form-grid { grid-template-columns: 1fr; }
+}
+
+.sp-field { display: flex; flex-direction: column; gap: 0.4rem; }
+
+.sp-field--full { grid-column: 1 / -1; }
+
+.sp-field__label {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--gs-text-secondary);
+}
+
+.sp-field__label em {
+  color: var(--gs-error);
+  font-style: normal;
+}
+
+.sp-input,
+.sp-select,
+.sp-textarea {
+  min-height: 42px;
+  padding: 0.5rem 0.85rem;
+  border-radius: 11px;
+  border: 1px solid var(--gs-border);
+  background: var(--gs-bg-elevated);
+  color: var(--gs-text-primary);
+  font-family: inherit;
+  font-size: 0.82rem;
+  transition: border-color var(--gs-transition), box-shadow var(--gs-transition);
+}
+
+.sp-textarea { min-height: 84px; resize: vertical; line-height: 1.8; }
+
+.sp-input:focus,
+.sp-select:focus,
+.sp-textarea:focus {
+  outline: none;
+  border-color: var(--gs-border-strong);
+  box-shadow: 0 0 0 3px var(--gs-gold-glow);
+}
+
+.sp-input.has-error { border-color: var(--gs-error); }
+
+.sp-field__error {
+  font-size: 0.68rem;
+  color: var(--gs-error);
+}
+
+/* --------------------------------------------------------------------------
+   6) بخش‌بندی‌های فرم (legend)
+   -------------------------------------------------------------------------- */
+.sp-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.2rem 0 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--gs-text-primary);
+}
+
+.sp-legend__icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--gs-gold-muted);
+  border: 1px solid var(--gs-border);
+  color: var(--gs-gold);
+}
+
+/* --------------------------------------------------------------------------
+   7) بارگذاری آواتار/کاور
+   -------------------------------------------------------------------------- */
+.sp-upload {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.85rem;
+  border-radius: 13px;
+  border: 1.5px dashed var(--gs-border);
+  background: var(--gs-glass);
+  cursor: pointer;
+  transition: border-color var(--gs-transition), background var(--gs-transition);
+}
+
+.sp-upload:hover {
+  border-color: var(--gs-border-hover);
+  background: var(--gs-glass-hover);
+}
+
+.sp-upload__preview {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  border: 1px solid var(--gs-border);
+  object-fit: cover;
+  background: var(--gs-bg-elevated);
+}
+
+/* --------------------------------------------------------------------------
+   8) صحنهٔ پس‌زمینهٔ اختصاصی پروفایل
+   -------------------------------------------------------------------------- */
+.sp-scene { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+
+.sp-scene__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(64px);
+  opacity: 0.4;
+  will-change: transform;
+}
+
+.sp-scene__orb--gold { background: radial-gradient(circle, var(--gs-gold) 0%, transparent 68%); }
+.sp-scene__orb--blue { background: radial-gradient(circle, var(--gs-accent) 0%, transparent 68%); }
+.sp-scene__orb--green { background: radial-gradient(circle, var(--gs-accent-2) 0%, transparent 68%); }
+
+.sp-scene__float-a { animation: sp-float-a 14s ease-in-out infinite; }
+.sp-scene__float-b { animation: sp-float-b 18s ease-in-out infinite; }
+
+@keyframes sp-float-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(28px, -32px, 0) scale(1.12); }
+}
+@keyframes sp-float-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.05); }
+  50% { transform: translate3d(-34px, 26px, 0) scale(0.94); }
+}

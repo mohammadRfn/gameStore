@@ -49,8 +49,7 @@ final class SettingService
         private readonly CacheRepository $cache,
         private readonly Dispatcher $events,
         private readonly SettingDefaults $defaults,
-    ) {
-    }
+    ) {}
 
     /*
     |--------------------------------------------------------------------------
@@ -105,7 +104,21 @@ final class SettingService
         $v = $this->get($key, $default);
         return filter_var($v, FILTER_VALIDATE_BOOLEAN, ['flags' => FILTER_NULL_ON_FAILURE]) ?? $default;
     }
+    public function getJson(string $key, mixed $default = null): mixed
+    {
+        $value = $this->get($key, $default);
 
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            return json_last_error() === JSON_ERROR_NONE ? $decoded : $default;
+        }
+
+        return $default;
+    }
     /**
      * گرفتن مقدار به‌صورت enum مشخص.
      *
@@ -136,7 +149,7 @@ final class SettingService
      */
     public function getAll(): array
     {
-        $fetch = fn () => array_merge($this->defaults->all(), $this->repository->all());
+        $fetch = fn() => array_merge($this->defaults->all(), $this->repository->all());
 
         if (! $this->cacheEnabled()) {
             return $fetch();
@@ -158,7 +171,7 @@ final class SettingService
      */
     public function getGroup(SettingGroup $group): array
     {
-        $fetch = fn () => array_merge(
+        $fetch = fn() => array_merge(
             $this->defaults->defaultsForGroup($group),
             $this->repository->getGroup($group),
         );
@@ -226,7 +239,7 @@ final class SettingService
         // 4) انتشار رویداد
         $group = null;
         $groups = array_unique(array_map(
-            fn ($key) => $this->defaults->groupOf($key)?->value,
+            fn($key) => $this->defaults->groupOf($key)?->value,
             array_keys($values)
         ));
         if (count($groups) === 1 && $groups[0] !== null) {
