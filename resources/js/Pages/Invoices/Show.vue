@@ -126,7 +126,15 @@
                     </thead>
                     <tbody>
                         <tr v-for="item in invoice.order_items" :key="item.id">
-                            <td>{{ item.product_name }}</td>
+                            <td>
+                                {{ item.product_name }}
+                                <span v-if="item.serial_numbers?.length" class="gs-serial-tag"
+                                    :title="item.serial_numbers.length > 1 ? 'شماره سریال‌ها' : 'شماره سریال'">
+                                    <span v-for="s in item.serial_numbers" :key="s.id" class="gs-serial-tag-badge">
+                                        {{ s.serial_number }}
+                                    </span>
+                                </span>
+                            </td>
                             <td>{{ item.quantity }}</td>
                             <td>{{ formatPrice(item.price) }}</td>
                             <td class="gs-gold-text" style="font-weight:700">{{ formatPrice(item.total_price) }}</td>
@@ -595,6 +603,25 @@ function formatPrice(p) {
     font-size: 1.1rem;
     font-weight: 800;
     color: var(--gs-gold)
+}
+
+.gs-serial-tag {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: .3rem;
+    margin-right: .5rem;
+    vertical-align: middle;
+}
+
+.gs-serial-tag-badge {
+    font-family: monospace;
+    font-size: .72rem;
+    background: rgba(201, 162, 75, .12);
+    color: var(--gs-gold, #c9a24b);
+    border: 1px solid rgba(201, 162, 75, .35);
+    border-radius: 999px;
+    padding: .1rem .55rem;
+    white-space: nowrap;
 }
 
 .gs-modal-overlay {

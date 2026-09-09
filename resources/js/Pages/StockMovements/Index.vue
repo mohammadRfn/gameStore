@@ -20,6 +20,11 @@
                     </span>
                 </div>
                 <p class="gs-muted">قیمت: {{ formatPrice(item.price) }}</p>
+                <button v-if="item.has_serial_number" type="button"
+                    class="gs-btn gs-btn-secondary gs-btn-sm" style="margin-top:.5rem;width:100%"
+                    @click="openSerialManager(item)">
+                    مدیریت شماره سریال
+                </button>
             </div>
         </div>
 
@@ -163,18 +168,40 @@
                 </div>
             </div>
         </Transition>
+
+        <SerialNumberManager
+            :show="showSerialManager"
+            :item-id="serialManagerItemId"
+            :item-name="serialManagerItemName"
+            @close="showSerialManager = false"
+            @changed="onSerialsChanged" />
     </AppLayout>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { Link, useForm } from '@inertiajs/vue3'
+import { Link, useForm, router } from '@inertiajs/vue3'
 import axios from 'axios'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import SerialNumberManager from '@/Components/SerialNumberManager.vue'
 
 const props = defineProps({ movements: Object, items: Array, stockSummary: Array })
 
 const showForm = ref(false)
+
+const showSerialManager = ref(false)
+const serialManagerItemId = ref(null)
+const serialManagerItemName = ref('')
+
+function openSerialManager(item) {
+    serialManagerItemId.value = item.id
+    serialManagerItemName.value = item.name
+    showSerialManager.value = true
+}
+
+function onSerialsChanged() {
+    router.reload({ only: ['stockSummary', 'movements'] })
+}
 
 const moveForm = useForm({
     item_id: '',

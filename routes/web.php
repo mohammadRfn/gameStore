@@ -164,6 +164,10 @@ Route::middleware('auth')->group(function () {
         ->name('items.missing-serials');
     Route::patch('/item-serial-numbers/{itemSerialNumber}/assign', [StockMovementController::class, 'assignSerialNumber'])
         ->name('item-serial-numbers.assign');
+    Route::put('/serial-numbers/{itemSerialNumberId}', [StockMovementController::class, 'updateSerialNumber'])
+        ->name('serial-numbers.update');
+    Route::delete('/serial-numbers/{itemSerialNumberId}', [StockMovementController::class, 'deleteSerialSlot'])
+        ->name('serial-numbers.destroy');
     Route::prefix('backups')->name('backups.')->group(function () {
 
         // ---- داشبورد و متادیتا -------------------------------------------------

@@ -46,4 +46,10 @@ class OrderItem extends Model
     {
         return $this->belongsTo(Category::class);
     }
+
+    public function serialNumbers()
+    {
+        return $this->hasMany(ItemSerialNumber::class, 'order_item_id')
+            ->whereIn('status', [ItemSerialNumber::STATUS_RESERVED, ItemSerialNumber::STATUS_SOLD]);
+    }
 }

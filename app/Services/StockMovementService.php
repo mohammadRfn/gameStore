@@ -151,7 +151,7 @@ class StockMovementService
                 // شماره سریال اختیاری است؛ هر تعدادی کمتر یا مساوی quantity قابل قبول است
                 $serialNumbers = array_values(array_filter(
                     $data['serial_numbers'] ?? [],
-                    fn ($s) => trim((string) $s) !== ''
+                    fn($s) => trim((string) $s) !== ''
                 ));
 
                 if (count($serialNumbers) > $quantity) {
@@ -399,7 +399,68 @@ class StockMovementService
             }
         });
     }
+    /**
+     * ویرایش شماره سریالِ یک ردیفِ «موجود در انبار» (چه قبلاً سریال داشته چه نداشته).
+     * برخلاف assignSerialNumber، اینجا فرقی نمی‌کنه serial_number قبلاً پر بوده یا نه.
+     */
+    public function updateSerialNumber(int $itemSerialNumberId, string $serialNumber): ItemSerialNumber
+    {
+        return DB::transaction(function () use ($itemSerialNumberId, $serialNumber) {
+            $serial = ItemSerialNumber::where('id', $itemSerialNumberId)
+                ->where('status', ItemSerialNumber::STATUS_IN_STOCK)
+                ->lockForUpdate()
+                ->first();
 
+            if (!$serial) {
+                throw new RuntimeException('این ردیف قابل ویرایش نیست (در انبار نیست یا وجود ندارد).');
+            }
+
+            $duplicate = ItemSerialNumber::where('item_id', $serial->item_id)
+                ->where('serial_number', $serialNumber)
+                ->where('id', '!=', $serial->id)
+                ->exists();
+            if ($duplicate) {
+                throw new RuntimeException('این شماره سریال قبلاً برای همین کالا ثبت شده است.');
+            }
+
+            $serial->serial_number = $serialNumber;
+            $serial->save();
+
+            return $serial;
+        });
+    }
+
+    /**
+     * حذف یک ردیفِ «موجود در انبار» (چه سریال داشته چه جایگاه خالی بوده).
+     * چون موجودی از روی StockMovement محاسبه می‌شه، حذف باید با یک حرکت
+     * ADJUST_OUT جبران بشه تا موجودی و تعداد سریال‌ها هماهنگ بمونن.
+     */
+    public function deleteSerialSlot(int $itemSerialNumberId): void
+    {
+        DB::transaction(function () use ($itemSerialNumberId) {
+            $serial = ItemSerialNumber::where('id', $itemSerialNumberId)
+                ->where('status', ItemSerialNumber::STATUS_IN_STOCK)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$serial) {
+                throw new RuntimeException('این ردیف قابل حذف نیست (در انبار نیست یا وجود ندارد).');
+            }
+
+            StockMovement::create([
+                'item_id'       => $serial->item_id,
+                'movement_type' => StockMovement::TYPE_ADJUST_OUT,
+                'quantity'      => 1,
+                'unit_cost'     => null,
+                'reason'        => 'serial_removed',
+                'note'          => $serial->serial_number
+                    ? "Removed serial {$serial->serial_number}"
+                    : 'Removed unassigned serial slot',
+            ]);
+
+            $serial->update(['status' => ItemSerialNumber::STATUS_REMOVED]);
+        });
+    }
     protected function validateMovementType(string $movementType): void
     {
         $allowed = [

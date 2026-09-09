@@ -36,7 +36,7 @@ class InvoiceService
 
     public function getInvoice(int $invoiceId): Invoice
     {
-        $invoice = Invoice::with('orderItems', 'customer', 'request', 'adjustments', 'serviceJobs.serviceTypes.serviceType')
+        $invoice = Invoice::with('orderItems.serialNumbers', 'customer', 'request', 'adjustments', 'serviceJobs.serviceTypes.serviceType')
             ->findOrFail($invoiceId);
 
         if ($invoice->orderItems->count() > 0 || $invoice->adjustments->count() > 0 || $invoice->serviceJobs->count() > 0) {

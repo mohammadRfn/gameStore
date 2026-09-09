@@ -36,6 +36,7 @@ class StockMovementController extends Controller
                 'name'          => $item->name,
                 'price'         => $item->price,
                 'current_stock' => $this->stockMovementService->getCurrentStock($item->id),
+                'has_serial_number' => $item->has_serial_number,
             ];
         })->values();
 
@@ -110,6 +111,31 @@ class StockMovementController extends Controller
 
         try {
             $this->stockMovementService->assignSerialNumber($itemSerialNumberId, $data['serial_number']);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['status' => 'ok']);
+    }
+    public function updateSerialNumber(Request $request, int $itemSerialNumberId)
+    {
+        $data = $request->validate([
+            'serial_number' => 'required|string|max:255',
+        ]);
+
+        try {
+            $serial = $this->stockMovementService->updateSerialNumber($itemSerialNumberId, $data['serial_number']);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['status' => 'ok', 'serial' => $serial]);
+    }
+
+    public function deleteSerialSlot(int $itemSerialNumberId)
+    {
+        try {
+            $this->stockMovementService->deleteSerialSlot($itemSerialNumberId);
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }

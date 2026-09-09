@@ -23,10 +23,12 @@ class Item extends Model
     ];
 
     protected $casts = [
-        'price'        => 'decimal:2',
-        'tracks_stock' => 'boolean',
+        'purchase_price'     => 'decimal:2',
+        'sale_price'         => 'decimal:2',
+        'tracks_stock'       => 'boolean',
+        'has_serial_number'  => 'boolean',
+        'has_warranty'       => 'boolean',
     ];
-
     public function category()
     {
         return $this->belongsTo(Category::class);
