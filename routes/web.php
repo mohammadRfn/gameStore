@@ -158,8 +158,12 @@ Route::middleware('auth')->group(function () {
             ->name('destroy');
     });
 
-
-        
+    Route::get('/items/{item}/available-serials', [StockMovementController::class, 'getAvailableSerialNumbers'])
+        ->name('items.available-serials');
+    Route::get('/items/{item}/missing-serials', [StockMovementController::class, 'getMissingSerialSlots'])
+        ->name('items.missing-serials');
+    Route::patch('/item-serial-numbers/{itemSerialNumber}/assign', [StockMovementController::class, 'assignSerialNumber'])
+        ->name('item-serial-numbers.assign');
     Route::prefix('backups')->name('backups.')->group(function () {
 
         // ---- داشبورد و متادیتا -------------------------------------------------

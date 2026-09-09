@@ -26,7 +26,7 @@ class StockMovementController extends Controller
         // فقط اقلامی که «موجودی انبار دارد» تیک خورده باشد (tracks_stock)
         // در انتخابگر گردش انبار و کارت‌های خلاصه ظاهر می‌شوند.
         $items = Item::where('tracks_stock', true)
-            ->select('id', 'name', 'price')
+            ->select('id', 'name', 'price', 'has_serial_number', 'has_warranty')
             ->orderBy('name')
             ->get();
 
@@ -59,9 +59,61 @@ class StockMovementController extends Controller
         ]);
     }
 
+    /**
+     * لیست شماره سریال‌های موجود در انبار برای یک کالا؛ برای انتخاب هنگام افزودن قلم به
+     * فاکتور یا هنگام ثبت حرکت انبار دستی خروجی استفاده می‌شود.
+     */
+    public function getAvailableSerialNumbers(int $itemId)
+    {
+        $item = Item::findOrFail($itemId);
+
+        if (!$item->has_serial_number) {
+            return response()->json(['serial_numbers' => []]);
+        }
+
+        return response()->json([
+            'serial_numbers' => $this->stockMovementService->getAvailableSerialNumbers($item->id),
+        ]);
+    }
+
     public function storeManualMovement(StockMovementRequest $request)
     {
-        $this->stockMovementService->createManualMovement($request->validated());
+        try {
+            $this->stockMovementService->createManualMovement($request->validated());
+        } catch (\RuntimeException $e) {
+            return redirect()->back()->withErrors(['quantity' => $e->getMessage()])->withInput();
+        }
+
         return redirect()->route('stock-movements.index');
+    }
+
+    /**
+     * لیست جایگاه‌های «بدون شماره سریال» یک کالا؛ برای مودال تکمیل سریال روی صفحه‌ی محصولات.
+     */
+    public function getMissingSerialSlots(int $itemId)
+    {
+        $item = Item::findOrFail($itemId);
+
+        return response()->json([
+            'slots' => $this->stockMovementService->getUnassignedSerialSlots($item->id),
+        ]);
+    }
+
+    /**
+     * ثبت شماره سریال برای یک جایگاه خالی.
+     */
+    public function assignSerialNumber(Request $request, int $itemSerialNumberId)
+    {
+        $data = $request->validate([
+            'serial_number' => 'required|string|max:255',
+        ]);
+
+        try {
+            $this->stockMovementService->assignSerialNumber($itemSerialNumberId, $data['serial_number']);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['status' => 'ok']);
     }
 }

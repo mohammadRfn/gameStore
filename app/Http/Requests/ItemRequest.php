@@ -57,6 +57,8 @@ class ItemRequest extends FormRequest
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
             'category_id'  => 'nullable|exists:categories,id',
             'tracks_stock' => 'boolean',
+            'has_serial_number' => 'boolean',
+            'has_warranty'      => 'boolean',
         ];
     }
     protected function failedValidation(Validator $validator)

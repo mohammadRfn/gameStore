@@ -66,6 +66,31 @@
                     </p>
                 </div>
 
+                <!-- Serial number picker -->
+                <div class="gs-input-group" v-if="selectedItem && selectedItem.has_serial_number && itemForm.deduct_from_stock">
+                    <label class="gs-input-label">
+                        انتخاب شماره سریال (اختیاری)
+                        <span class="gs-label">— حداکثر {{ itemForm.quantity || 0 }} مورد؛ باقی به‌صورت خودکار از انبار کسر می‌شود</span>
+                    </label>
+
+                    <p v-if="loadingSerials" class="gs-label">در حال دریافت شماره سریال‌ها...</p>
+                    <p v-else-if="!availableSerials.length" class="gs-error-msg">
+                        هیچ شماره سریال موجودی برای این کالا در انبار ثبت نشده است.
+                    </p>
+                    <div v-else class="gs-serial-grid">
+                        <label v-for="s in availableSerials" :key="s.id" class="gs-serial-pick"
+                            :class="{ active: itemForm.serial_number_ids.includes(s.id) }">
+                            <input type="checkbox" :value="s.id" v-model="itemForm.serial_number_ids"
+                                :disabled="!itemForm.serial_number_ids.includes(s.id) && itemForm.serial_number_ids.length >= itemForm.quantity"
+                                style="accent-color:var(--gs-gold)" />
+                            <span>{{ s.serial_number }}</span>
+                        </label>
+                    </div>
+                    <span v-if="itemForm.errors.serial_number_ids" class="gs-error-msg">
+                        {{ itemForm.errors.serial_number_ids }}
+                    </span>
+                </div>
+
                 <div class="gs-total-preview gs-card" v-if="selectedItem">
                     <div class="gs-detail-row">
                         <span class="gs-label">قیمت واحد</span>
@@ -142,6 +167,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
+import axios from 'axios'
 import AppLayout from '@/Layouts/AppLayout.vue'
 
 const props = defineProps({
@@ -159,12 +185,40 @@ const itemForm = useForm({
     quantity: 1,
     image: null,
     deduct_from_stock: false,
+    serial_number_ids: [],
 })
 
 const selectedItem = computed(() => props.items.find(i => i.id === itemForm.item_id) ?? null)
 watch(selectedItem, (item) => {
     itemForm.deduct_from_stock = !!(item && item.tracks_stock)
+    itemForm.serial_number_ids = []
+    fetchSerials()
 }, { immediate: true })
+
+// وقتی تعداد تغییر کند، انتخاب‌های اضافه‌شده باید پاک شوند تا با quantity هماهنگ بمانند
+watch(() => itemForm.quantity, () => {
+    if (itemForm.serial_number_ids.length > itemForm.quantity) {
+        itemForm.serial_number_ids = itemForm.serial_number_ids.slice(0, itemForm.quantity)
+    }
+})
+
+const availableSerials = ref([])
+const loadingSerials = ref(false)
+
+async function fetchSerials() {
+    availableSerials.value = []
+    if (!selectedItem.value || !selectedItem.value.has_serial_number) return
+
+    loadingSerials.value = true
+    try {
+        const { data } = await axios.get(route('items.available-serials', selectedItem.value.id))
+        availableSerials.value = data.serial_numbers ?? []
+    } catch (e) {
+        console.error(e)
+    } finally {
+        loadingSerials.value = false
+    }
+}
 
 const itemLineTotal = computed(() =>
     formatPrice(selectedItem.value ? selectedItem.value.price * (itemForm.quantity || 0) : 0)
@@ -270,5 +324,29 @@ function formatPrice(p) {
 .gs-badge-sm {
     font-size: .7rem;
     padding: .1rem .45rem;
+}
+
+.gs-serial-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: .5rem;
+    margin-top: .5rem;
+}
+
+.gs-serial-pick {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    border: 1px solid var(--gs-border);
+    border-radius: 8px;
+    padding: .4rem .6rem;
+    cursor: pointer;
+    font-size: .8rem;
+    transition: border-color .15s, background .15s;
+}
+
+.gs-serial-pick.active {
+    border-color: var(--gs-gold, var(--gs-border));
+    background: rgba(128, 128, 128, .1);
 }
 </style>

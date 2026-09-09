@@ -30,13 +30,15 @@ class ItemService
         }
 
         return Item::create([
-            'name'            => $data['name'],
-            'purchase_price'  => $data['purchase_price'],
-            'sale_price'      => $data['sale_price'],
-            'description'     => $data['description'] ?? null,
-            'image_path'      => $data['image_path'] ?? null,
-            'category_id'     => $data['category_id'] ?? null,
-            'tracks_stock'    => $data['tracks_stock'] ?? true,
+            'name'               => $data['name'],
+            'purchase_price'     => $data['purchase_price'],
+            'sale_price'         => $data['sale_price'],
+            'description'        => $data['description'] ?? null,
+            'image_path'         => $data['image_path'] ?? null,
+            'category_id'        => $data['category_id'] ?? null,
+            'tracks_stock'       => $data['tracks_stock'] ?? true,
+            'has_serial_number'  => $data['has_serial_number'] ?? false,
+            'has_warranty'       => $data['has_warranty'] ?? false,
         ]);
     }
 
@@ -49,13 +51,15 @@ class ItemService
         }
 
         $item->update([
-            'name'            => $data['name']            ?? $item->name,
-            'purchase_price'  => $data['purchase_price']  ?? $item->purchase_price,
-            'sale_price'      => $data['sale_price']      ?? $item->sale_price,
-            'description'     => $data['description']     ?? $item->description,
-            'image_path'      => $data['image_path']      ?? $item->image_path,
-            'category_id'     => $data['category_id']     ?? $item->category_id,
-            'tracks_stock'    => array_key_exists('tracks_stock', $data) ? $data['tracks_stock'] : $item->tracks_stock,
+            'name'               => $data['name']            ?? $item->name,
+            'purchase_price'     => $data['purchase_price']  ?? $item->purchase_price,
+            'sale_price'         => $data['sale_price']      ?? $item->sale_price,
+            'description'        => $data['description']     ?? $item->description,
+            'image_path'         => $data['image_path']      ?? $item->image_path,
+            'category_id'        => $data['category_id']     ?? $item->category_id,
+            'tracks_stock'       => array_key_exists('tracks_stock', $data) ? $data['tracks_stock'] : $item->tracks_stock,
+            'has_serial_number'  => array_key_exists('has_serial_number', $data) ? (bool) $data['has_serial_number'] : $item->has_serial_number,
+            'has_warranty'       => array_key_exists('has_warranty', $data) ? (bool) $data['has_warranty'] : $item->has_warranty,
         ]);
 
         return $item;

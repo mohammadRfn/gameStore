@@ -19,6 +19,9 @@ class ItemController extends Controller
             $item->current_stock = $item->tracks_stock
                 ? $this->stockMovementService->getCurrentStock($item->id)
                 : null;
+            $item->missing_serial_count = $item->has_serial_number
+                ? $this->stockMovementService->getMissingSerialCount($item->id)
+                : 0;
             return $item;
         });
 

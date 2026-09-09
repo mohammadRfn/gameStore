@@ -93,6 +93,17 @@
                     </p>
                 </div>
 
+                <div class="gs-input-group" v-if="form.tracks_stock" style="display:flex;gap:1.5rem;flex-wrap:wrap">
+                    <label class="gs-checkbox-label">
+                        <input v-model="form.has_serial_number" type="checkbox" class="gs-checkbox" />
+                        <span>این محصول شماره سریال دارد</span>
+                    </label>
+                    <label class="gs-checkbox-label">
+                        <input v-model="form.has_warranty" type="checkbox" class="gs-checkbox" />
+                        <span>این محصول گارانتی دارد</span>
+                    </label>
+                </div>
+
                 <!-- Preview -->
                 <div v-if="preview" class="gs-img-preview">
                     <img :src="preview" alt="preview" />
@@ -130,6 +141,8 @@ const form = useForm({
     image: null,
     category_id: '',
     tracks_stock: true,
+    has_serial_number: false,
+    has_warranty: false,
 })
 
 const showNewCategory = ref(false)

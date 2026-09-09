@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Invoice;
 use App\Models\Item;
+use App\Models\ItemSerialNumber;
 use App\Models\OrderItem;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -48,6 +49,57 @@ class OrderItemService
             $item = Item::findOrFail($data['item_id']);
             $totalPrice = $data['quantity'] * $item->sale_price;
 
+            $deductFromStock = $item->tracks_stock
+                ? (array_key_exists('deduct_from_stock', $data) ? (bool) $data['deduct_from_stock'] : true)
+                : false;
+
+            $reservedSerials = new Collection();
+            if ($item->has_serial_number && $deductFromStock) {
+                $quantityNeeded = (int) $data['quantity'];
+                $serialIds = $data['serial_number_ids'] ?? [];
+
+                if (count($serialIds) > $quantityNeeded) {
+                    throw new \RuntimeException(
+                        "تعداد شماره سریال‌های انتخاب‌شده برای «{$item->name}» نمی‌تواند از تعداد قلم بیشتر باشد."
+                    );
+                }
+
+                $chosenSerials = new Collection();
+                if (!empty($serialIds)) {
+                    $chosenSerials = ItemSerialNumber::where('item_id', $item->id)
+                        ->where('status', ItemSerialNumber::STATUS_IN_STOCK)
+                        ->whereIn('id', $serialIds)
+                        ->lockForUpdate()
+                        ->get();
+
+                    if ($chosenSerials->count() !== count($serialIds)) {
+                        throw new \RuntimeException(
+                            "برخی از شماره سریال‌های انتخاب‌شده برای «{$item->name}» دیگر در انبار موجود نیستند."
+                        );
+                    }
+                }
+
+                // باقی تعداد (بدون انتخاب صریح) خودکار از انبار همین کالا تأمین می‌شود؛
+                // اولویت با جایگاه‌های بدون شماره سریال است تا سریال‌های نام‌دار برای انتخاب دستی باقی بمانند.
+                $remaining = $quantityNeeded - $chosenSerials->count();
+                $autoFilled = new Collection();
+                if ($remaining > 0) {
+                    $autoFilled = ItemSerialNumber::where('item_id', $item->id)
+                        ->where('status', ItemSerialNumber::STATUS_IN_STOCK)
+                        ->whereNotIn('id', $chosenSerials->pluck('id'))
+                        ->orderByRaw('serial_number IS NOT NULL')
+                        ->lockForUpdate()
+                        ->limit($remaining)
+                        ->get();
+
+                    if ($autoFilled->count() !== $remaining) {
+                        throw new \RuntimeException("موجودی انبار برای «{$item->name}» کافی نیست.");
+                    }
+                }
+
+                $reservedSerials = $chosenSerials->concat($autoFilled);
+            }
+
             $orderItem = OrderItem::create([
                 'invoice_id'        => $invoiceId,
                 'item_id'           => $item->id,
@@ -57,10 +109,15 @@ class OrderItemService
                 'price'             => $item->sale_price,
                 'total_price'       => $totalPrice,
                 'cost_price'        => $item->purchase_price,
-                'deduct_from_stock' => $item->tracks_stock
-                    ? (array_key_exists('deduct_from_stock', $data) ? (bool) $data['deduct_from_stock'] : true)
-                    : false,
+                'deduct_from_stock' => $deductFromStock,
             ]);
+
+            if ($reservedSerials->isNotEmpty()) {
+                ItemSerialNumber::whereIn('id', $reservedSerials->pluck('id'))->update([
+                    'status'        => ItemSerialNumber::STATUS_RESERVED,
+                    'order_item_id' => $orderItem->id,
+                ]);
+            }
 
             if (isset($data['image'])) {
                 $orderItem->image_path = $data['image']->store('images/order_items', 'public');
@@ -82,12 +139,21 @@ class OrderItemService
     public function updateOrderItem(int $id, array $data): OrderItem
     {
         return DB::transaction(function () use ($id, $data) {
-            $orderItem = OrderItem::with('invoice')->findOrFail($id);
+            $orderItem = OrderItem::with('invoice', 'item')->findOrFail($id);
             if ($orderItem->invoice && $orderItem->invoice->isLocked()) {
                 throw new \RuntimeException('فاکتور پرداخت‌شده یا مرجوع‌شده را نمی‌توان ویرایش کرد.');
             }
             $oldQuantity = $orderItem->quantity;
             $wasStockDeducted = $orderItem->invoice && $orderItem->invoice->stock_deducted;
+
+            // برای کالاهای دارای شماره سریال، تغییر تعداد بدون انتخاب مجدد سریال معنا ندارد
+            if ($orderItem->item && $orderItem->item->has_serial_number
+                && array_key_exists('quantity', $data)
+                && (int) $data['quantity'] !== (int) $oldQuantity) {
+                throw new \RuntimeException(
+                    'برای کالاهای دارای شماره سریال، تعداد قابل ویرایش نیست؛ این قلم را حذف و دوباره با شماره سریال‌های موردنظر اضافه کنید.'
+                );
+            }
 
             $orderItem->update($data);
             $orderItem->total_price = $orderItem->quantity * $orderItem->price;
@@ -122,6 +188,14 @@ class OrderItemService
             if ($wasStockDeducted) {
                 $this->stockMovementService->reverseSaleMovementForOrderItem($orderItem);
             }
+
+            // اگر هنوز کسر نشده بود ولی سریالی برای این قلم رزرو شده بود (فاکتور پرداخت‌نشده)، آزادش کن
+            ItemSerialNumber::where('order_item_id', $orderItem->id)
+                ->where('status', ItemSerialNumber::STATUS_RESERVED)
+                ->update([
+                    'status'        => ItemSerialNumber::STATUS_IN_STOCK,
+                    'order_item_id' => null,
+                ]);
 
             $orderItem->delete();
         });
@@ -174,6 +248,11 @@ class OrderItemService
                 \App\Models\StockMovement::where('order_item_id', $orderItem->id)
                     ->where('reason', 'return')
                     ->delete();
+
+                // سریال‌هایی که با مرجوعی به انبار برگشته بودند، دوباره «فروخته‌شده» علامت بخورند
+                ItemSerialNumber::where('order_item_id', $orderItem->id)
+                    ->where('status', ItemSerialNumber::STATUS_IN_STOCK)
+                    ->update(['status' => ItemSerialNumber::STATUS_SOLD]);
             }
 
             $orderItem->is_returned       = false;

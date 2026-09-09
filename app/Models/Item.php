@@ -18,6 +18,8 @@ class Item extends Model
         'image_path',
         'category_id',
         'tracks_stock',
+        'has_serial_number',
+        'has_warranty',
     ];
 
     protected $casts = [
@@ -29,7 +31,10 @@ class Item extends Model
     {
         return $this->belongsTo(Category::class);
     }
-
+    public function serialNumbers()
+    {
+        return $this->hasMany(ItemSerialNumber::class);
+    }
     public function orderItems()
     {
         return $this->hasMany(OrderItem::class);

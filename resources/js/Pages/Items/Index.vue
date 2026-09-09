@@ -28,6 +28,15 @@
                     <p class="gs-item-name">{{ item.name }}</p>
                     <p class="gs-item-desc" v-if="item.description">{{ item.description }}</p>
                     <span v-if="item.category" class="gs-badge" style="margin-top:.3rem">{{ item.category.name }}</span>
+                              <div v-if="item.has_serial_number || item.has_warranty || item.missing_serial_count > 0"
+                        style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.35rem">
+                        <span v-if="item.has_serial_number" class="gs-badge gs-badge-gold gs-badge-sm">شماره سریال دارد</span>
+                        <span v-if="item.has_warranty" class="gs-badge gs-badge-gold gs-badge-sm">گارانتی دارد</span>
+                        <span v-if="item.missing_serial_count > 0" class="gs-badge gs-badge-warning gs-badge-sm"
+                            style="cursor:pointer" @click="openSerialFix(item)">
+                            {{ item.missing_serial_count }} عدد بدون شماره سریال
+                        </span>
+                    </div>
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.75rem">
                         <span class="gs-gold-text" style="font-weight:700;font-size:.95rem">
                             {{ formatPrice(item.sale_price) }}
@@ -72,12 +81,42 @@
             </div>
         </Transition>
 
+        <!-- Serial fix modal -->
+        <Transition name="gs-fade">
+            <div v-if="serialFixTarget" class="gs-modal-overlay" @click.self="serialFixTarget = null">
+                <div class="gs-modal">
+                    <h3 class="gs-subtitle" style="margin-bottom:.5rem">تکمیل شماره سریال — {{ serialFixTarget.name }}</h3>
+                    <p class="gs-label" style="margin-bottom:1rem">
+                        این واحدها در انبار موجودند ولی شماره سریال ندارند. برای هرکدام که می‌خوای، شماره سریال رو
+                        وارد و ثبت کن.
+                    </p>
+
+                    <p v-if="loadingSlots" class="gs-label">در حال بارگذاری...</p>
+                    <p v-else-if="!serialSlots.length" class="gs-label">همه‌ی واحدها شماره سریال دارند 🎉</p>
+
+                    <div v-else style="display:flex;flex-direction:column;gap:.5rem;max-height:300px;overflow-y:auto">
+                        <div v-for="slot in serialSlots" :key="slot.id" style="display:flex;gap:.5rem">
+                            <input v-model="slotInputs[slot.id]" type="text" class="gs-input"
+                                placeholder="شماره سریال..." @keydown.enter.prevent="submitSlotSerial(slot)" />
+                            <button type="button" class="gs-btn gs-btn-primary gs-btn-sm"
+                                @click="submitSlotSerial(slot)">ثبت</button>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;justify-content:flex-end;margin-top:1.25rem">
+                        <button @click="serialFixTarget = null" class="gs-btn gs-btn-ghost">بستن</button>
+                    </div>
+                </div>
+            </div>
+        </Transition>
+
     </AppLayout>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
+import axios from 'axios'
 import AppLayout from '@/Layouts/AppLayout.vue'
 
 const props = defineProps({ items: Array })
@@ -96,6 +135,41 @@ function doDelete() {
     router.delete(route('items.destroy', deleteTarget.value.id), {
         onFinish: () => { deleting.value = false; deleteTarget.value = null }
     })
+}
+
+// --- تکمیل شماره سریال‌های خالی ---
+const serialFixTarget = ref(null)
+const serialSlots = ref([])
+const loadingSlots = ref(false)
+const slotInputs = ref({})
+
+async function openSerialFix(item) {
+    serialFixTarget.value = item
+    slotInputs.value = {}
+    loadingSlots.value = true
+    try {
+        const { data } = await axios.get(route('items.missing-serials', item.id))
+        serialSlots.value = data.slots ?? []
+    } catch (e) {
+        console.error(e)
+        serialSlots.value = []
+    } finally {
+        loadingSlots.value = false
+    }
+}
+
+async function submitSlotSerial(slot) {
+    const value = (slotInputs.value[slot.id] || '').trim()
+    if (!value) return
+    try {
+        await axios.patch(route('item-serial-numbers.assign', slot.id), { serial_number: value })
+        serialSlots.value = serialSlots.value.filter(s => s.id !== slot.id)
+        if (serialFixTarget.value) {
+            serialFixTarget.value.missing_serial_count = Math.max(0, (serialFixTarget.value.missing_serial_count || 1) - 1)
+        }
+    } catch (e) {
+        alert(e.response?.data?.message ?? 'خطا در ثبت شماره سریال')
+    }
 }
 
 function formatPrice(p) {

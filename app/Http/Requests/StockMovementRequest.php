@@ -21,13 +21,17 @@ class StockMovementRequest extends FormRequest
      */
     public function rules(): array
     {
-          return [
+        return [
             'item_id'       => ['required', 'integer', 'exists:items,id'],
             'movement_type' => ['required', 'in:in,out,adjust_in,adjust_out'],
             'quantity'      => ['required', 'integer', 'min:1'],
             'unit_cost'     => ['nullable', 'numeric', 'min:0'],
             'reason'        => ['nullable', 'string', 'max:255'],
             'note'          => ['nullable', 'string'],
+            'serial_numbers'      => 'nullable|array',
+            'serial_numbers.*'    => 'string|max:255',
+            'serial_number_ids'   => 'nullable|array',
+            'serial_number_ids.*' => 'integer|exists:item_serial_numbers,id',
         ];
     }
 }

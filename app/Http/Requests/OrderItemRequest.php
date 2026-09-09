@@ -19,6 +19,8 @@ class OrderItemRequest extends FormRequest
             'quantity'           => ['required', 'integer', 'min:1'],
             'image'              => ['nullable', 'image', 'max:4096'],
             'deduct_from_stock'  => ['nullable', 'boolean'],
+            'serial_number_ids'   => 'nullable|array',
+            'serial_number_ids.*' => 'integer|exists:item_serial_numbers,id',
         ];
     }
 

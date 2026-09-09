@@ -98,6 +98,57 @@
                         </div>
                     </div>
 
+                    <!-- Serial numbers for inbound movement: optional, add one at a time -->
+                    <div class="gs-input-group" v-if="selectedItemHasSerial && isInboundType">
+                        <label class="gs-input-label">
+                            شماره سریال (اختیاری)
+                            <span class="gs-label">— {{ enteredSerials.length }} از {{ moveForm.quantity || 0 }} وارد شده</span>
+                        </label>
+                        <p class="gs-label" style="margin:.2rem 0 .5rem">
+                            وارد کردن شماره سریال اختیاری است؛ برای هر واحدی که سریال وارد نکنی، یک جایگاه «بدون شماره
+                            سریال» در انبار ثبت می‌شود که بعداً از لیست محصولات قابل تکمیل است.
+                        </p>
+
+                        <div style="display:flex;gap:.5rem">
+                            <input v-model="newSerialInput" type="text" class="gs-input"
+                                placeholder="شماره سریال را وارد و اضافه کن..."
+                                @keydown.enter.prevent="addSerial" />
+                            <button type="button" class="gs-btn gs-btn-secondary gs-btn-sm"
+                                :disabled="!newSerialInput.trim() || enteredSerials.length >= moveForm.quantity"
+                                @click="addSerial">
+                                افزودن
+                            </button>
+                        </div>
+
+                        <div v-if="enteredSerials.length" class="gs-serial-chips">
+                            <span v-for="(s, idx) in enteredSerials" :key="idx" class="gs-serial-chip">
+                                {{ s }}
+                                <button type="button" @click="removeSerial(idx)">✕</button>
+                            </span>
+                        </div>
+
+                        <span v-if="moveForm.errors.serial_numbers" class="gs-error-msg">{{ moveForm.errors.serial_numbers }}</span>
+                    </div>
+
+                    <!-- Serial numbers for outbound/adjust-out movement: optional pick -->
+                    <div class="gs-input-group" v-if="selectedItemHasSerial && !isInboundType">
+                        <label class="gs-input-label">
+                            انتخاب شماره سریال برای خروج (اختیاری)
+                            <span class="gs-label">— حداکثر {{ moveForm.quantity || 0 }} مورد؛ باقی خودکار کسر می‌شود</span>
+                        </label>
+                        <p v-if="loadingSerials" class="gs-label">در حال دریافت...</p>
+                        <p v-else-if="!availableSerials.length" class="gs-label">شماره سریال نام‌داری در انبار نیست؛ کسر به‌صورت خودکار انجام می‌شود.</p>
+                        <div v-else class="gs-serial-grid">
+                            <label v-for="s in availableSerials" :key="s.id" class="gs-serial-pick"
+                                :class="{ active: moveForm.serial_number_ids.includes(s.id) }">
+                                <input type="checkbox" :value="s.id" v-model="moveForm.serial_number_ids"
+                                    :disabled="!moveForm.serial_number_ids.includes(s.id) && moveForm.serial_number_ids.length >= moveForm.quantity" />
+                                <span>{{ s.serial_number }}</span>
+                            </label>
+                        </div>
+                        <span v-if="moveForm.errors.serial_number_ids" class="gs-error-msg">{{ moveForm.errors.serial_number_ids }}</span>
+                    </div>
+
                     <div class="gs-input-group">
                         <label class="gs-input-label">یادداشت</label>
                         <input v-model="moveForm.note" type="text" class="gs-input" placeholder="توضیح اختیاری..." />
@@ -116,8 +167,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
+import axios from 'axios'
 import AppLayout from '@/Layouts/AppLayout.vue'
 
 const props = defineProps({ movements: Object, items: Array, stockSummary: Array })
@@ -129,15 +181,92 @@ const moveForm = useForm({
     movement_type: 'in',
     quantity: 1,
     note: '',
+    serial_numbers: [],
+    serial_number_ids: [],
 })
 
+const isIn = t => ['in', 'adjust_in'].includes(t)
+const isInboundType = computed(() => isIn(moveForm.movement_type))
+
+const selectedItemHasSerial = computed(() => {
+    const item = props.items.find(i => i.id === moveForm.item_id)
+    return !!(item && item.has_serial_number)
+})
+
+// --- ورودی: افزودن شماره سریال یکی‌یکی (اختیاری) ---
+const newSerialInput = ref('')
+const enteredSerials = ref([])
+
+function addSerial() {
+    const value = newSerialInput.value.trim()
+    if (!value) return
+    if (enteredSerials.value.length >= moveForm.quantity) return
+    if (enteredSerials.value.includes(value)) {
+        newSerialInput.value = ''
+        return
+    }
+    enteredSerials.value.push(value)
+    newSerialInput.value = ''
+}
+
+function removeSerial(idx) {
+    enteredSerials.value.splice(idx, 1)
+}
+
+// اگر تعداد کم شد و بیشتر از quantity سریال وارد شده بود، مازاد رو حذف کن
+watch(() => moveForm.quantity, (q) => {
+    const n = Math.max(0, parseInt(q) || 0)
+    if (enteredSerials.value.length > n) {
+        enteredSerials.value = enteredSerials.value.slice(0, n)
+    }
+})
+
+// --- خروجی: انتخاب از سریال‌های نام‌دار موجود (اختیاری) ---
+const availableSerials = ref([])
+const loadingSerials = ref(false)
+
+async function fetchSerials() {
+    availableSerials.value = []
+    moveForm.serial_number_ids = []
+    enteredSerials.value = []
+    newSerialInput.value = ''
+
+    const item = props.items.find(i => i.id === moveForm.item_id)
+    if (!item || !item.has_serial_number) return
+
+    loadingSerials.value = true
+    try {
+        const { data } = await axios.get(route('items.available-serials', item.id))
+        availableSerials.value = data.serial_numbers ?? []
+    } catch (e) {
+        console.error(e)
+    } finally {
+        loadingSerials.value = false
+    }
+}
+
+watch(() => moveForm.item_id, fetchSerials)
+watch(() => moveForm.movement_type, fetchSerials)
+
 function submitMove() {
+    if (isInboundType.value) {
+        moveForm.serial_numbers = [...enteredSerials.value]
+        moveForm.serial_number_ids = []
+    } else {
+        moveForm.serial_numbers = []
+    }
+
     moveForm.post(route('stock-movements.store'), {
-        onSuccess: () => { showForm.value = false; moveForm.reset() }
+        onSuccess: () => {
+            showForm.value = false
+            moveForm.reset()
+            enteredSerials.value = []
+            newSerialInput.value = ''
+            availableSerials.value = []
+        }
     })
 }
 
-const isIn = t => ['in', 'adjust_in'].includes(t)
 const moveLabel = t => ({ in: 'ورودی', out: 'خروجی', adjust_in: 'تنظیم +', adjust_out: 'تنظیم −' }[t] ?? t)
 const moveBadge = t => isIn(t) ? 'gs-badge-success' : 'gs-badge-error'
 const formatPrice = p => p ? Number(p).toLocaleString('fa-IR') + ' تومان' : '—'
@@ -156,4 +285,49 @@ const formatPrice = p => p ? Number(p).toLocaleString('fa-IR') + ' تومان' :
 .gs-modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(3px);z-index:500;display:flex;align-items:center;justify-content:center;padding:1rem }
 .gs-modal { background:var(--gs-bg-card);border:1px solid var(--gs-border-strong);border-radius:16px;padding:1.75rem;max-width:480px;width:100% }
 .gs-form-grid { display:grid;grid-template-columns:1fr 1fr;gap:0 1rem }
+.gs-serial-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: .5rem;
+    margin-top: .5rem;
+}
+.gs-serial-pick {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    border: 1px solid var(--gs-border);
+    border-radius: 8px;
+    padding: .4rem .6rem;
+    cursor: pointer;
+    font-size: .8rem;
+}
+.gs-serial-pick.active { border-color: var(--gs-gold, var(--gs-border)); background: rgba(128,128,128,.1) }
+
+.gs-serial-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    margin-top: .6rem;
+}
+
+.gs-serial-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    background: rgba(128, 128, 128, .12);
+    border: 1px solid var(--gs-border);
+    border-radius: 999px;
+    padding: .25rem .5rem .25rem .75rem;
+    font-size: .8rem;
+}
+
+.gs-serial-chip button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--gs-error);
+    font-size: .85rem;
+    line-height: 1;
+    padding: 0;
+}
 </style>

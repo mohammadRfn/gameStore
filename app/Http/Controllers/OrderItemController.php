@@ -43,7 +43,8 @@ class OrderItemController extends Controller
 
         return Inertia::render('OrderItems/Create', [
             'invoiceId'   => $invoiceId,
-            'items'       => Item::select('id', 'name', 'sale_price', 'tracks_stock', 'category_id')->orderBy('name')->get(),
+            'items'       => Item::select('id', 'name', 'sale_price', 'tracks_stock', 'category_id', 'has_serial_number', 'has_warranty')
+                ->orderBy('name')->get(),
             'serviceJobs' => $eligibleServiceJobs,
         ]);
     }
