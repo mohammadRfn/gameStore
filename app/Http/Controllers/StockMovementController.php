@@ -37,6 +37,7 @@ class StockMovementController extends Controller
                 'price'         => $item->price,
                 'current_stock' => $this->stockMovementService->getCurrentStock($item->id),
                 'has_serial_number' => $item->has_serial_number,
+                'has_warranty'      => $item->has_warranty,
             ];
         })->values();
 

@@ -12,11 +12,16 @@ class InvoiceService
 {
     protected OrderItemService $orderItemService;
     protected StockMovementService $stockMovementService;
+    protected WarrantyService $warrantyService;
 
-    public function __construct(OrderItemService $orderItemService, StockMovementService $stockMovementService)
-    {
+    public function __construct(
+        OrderItemService $orderItemService,
+        StockMovementService $stockMovementService,
+        WarrantyService $warrantyService
+    ) {
         $this->orderItemService = $orderItemService;
         $this->stockMovementService = $stockMovementService;
+        $this->warrantyService = $warrantyService;
     }
 
     public function getAllInvoices(array $filters = []): LengthAwarePaginator
@@ -119,6 +124,7 @@ class InvoiceService
         $invoice->save();
 
         $this->maybeDeductStock($invoice);
+        $this->warrantyService->activateWarrantiesForInvoice($invoice);
 
         $invoice->request?->markCompleted();
 
@@ -152,13 +158,17 @@ class InvoiceService
     }
     public function markReturned(int $invoiceId): Invoice
     {
-        $invoice = Invoice::findOrFail($invoiceId);
+        $invoice = Invoice::with('orderItems')->findOrFail($invoiceId);
 
         if (!$invoice->is_returned) {
             $invoice->is_returned     = true;
             $invoice->returned_at     = now();
             $invoice->payment_status  = Invoice::PAYMENT_RETURNED;
             $invoice->save();
+
+            foreach ($invoice->orderItems as $orderItem) {
+                $this->warrantyService->resetWarrantyForOrderItem($orderItem);
+            }
 
             $invoice->request?->markCanceled();
         }

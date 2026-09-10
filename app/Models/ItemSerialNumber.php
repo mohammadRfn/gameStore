@@ -33,4 +33,9 @@ class ItemSerialNumber extends Model
     {
         return $this->belongsTo(StockMovement::class);
     }
+
+    public function warranty()
+    {
+        return $this->hasOne(Warranty::class, 'item_serial_number_id');
+    }
 }

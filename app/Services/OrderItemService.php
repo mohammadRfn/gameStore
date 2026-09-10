@@ -12,10 +12,12 @@ use Illuminate\Support\Facades\DB;
 class OrderItemService
 {
     protected StockMovementService $stockMovementService;
+    protected WarrantyService $warrantyService;
 
-    public function __construct(StockMovementService $stockMovementService)
+    public function __construct(StockMovementService $stockMovementService, WarrantyService $warrantyService)
     {
         $this->stockMovementService = $stockMovementService;
+        $this->warrantyService = $warrantyService;
     }
 
     public function getAllOrderItems(): Collection
@@ -221,6 +223,9 @@ class OrderItemService
             $orderItem->restock_on_return = $restock;
             $orderItem->returned_at       = now();
             $orderItem->save();
+
+            // مهم: قبل از آزادسازی سریال‌ها صدا بزن، وگرنه ارتباط سریال↔order_item از دست می‌رود
+            $this->warrantyService->resetWarrantyForOrderItem($orderItem);
 
             if ($restock && $wasStockDeducted) {
                 $this->stockMovementService->recordReturnMovementForOrderItem($orderItem);

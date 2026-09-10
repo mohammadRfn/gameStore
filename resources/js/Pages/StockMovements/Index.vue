@@ -25,6 +25,11 @@
                     @click="openSerialManager(item)">
                     مدیریت شماره سریال
                 </button>
+                <button v-if="item.has_warranty" type="button"
+                    class="gs-btn gs-btn-secondary gs-btn-sm" style="margin-top:.5rem;width:100%"
+                    @click="openWarrantyManager(item)">
+                    🛡️ مدیریت گارانتی
+                </button>
             </div>
         </div>
 
@@ -175,6 +180,12 @@
             :item-name="serialManagerItemName"
             @close="showSerialManager = false"
             @changed="onSerialsChanged" />
+
+        <WarrantyManagerModal
+            :show="showWarrantyManager"
+            :item-id="warrantyManagerItemId"
+            :item-name="warrantyManagerItemName"
+            @close="showWarrantyManager = false" />
     </AppLayout>
 </template>
 
@@ -184,6 +195,7 @@ import { Link, useForm, router } from '@inertiajs/vue3'
 import axios from 'axios'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import SerialNumberManager from '@/Components/SerialNumberManager.vue'
+import WarrantyManagerModal from '@/Components/WarrantyManagerModal.vue'
 
 const props = defineProps({ movements: Object, items: Array, stockSummary: Array })
 
@@ -201,6 +213,16 @@ function openSerialManager(item) {
 
 function onSerialsChanged() {
     router.reload({ only: ['stockSummary', 'movements'] })
+}
+
+const showWarrantyManager = ref(false)
+const warrantyManagerItemId = ref(null)
+const warrantyManagerItemName = ref('')
+
+function openWarrantyManager(item) {
+    warrantyManagerItemId.value = item.id
+    warrantyManagerItemName.value = item.name
+    showWarrantyManager.value = true
 }
 
 const moveForm = useForm({
