@@ -92,7 +92,7 @@
                     </p>
                 </div>
 
-                <div class="gs-input-group" v-if="form.tracks_stock" style="display:flex;gap:1.5rem;flex-wrap:wrap">
+                <div class="gs-input-group" style="display:flex;gap:1.5rem;flex-wrap:wrap">
                     <label class="gs-checkbox-label">
                         <input v-model="form.has_serial_number" type="checkbox" class="gs-checkbox" />
                         <span>این محصول شماره سریال دارد</span>
@@ -100,6 +100,10 @@
                     <label class="gs-checkbox-label">
                         <input v-model="form.has_warranty" type="checkbox" class="gs-checkbox" />
                         <span>این محصول گارانتی دارد</span>
+                    </label>
+                    <label class="gs-checkbox-label">
+                        <input v-model="form.is_consignment" type="checkbox" class="gs-checkbox" />
+                        <span>این محصول امانی است</span>
                     </label>
                 </div>
 
@@ -154,6 +158,7 @@ const form = useForm({
     tracks_stock: props.item.tracks_stock ?? true,
     has_serial_number: props.item.has_serial_number ?? false,
     has_warranty: props.item.has_warranty ?? false,
+    is_consignment: props.item.is_consignment ?? false,
     _method: 'PUT',
 })
 

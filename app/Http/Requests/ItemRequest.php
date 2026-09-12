@@ -55,10 +55,11 @@ class ItemRequest extends FormRequest
             'sale_price'     => 'required|numeric|min:0',
             'description' => 'nullable|string|max:1000',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
-            'category_id'  => 'nullable|exists:categories,id',
+            'category_id'  => 'required|exists:categories,id',
             'tracks_stock' => 'boolean',
             'has_serial_number' => 'boolean',
             'has_warranty'      => 'boolean',
+            'is_consignment'    => 'boolean',
         ];
     }
     protected function failedValidation(Validator $validator)

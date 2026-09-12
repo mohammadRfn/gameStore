@@ -20,6 +20,7 @@ class Item extends Model
         'tracks_stock',
         'has_serial_number',
         'has_warranty',
+        'is_consignment',
     ];
 
     protected $casts = [
@@ -28,6 +29,7 @@ class Item extends Model
         'tracks_stock'       => 'boolean',
         'has_serial_number'  => 'boolean',
         'has_warranty'       => 'boolean',
+        'is_consignment'     => 'boolean',
     ];
     public function category()
     {

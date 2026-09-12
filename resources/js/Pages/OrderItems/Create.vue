@@ -66,8 +66,8 @@
                     </p>
                 </div>
 
-                <!-- Serial number picker -->
-                <div class="gs-input-group" v-if="selectedItem && selectedItem.has_serial_number && itemForm.deduct_from_stock">
+                <!-- Serial number picker (کالای موجودی‌محور) -->
+                <div class="gs-input-group" v-if="selectedItem && selectedItem.has_serial_number && itemForm.deduct_from_stock && !selectedItem.is_consignment">
                     <label class="gs-input-label">
                         انتخاب شماره سریال (اختیاری)
                         <span class="gs-label">— حداکثر {{ itemForm.quantity || 0 }} مورد؛ باقی به‌صورت خودکار از انبار کسر می‌شود</span>
@@ -88,6 +88,22 @@
                     </div>
                     <span v-if="itemForm.errors.serial_number_ids" class="gs-error-msg">
                         {{ itemForm.errors.serial_number_ids }}
+                    </span>
+                </div>
+
+                <!-- Manual serial entry (کالای امانی) -->
+                <div class="gs-input-group" v-if="selectedItem && selectedItem.has_serial_number && selectedItem.is_consignment">
+                    <label class="gs-input-label">
+                        شماره سریال (اختیاری)
+                        <span class="gs-label">— این کالا امانی است؛ می‌توانید شماره سریال هر واحد را دستی وارد کنید</span>
+                    </label>
+                    <div class="gs-manual-serial-list">
+                        <input v-for="(_, idx) in itemForm.manual_serial_numbers" :key="idx"
+                            v-model="itemForm.manual_serial_numbers[idx]" type="text" class="gs-input"
+                            :placeholder="`شماره سریال واحد ${idx + 1}`" />
+                    </div>
+                    <span v-if="itemForm.errors.manual_serial_numbers" class="gs-error-msg">
+                        {{ itemForm.errors.manual_serial_numbers }}
                     </span>
                 </div>
 
@@ -186,21 +202,34 @@ const itemForm = useForm({
     image: null,
     deduct_from_stock: false,
     serial_number_ids: [],
+    manual_serial_numbers: [],
 })
 
 const selectedItem = computed(() => props.items.find(i => i.id === itemForm.item_id) ?? null)
 watch(selectedItem, (item) => {
     itemForm.deduct_from_stock = !!(item && item.tracks_stock)
     itemForm.serial_number_ids = []
+    resizeManualSerials(itemForm.quantity)
     fetchSerials()
 }, { immediate: true })
 
-// وقتی تعداد تغییر کند، انتخاب‌های اضافه‌شده باید پاک شوند تا با quantity هماهنگ بمانند
-watch(() => itemForm.quantity, () => {
+// وقتی تعداد تغییر کند، انتخاب‌ها/ورودی‌های اضافه باید پاک شوند تا با quantity هماهنگ بمانند
+watch(() => itemForm.quantity, (newQty) => {
     if (itemForm.serial_number_ids.length > itemForm.quantity) {
         itemForm.serial_number_ids = itemForm.serial_number_ids.slice(0, itemForm.quantity)
     }
+    resizeManualSerials(newQty)
 })
+
+function resizeManualSerials(qty) {
+    const size = Math.max(0, qty || 0)
+    const current = itemForm.manual_serial_numbers
+    if (current.length > size) {
+        itemForm.manual_serial_numbers = current.slice(0, size)
+    } else if (current.length < size) {
+        itemForm.manual_serial_numbers = [...current, ...Array(size - current.length).fill('')]
+    }
+}
 
 const availableSerials = ref([])
 const loadingSerials = ref(false)
@@ -348,5 +377,12 @@ function formatPrice(p) {
 .gs-serial-pick.active {
     border-color: var(--gs-gold, var(--gs-border));
     background: rgba(128, 128, 128, .1);
+}
+
+.gs-manual-serial-list {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    margin-top: .5rem;
 }
 </style>

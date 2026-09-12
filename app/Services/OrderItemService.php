@@ -49,6 +49,13 @@ class OrderItemService
             }
 
             $item = Item::findOrFail($data['item_id']);
+
+            if (!$item->category_id) {
+                throw new \RuntimeException(
+                    "ابتدا دسته‌بندی کالای «{$item->name}» را انتخاب کنید."
+                );
+            }
+
             $totalPrice = $data['quantity'] * $item->sale_price;
 
             $deductFromStock = $item->tracks_stock
@@ -102,6 +109,22 @@ class OrderItemService
                 $reservedSerials = $chosenSerials->concat($autoFilled);
             }
 
+            // کالای دارای شماره سریال ولی امانی: شماره سریال به‌صورت دستی و اختیاری وارد می‌شود،
+            // بدون هیچ رزرو یا اتصال به موجودی انبار.
+            $manualSerials = new Collection();
+            if ($item->has_serial_number && $item->is_consignment) {
+                $manualSerials = collect($data['manual_serial_numbers'] ?? [])
+                    ->map(fn ($s) => trim((string) $s))
+                    ->filter(fn ($s) => $s !== '')
+                    ->values();
+
+                if ($manualSerials->count() > (int) $data['quantity']) {
+                    throw new \RuntimeException(
+                        "تعداد شماره سریال‌های واردشده برای «{$item->name}» نمی‌تواند از تعداد قلم بیشتر باشد."
+                    );
+                }
+            }
+
             $orderItem = OrderItem::create([
                 'invoice_id'        => $invoiceId,
                 'item_id'           => $item->id,
@@ -119,6 +142,17 @@ class OrderItemService
                     'status'        => ItemSerialNumber::STATUS_RESERVED,
                     'order_item_id' => $orderItem->id,
                 ]);
+            }
+
+            if ($manualSerials->isNotEmpty()) {
+                foreach ($manualSerials as $serialNumber) {
+                    ItemSerialNumber::create([
+                        'item_id'       => $item->id,
+                        'serial_number' => $serialNumber,
+                        'status'        => ItemSerialNumber::STATUS_SOLD,
+                        'order_item_id' => $orderItem->id,
+                    ]);
+                }
             }
 
             if (isset($data['image'])) {
@@ -199,6 +233,14 @@ class OrderItemService
                     'order_item_id' => null,
                 ]);
 
+            // سریال‌های دستی (کالای امانی) واقعی نیستند و ربطی به موجودی ندارند؛
+            // با حذف قلم باید کامل پاک شوند، نه آزاد.
+            if ($orderItem->item && $orderItem->item->is_consignment) {
+                ItemSerialNumber::where('order_item_id', $orderItem->id)
+                    ->where('status', ItemSerialNumber::STATUS_SOLD)
+                    ->delete();
+            }
+
             $orderItem->delete();
         });
     }
@@ -234,6 +276,7 @@ class OrderItemService
             $this->updateInvoiceTotalAmount($orderItem->invoice_id);
 
             return $orderItem;
+
         });
     }
 

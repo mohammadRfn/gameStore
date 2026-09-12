@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Carbon\Carbon;
+use Morilog\Jalali\Jalalian;
 
 class Warranty extends Model
 {
@@ -30,7 +31,7 @@ class Warranty extends Model
         'expires_at' => 'datetime',
     ];
 
-    protected $appends = ['status'];
+    protected $appends = ['status', 'remaining_label'];
 
     public function itemSerialNumber()
     {
@@ -59,15 +60,37 @@ class Warranty extends Model
 
         return 'active';
     }
+    public function getRemainingLabelAttribute(): ?string
+    {
+        if ($this->status === 'pending') {
+            return null;
+        }
 
+        if ($this->status === 'expired') {
+            return 'منقضی شده';
+        }
+
+        $diff = Carbon::now()->diff($this->expires_at);
+        $parts = [];
+        if ($diff->y > 0) $parts[] = $diff->y . ' سال';
+        if ($diff->m > 0) $parts[] = $diff->m . ' ماه';
+        if ($diff->d > 0) $parts[] = $diff->d . ' روز';
+        if (empty($parts)) $parts[] = 'کمتر از یک روز';
+
+        return implode(' و ', $parts) . ' مانده';
+    }
     public function calculateExpiry(Carbon $from): Carbon
     {
-        return match ($this->duration_unit) {
-            self::UNIT_DAY   => $from->copy()->addDays($this->duration_value),
-            self::UNIT_MONTH => $from->copy()->addMonths($this->duration_value),
-            self::UNIT_YEAR  => $from->copy()->addYears($this->duration_value),
-            default          => $from->copy(),
+        $jalaliFrom = Jalalian::fromCarbon($from);
+
+        $jalaliExpiry = match ($this->duration_unit) {
+            self::UNIT_DAY   => $jalaliFrom->addDays($this->duration_value),
+            self::UNIT_MONTH => $jalaliFrom->addMonths($this->duration_value),
+            self::UNIT_YEAR  => $jalaliFrom->addYears($this->duration_value),
+            default          => $jalaliFrom,
         };
+
+        return $jalaliExpiry->toCarbon();
     }
 
     public function startCounting(): void

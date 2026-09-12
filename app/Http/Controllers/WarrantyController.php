@@ -79,6 +79,36 @@ class WarrantyController extends Controller
                     'editable'              => $this->warrantyService->canEditSerial($serial),
                 ];
             });
+
+            // کالای امانیِ سریال‌دار که کاربر موقع فروش شماره سریالش را وارد نکرده
+            // (چون اختیاری است): هیچ ItemSerialNumber ندارد، پس باید مستقیم از روی
+            // order_item هم به لیست اضافه شود تا امکان ثبت گارانتی از دست نرود.
+            if ($item->is_consignment) {
+                $orphanOrderItems = OrderItem::query()
+                    ->where('item_id', $itemId)
+                    ->whereDoesntHave('serialNumbers')
+                    ->with(['invoice.customer', 'warranty.provider'])
+                    ->orderByDesc('id')
+                    ->get();
+
+                $orphanData = $orphanOrderItems->map(function (OrderItem $oi) {
+                    return [
+                        'anchor'         => 'order_item',
+                        'order_item_id'  => $oi->id,
+                        'quantity'       => $oi->quantity,
+                        'invoice_number' => $oi->invoice?->invoice_number,
+                        'customer_name'  => $oi->invoice?->customer?->name,
+                        'payment_status' => $oi->invoice?->payment_status,
+                        'is_returned'    => (bool) $oi->is_returned,
+                        'warranty'       => $oi->warranty,
+                        'editable'       => $this->warrantyService->canEdit($oi),
+                    ];
+                });
+
+                $data = $data->concat($orphanData)->sortByDesc(function ($row) {
+                    return $row['order_item_id'] ?? 0;
+                })->values();
+            }
         } else {
             $rows = OrderItem::query()
                 ->where('item_id', $itemId)

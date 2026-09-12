@@ -23,53 +23,90 @@
                     <span class="gsw-muted">گارانتی روی قلم‌های فروخته‌شده (order item) ثبت می‌شود.</span>
                 </div>
 
-                <div v-else class="gsw-list">
-                    <div v-for="c in candidates" :key="c.order_item_id" class="gsw-row">
-                        <div class="gsw-row-main" @click="toggle(c.order_item_id)">
+                <template v-else>
+                    <div class="gsw-search-bar">
+                        <div class="gsw-search-field">
+                            <span class="gsw-search-icon">🔍</span>
+                            <input
+                                v-model="searchQuery"
+                                type="text"
+                                class="gsw-search-input"
+                                placeholder="جستجو بر اساس شماره سریال، مشتری یا شماره فاکتور..."
+                            />
+                        </div>
+                        <select v-model="statusFilter" class="gsw-status-select">
+                            <option value="all">همه وضعیت‌ها</option>
+                            <option value="active">فعال</option>
+                            <option value="pending">در انتظار پرداخت</option>
+                            <option value="expired">منقضی‌شده</option>
+                            <option value="unregistered">ثبت‌نشده</option>
+                        </select>
+                    </div>
+
+                    <div v-if="!filteredCandidates.length" class="gsw-status">
+                        نتیجه‌ای مطابق فیلتر یافت نشد.
+                    </div>
+
+                    <div v-else class="gsw-list">
+                        <div v-for="c in filteredCandidates" :key="c.key" class="gsw-row">
+                        <div class="gsw-row-main" @click="toggle(c.key)">
                             <div class="gsw-row-info">
                                 <p class="gsw-item-name">
-                                    فاکتور {{ c.invoice_number ?? '—' }}
+                                    <template v-if="c.anchor === 'serial'">
+                                        سریال: {{ c.serial_number ?? '—' }}
+                                        <span v-if="c.in_stock" class="gsw-muted">— در انبار</span>
+                                    </template>
+                                    <template v-else>
+                                        فاکتور {{ c.invoice_number ?? '—' }}
+                                    </template>
                                     <span v-if="c.customer_name" class="gsw-muted">— {{ c.customer_name }}</span>
                                 </p>
                                 <p class="gsw-muted">
-                                    تعداد: {{ c.quantity }}
-                                    <template v-if="c.serial_numbers.length"> — سریال: {{ c.serial_numbers.join('، ') }}</template>
-                                    <template v-else> — بدون شماره سریال</template>
+                                    <template v-if="c.anchor !== 'serial'">تعداد: {{ c.quantity }}</template>
+                                    <template v-else-if="c.invoice_number">فاکتور: {{ c.invoice_number }}</template>
                                     <template v-if="c.payment_status"> — {{ paymentLabel(c.payment_status) }}</template>
                                 </p>
                             </div>
                             <span class="gsw-badge" :class="statusBadgeClass(c)">{{ statusLabel(c) }}</span>
                         </div>
 
-                        <div v-if="expanded === c.order_item_id" class="gsw-row-detail">
+                        <div v-if="expanded === c.key" class="gsw-row-detail">
                             <p v-if="!c.editable" class="gsw-locked-note">
                                 🔒 چون فاکتور این قلم پرداخت‌شده و هنوز مرجوع نشده، گارانتی آن قابل ویرایش نیست.
                             </p>
 
-                            <template v-if="c.warranty && editingId !== c.order_item_id">
+                            <template v-if="c.warranty && editingId !== c.key">
                                 <div class="gsw-view">
-                                    <p><span class="gsw-muted">مدت گارانتی:</span> {{ c.warranty.duration_value }} {{ unitLabel(c.warranty.duration_unit) }}</p>
-                                    <p v-if="c.warranty.provider"><span class="gsw-muted">ارائه‌دهنده:</span> {{ c.warranty.provider.name }}</p>
-                                    <p v-if="c.warranty.starts_at"><span class="gsw-muted">شروع:</span> {{ formatDate(c.warranty.starts_at) }}</p>
-                                    <p v-if="c.warranty.expires_at"><span class="gsw-muted">انقضا:</span> {{ formatDate(c.warranty.expires_at) }}</p>
-                                    <p v-if="c.warranty.notes"><span class="gsw-muted">یادداشت:</span> {{ c.warranty.notes }}</p>
-                                    <button v-if="c.editable" type="button" class="gsw-btn gsw-btn-secondary" @click="startEdit(c)">
+                                    <p><span class="gsw-muted">مدت گارانتی:</span> {{ c.warranty.duration_value }} {{
+                                        unitLabel(c.warranty.duration_unit) }}</p>
+                                    <p v-if="c.warranty.provider"><span class="gsw-muted">ارائه‌دهنده:</span> {{
+                                        c.warranty.provider.name }}</p>
+                                    <p v-if="c.warranty.starts_at"><span class="gsw-muted">شروع:</span> {{
+                                        formatDate(c.warranty.starts_at) }}</p>
+                                    <p v-if="c.warranty.expires_at"><span class="gsw-muted">انقضا:</span> {{
+                                        formatDate(c.warranty.expires_at) }}</p>
+                                    <p v-if="c.warranty.notes"><span class="gsw-muted">یادداشت:</span> {{
+                                        c.warranty.notes }}</p>
+                                    <button v-if="c.editable" type="button" class="gsw-btn gsw-btn-secondary"
+                                        @click="startEdit(c)">
                                         ویرایش گارانتی
                                     </button>
                                 </div>
                             </template>
 
                             <template v-else-if="c.editable">
-                                <div v-if="editingId !== c.order_item_id" class="gsw-view">
+                                <div v-if="editingId !== c.key" class="gsw-view">
                                     <p class="gsw-muted">هنوز گارانتی‌ای برای این قلم ثبت نشده.</p>
-                                    <button type="button" class="gsw-btn gsw-btn-primary" @click="startEdit(c)">+ ثبت گارانتی</button>
+                                    <button type="button" class="gsw-btn gsw-btn-primary" @click="startEdit(c)">+ ثبت
+                                        گارانتی</button>
                                 </div>
 
                                 <div v-else class="gsw-form">
                                     <div class="gsw-form-grid">
                                         <div class="gsw-input-group">
                                             <label class="gsw-label">مدت *</label>
-                                            <input v-model="form.duration_value" type="number" min="1" class="gsw-input" />
+                                            <input v-model="form.duration_value" type="number" min="1"
+                                                class="gsw-input" />
                                         </div>
                                         <div class="gsw-input-group">
                                             <label class="gsw-label">واحد</label>
@@ -85,7 +122,8 @@
                                         <label class="gsw-label">ارائه‌دهنده گارانتی (اختیاری)</label>
                                         <select v-model="form.warranty_provider_id" class="gsw-input">
                                             <option :value="null">بدون ارائه‌دهنده</option>
-                                            <option v-for="p in providers" :key="p.id" :value="p.id">{{ p.name }}</option>
+                                            <option v-for="p in providers" :key="p.id" :value="p.id">{{ p.name }}
+                                            </option>
                                         </select>
                                         <button type="button" class="gsw-btn gsw-btn-plain" style="margin-top:.4rem"
                                             @click="showNewProvider = !showNewProvider">
@@ -135,14 +173,17 @@
 
                                     <div class="gsw-input-group">
                                         <label class="gsw-label">یادداشت</label>
-                                        <input v-model="form.notes" type="text" class="gsw-input" placeholder="توضیح اختیاری..." />
+                                        <input v-model="form.notes" type="text" class="gsw-input"
+                                            placeholder="توضیح اختیاری..." />
                                     </div>
 
                                     <p v-if="formError" class="gsw-inline-error">{{ formError }}</p>
 
                                     <div class="gsw-form-actions">
-                                        <button type="button" class="gsw-btn gsw-btn-plain" @click="cancelEdit">انصراف</button>
-                                        <button type="button" class="gsw-btn gsw-btn-primary" :disabled="saving" @click="saveWarranty(c)">
+                                        <button type="button" class="gsw-btn gsw-btn-plain"
+                                            @click="cancelEdit">انصراف</button>
+                                        <button type="button" class="gsw-btn gsw-btn-primary" :disabled="saving"
+                                            @click="saveWarranty(c)">
                                             {{ saving ? '...' : 'ذخیره' }}
                                         </button>
                                     </div>
@@ -150,7 +191,8 @@
                             </template>
                         </div>
                     </div>
-                </div>
+                    </div>
+                </template>
 
                 <div class="gsw-footer">
                     <button class="gsw-btn gsw-btn-plain" @click="close">بستن</button>
@@ -161,13 +203,14 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import axios from 'axios'
 
 const props = defineProps({
     show: { type: Boolean, default: false },
     itemId: { type: [Number, String], default: null },
     itemName: { type: String, default: '' },
+    focusOrderItemId: { type: [Number, String], default: null },
 })
 const emit = defineEmits(['close'])
 
@@ -181,6 +224,29 @@ const editingId = ref(null)
 const form = ref({ duration_value: 12, duration_unit: 'month', warranty_provider_id: null, notes: '' })
 const saving = ref(false)
 const formError = ref('')
+
+const searchQuery = ref('')
+const statusFilter = ref('all')
+
+const filteredCandidates = computed(() => {
+    const q = searchQuery.value.trim().toLowerCase()
+
+    return candidates.value.filter((c) => {
+        if (statusFilter.value !== 'all') {
+            const status = c.warranty ? c.warranty.status : 'unregistered'
+            if (status !== statusFilter.value) return false
+        }
+
+        if (!q) return true
+
+        const haystack = [c.serial_number, c.customer_name, c.invoice_number]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase()
+
+        return haystack.includes(q)
+    })
+})
 
 const showNewProvider = ref(false)
 const newProvider = ref({ name: '', phone: '', email: '', website: '', instagram: '', address: '', description: '' })
@@ -196,7 +262,16 @@ async function fetchCandidates() {
     loadError.value = ''
     try {
         const { data } = await axios.get(route('items.warranty-candidates', props.itemId))
-        candidates.value = data.order_items ?? []
+        candidates.value = (data.rows ?? []).map(c => ({
+            ...c,
+            key: c.anchor === 'serial' ? `serial_${c.item_serial_number_id}` : `oi_${c.order_item_id}`,
+        }))
+
+        // اگر برای یک order item مشخص باز شده (از صفحه‌ی فاکتور)، مستقیم همون ردیف را باز کن
+        if (props.focusOrderItemId) {
+            const target = candidates.value.find(c => c.order_item_id == props.focusOrderItemId)
+            if (target) expanded.value = target.key
+        }
     } catch (e) {
         console.error('warranty-candidates fetch failed:', e)
         loadError.value = `${e.response?.status ?? e.message}`
@@ -219,6 +294,8 @@ watch(() => [props.show, props.itemId], ([visible]) => {
         expanded.value = null
         editingId.value = null
         showNewProvider.value = false
+        searchQuery.value = ''
+        statusFilter.value = 'all'
         fetchCandidates()
         fetchProviders()
     }
@@ -232,7 +309,7 @@ function toggle(id) {
 }
 
 function startEdit(candidate) {
-    editingId.value = candidate.order_item_id
+    editingId.value = candidate.key
     formError.value = ''
     showNewProvider.value = false
     form.value = candidate.warranty
@@ -254,7 +331,10 @@ async function saveWarranty(candidate) {
     saving.value = true
     formError.value = ''
     try {
-        const { data } = await axios.post(route('order-items.warranty.store', candidate.order_item_id), form.value)
+        const { data } = candidate.anchor === 'serial'
+            ? await axios.post(route('item-serial-numbers.warranty.store', candidate.item_serial_number_id), form.value)
+            : await axios.post(route('order-items.warranty.store', candidate.order_item_id), form.value)
+
         candidate.warranty = data.warranty
         editingId.value = null
     } catch (e) {
@@ -311,100 +391,338 @@ function statusBadgeClass(c) {
     padding: 1rem;
 }
 
+.gsw-overlay *,
+.gsw-overlay *::before,
+.gsw-overlay *::after {
+    box-sizing: border-box;
+    min-width: 0;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
 .gsw-modal {
     background: var(--gs-bg-card, #1c1c22);
     border: 1px solid var(--gs-border-strong, #3a3a42);
     border-radius: 16px;
     padding: 1.5rem;
-    max-width: 640px;
-    width: 100%;
+    width: min(640px, 100%);
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     color: var(--gs-text-primary, #f0f0f0);
 }
 
-.gsw-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
-.gsw-title { font-size: 1.05rem; font-weight: 700; color: var(--gs-text-primary, #f0f0f0); margin: 0; }
-.gsw-subtitle { font-size: .82rem; color: var(--gs-text-muted, #9a9aa5); margin: .2rem 0 0; }
+.gsw-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.gsw-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--gs-text-primary, #f0f0f0);
+    margin: 0;
+}
+
+.gsw-subtitle {
+    font-size: .82rem;
+    color: var(--gs-text-muted, #9a9aa5);
+    margin: .2rem 0 0;
+}
+
 .gsw-close {
     background: rgba(128, 128, 128, .15);
     border: 1px solid var(--gs-border, #3a3a42);
     color: var(--gs-text-primary, #f0f0f0);
-    border-radius: 8px; width: 28px; height: 28px; cursor: pointer; font-size: .8rem; line-height: 1;
+    border-radius: 8px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: .8rem;
+    line-height: 1;
 }
 
 .gsw-status {
-    text-align: center; padding: 1.75rem 0;
-    color: var(--gs-text-muted, #9a9aa5); font-size: .85rem;
+    text-align: center;
+    padding: 1.75rem 0;
+    color: var(--gs-text-muted, #9a9aa5);
+    font-size: .85rem;
 }
-.gsw-muted { color: var(--gs-text-muted, #9a9aa5); }
+
+.gsw-muted {
+    color: var(--gs-text-muted, #9a9aa5);
+}
 
 .gsw-error-banner {
-    background: rgba(220, 38, 38, .12); border: 1px solid #dc2626; color: #dc2626;
-    border-radius: 10px; padding: .75rem 1rem; font-size: .85rem;
-    display: flex; flex-direction: column; gap: .5rem;
+    background: var(--gs-error-soft);
+    border: 1px solid var(--gs-error);
+    color: var(--gs-error);
+    border-radius: 10px;
+    padding: .75rem 1rem;
+    font-size: .85rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
 }
-.gsw-retry {
-    align-self: flex-start; background: #dc2626; color: #fff; border: none;
-    border-radius: 6px; padding: .3rem .75rem; font-size: .78rem; cursor: pointer;
-}
-.gsw-inline-error { color: #dc2626; font-size: .8rem; margin-top: .5rem; }
 
-.gsw-list { display: flex; flex-direction: column; gap: .5rem; max-height: 55vh; overflow-y: auto; }
+.gsw-retry {
+    align-self: flex-start;
+    background: var(--gs-error);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: .3rem .75rem;
+    font-size: .78rem;
+    cursor: pointer;
+}
+
+.gsw-inline-error {
+    color: var(--gs-error);
+    font-size: .8rem;
+    margin-top: .5rem;
+}
+
+.gsw-search-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin-bottom: .9rem;
+    flex-shrink: 0;
+}
+
+.gsw-search-field {
+    flex: 1 1 220px;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    background: var(--gs-bg-elevated);
+    border: 1px solid var(--gs-border);
+    border-radius: 8px;
+    padding: 0 .7rem;
+}
+
+.gsw-search-icon {
+    flex-shrink: 0;
+    font-size: .78rem;
+    opacity: .6;
+}
+
+.gsw-search-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--gs-text-primary, #f0f0f0);
+    font-size: .85rem;
+    padding: .5rem 0;
+}
+
+.gsw-search-input::placeholder {
+    color: var(--gs-text-muted, #9a9aa5);
+}
+
+.gsw-status-select {
+    flex: 1 1 140px;
+    max-width: 100%;
+    min-width: 0;
+    width: auto;
+    background: var(--gs-bg-elevated);
+    color: var(--gs-text-primary);
+    border: 1px solid var(--gs-border);
+    border-radius: 8px;
+    padding: .5rem .7rem;
+    font-size: .8rem;
+}
+
+.gsw-list {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
 .gsw-row {
     border: 1px solid var(--gs-border, #3a3a42);
     border-radius: 10px;
     background: rgba(128, 128, 128, .06);
-    overflow: hidden;
+    overflow: visible;
 }
+
 .gsw-row-main {
-    display: flex; align-items: center; justify-content: space-between; gap: .75rem;
-    padding: .65rem .9rem; cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .65rem .9rem;
+    cursor: pointer;
 }
-.gsw-row-main:hover { background: rgba(128, 128, 128, .1); }
-.gsw-item-name { font-weight: 600; font-size: .88rem; margin: 0; color: var(--gs-text-primary, #f0f0f0); }
-.gsw-row-info p { margin: .15rem 0 0; font-size: .78rem; }
-.gsw-row-detail { padding: 0 .9rem .9rem; border-top: 1px solid var(--gs-border, #3a3a42); }
+
+.gsw-row-main:hover {
+    background: rgba(128, 128, 128, .1);
+}
+
+.gsw-row-info {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.gsw-item-name {
+    font-weight: 600;
+    font-size: .88rem;
+    margin: 0;
+    color: var(--gs-text-primary, #f0f0f0);
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.gsw-row-info p {
+    margin: .15rem 0 0;
+    font-size: .78rem;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
 
 .gsw-badge {
-    font-size: .74rem; padding: .2rem .6rem; border-radius: 999px; white-space: nowrap;
+    flex-shrink: 0;
 }
-.gsw-badge-muted { background: rgba(148, 148, 148, .18); color: var(--gs-text-muted, #9a9aa5); }
-.gsw-badge-success { background: rgba(34, 197, 94, .15); color: #16a34a; border: 1px solid rgba(34, 197, 94, .35); }
-.gsw-badge-danger { background: rgba(220, 38, 38, .12); color: #dc2626; border: 1px solid rgba(220, 38, 38, .35); }
+
+.gsw-row-detail {
+    padding: 0 .9rem .9rem;
+    border-top: 1px solid var(--gs-border, #3a3a42);
+}
+
+.gsw-badge {
+    font-size: .74rem;
+    padding: .2rem .6rem;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.gsw-badge-muted {
+    background: rgba(148, 148, 148, .18);
+    color: var(--gs-text-muted, #9a9aa5);
+}
+
+.gsw-badge-success {
+    background: var(--gs-success-soft);
+    color: var(--gs-success);
+    border: 1px solid var(--gs-success);
+}
+
+.gsw-badge-danger {
+    background: var(--gs-error-soft);
+    color: var(--gs-error);
+    border: 1px solid var(--gs-error);
+}
 
 .gsw-locked-note {
-    background: rgba(128, 128, 128, .1); border-radius: 8px; padding: .55rem .75rem;
-    font-size: .78rem; margin: .75rem 0 0; color: var(--gs-text-muted, #9a9aa5);
+    background: rgba(128, 128, 128, .1);
+    border-radius: 8px;
+    padding: .55rem .75rem;
+    font-size: .78rem;
+    margin: .75rem 0 0;
+    color: var(--gs-text-muted, #9a9aa5);
 }
 
-.gsw-view { padding-top: .75rem; display: flex; flex-direction: column; gap: .3rem; font-size: .85rem; }
-.gsw-form { padding-top: .75rem; }
-.gsw-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 .75rem; }
-.gsw-form-actions { display: flex; gap: .6rem; justify-content: flex-end; margin-top: .5rem; }
+.gsw-view {
+    padding-top: .75rem;
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+    font-size: .85rem;
+}
 
-.gsw-input-group { margin-bottom: .75rem; }
-.gsw-label { display: block; font-size: .78rem; color: var(--gs-text-muted, #9a9aa5); margin-bottom: .3rem; }
+.gsw-form {
+    padding-top: .75rem;
+}
+
+.gsw-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: .5rem .75rem;
+}
+
+.gsw-form-actions {
+    display: flex;
+    gap: .6rem;
+    justify-content: flex-end;
+    margin-top: .5rem;
+}
+
+.gsw-input-group {
+    margin-bottom: .75rem;
+}
+
+.gsw-label {
+    display: block;
+    font-size: .78rem;
+    color: var(--gs-text-muted, #9a9aa5);
+    margin-bottom: .3rem;
+}
+
 .gsw-input {
-    width: 100%; background: var(--gs-bg-input, #26262e);
-    color: var(--gs-text-primary, #f0f0f0);
-    border: 1px solid var(--gs-border, #3a3a42);
-    border-radius: 8px; padding: .5rem .7rem; font-size: .85rem;
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--gs-bg-elevated);
+    color: var(--gs-text-primary);
+    border: 1px solid var(--gs-border);
+    border-radius: 8px;
+    padding: .5rem .7rem;
+    font-size: .85rem;
 }
 
 .gsw-new-provider {
     border: 1px dashed var(--gs-border, #3a3a42);
-    border-radius: 10px; padding: .75rem; margin: .5rem 0;
+    border-radius: 10px;
+    padding: .75rem;
+    margin: .5rem 0;
 }
 
 .gsw-btn {
-    border-radius: 8px; padding: .4rem .8rem; font-size: .8rem; cursor: pointer;
-    border: 1px solid transparent; white-space: nowrap;
+    border-radius: 8px;
+    padding: .4rem .8rem;
+    font-size: .8rem;
+    cursor: pointer;
+    border: 1px solid transparent;
+    white-space: normal;
+    max-width: 100%;
 }
-.gsw-btn:disabled { opacity: .5; cursor: not-allowed; }
-.gsw-btn-primary {
-    background: var(--gs-gold, #c9a24b); color: #1a1a1a; border-color: var(--gs-gold, #c9a24b); font-weight: 600;
-}
-.gsw-btn-secondary { background: transparent; color: var(--gs-text-primary, #f0f0f0); border-color: var(--gs-border-strong, #3a3a42); }
-.gsw-btn-plain { background: transparent; color: var(--gs-text-muted, #9a9aa5); border-color: transparent; }
 
-.gsw-footer { display: flex; justify-content: flex-end; margin-top: 1.25rem; }
+.gsw-btn:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+.gsw-btn-primary {
+    background: var(--gs-gold, #c9a24b);
+    color: #1a1a1a;
+    border-color: var(--gs-gold, #c9a24b);
+    font-weight: 600;
+}
+
+.gsw-btn-secondary {
+    background: transparent;
+    color: var(--gs-text-primary, #f0f0f0);
+    border-color: var(--gs-border-strong, #3a3a42);
+}
+
+.gsw-btn-plain {
+    background: transparent;
+    color: var(--gs-text-muted, #9a9aa5);
+    border-color: transparent;
+}
+
+.gsw-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1.25rem;
+}
 </style>

@@ -21,6 +21,8 @@ class OrderItemRequest extends FormRequest
             'deduct_from_stock'  => ['nullable', 'boolean'],
             'serial_number_ids'   => 'nullable|array',
             'serial_number_ids.*' => 'integer|exists:item_serial_numbers,id',
+            'manual_serial_numbers'   => ['nullable', 'array'],
+            'manual_serial_numbers.*' => ['nullable', 'string', 'max:255'],
         ];
     }
 

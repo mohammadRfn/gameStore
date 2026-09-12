@@ -134,6 +134,18 @@
                                         {{ s.serial_number }}
                                     </span>
                                 </span>
+
+                                <div v-if="item.serial_numbers?.length" class="gs-warranty-info">
+                                    <span v-for="s in item.serial_numbers" :key="'w' + s.id" class="gs-warranty-chip"
+                                        :class="warrantyBadgeClass(s.warranty)">
+                                        {{ s.serial_number ?? '—' }}: {{ warrantyText(s.warranty) }}
+                                    </span>
+                                </div>
+                                <div v-else-if="item.warranty" class="gs-warranty-info">
+                                    <span class="gs-warranty-chip" :class="warrantyBadgeClass(item.warranty)">
+                                        {{ warrantyText(item.warranty) }}
+                                    </span>
+                                </div>
                             </td>
                             <td>{{ item.quantity }}</td>
                             <td>{{ formatPrice(item.price) }}</td>
@@ -145,6 +157,10 @@
                                 </span>
                             </td>
                             <td>
+                                <button v-if="item.item?.is_consignment" @click="openWarrantyModal(item)"
+                                    class="gs-btn gs-btn-secondary gs-btn-sm" style="margin-left:.4rem">
+                                    🛡️ گارانتی/سریال
+                                </button>
                                 <button v-if="!isLocked" @click="removeOrderItem(item.id)"
                                     class="gs-btn gs-btn-ghost gs-btn-sm" :disabled="removingOrderItemId === item.id">
                                     {{ removingOrderItemId === item.id ? '...' : '✕' }}
@@ -171,9 +187,9 @@
                             <span>{{ adj.title }}</span>
                             <span class="gs-muted">({{ adj.type === 'percentage' ? adj.value + '%' :
                                 formatPrice(adj.value)
-                                }})</span>
-                            <span v-if="!adj.counts_as_revenue" class="gs-badge gs-badge-sm"
-                                style="opacity:.75" title="جزو درآمد فروشگاه حساب نمی‌شود">
+                            }})</span>
+                            <span v-if="!adj.counts_as_revenue" class="gs-badge gs-badge-sm" style="opacity:.75"
+                                title="جزو درآمد فروشگاه حساب نمی‌شود">
                                 غیر-درآمدی
                             </span>
                         </div>
@@ -191,7 +207,8 @@
 
                     <!-- Add adjustment form -->
                     <div v-if="!isLocked" style="display:flex;flex-direction:column;gap:.5rem;margin-top:.75rem">
-                        <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:var(--gs-text-muted)">
+                        <label
+                            style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:var(--gs-text-muted)">
                             <input type="checkbox" v-model="adjustmentForm.counts_as_revenue" />
                             محاسبه به‌عنوان درآمد فروشگاه (در گزارش‌های مالی و بایگانی لحاظ شود)
                         </label>
@@ -201,7 +218,8 @@
                                 <button type="button" ref="categoryTriggerRef" class="gs-input category-select__trigger"
                                     @click="toggleCategoryMenu">
                                     <span>{{ selectedCategoryLabel }}</span>
-                                    <span class="category-select__caret" :class="{ 'is-open': categoryMenuOpen }">▾</span>
+                                    <span class="category-select__caret"
+                                        :class="{ 'is-open': categoryMenuOpen }">▾</span>
                                 </button>
 
                                 <Teleport to="body">
@@ -280,6 +298,14 @@
             </div>
         </div>
 
+        <ManageWarrantyModal
+            :show="!!warrantyModalTarget"
+            :item-id="warrantyModalTarget?.itemId"
+            :item-name="warrantyModalTarget?.itemName"
+            :focus-order-item-id="warrantyModalTarget?.orderItemId"
+            @close="closeWarrantyModal"
+        />
+
         <!-- Delete confirm modal -->
         <Transition name="gs-fade">
             <div v-if="showDeleteModal" class="gs-modal-overlay" @click.self="showDeleteModal = false">
@@ -308,6 +334,7 @@ import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 const removingAdjustmentId = ref(null)
 import InvoiceRestockPanel from '@/Components/InvoiceRestockPanel.vue'
+import ManageWarrantyModal from '@/Components/WarrantyManagerModal.vue'
 const props = defineProps({ invoice: Object, adjustment_categories: { type: Array, default: () => [] } })
 const adjustmentCategories = computed(() => props.adjustment_categories)
 
@@ -473,6 +500,21 @@ function removeOrderItem(orderItemId) {
     })
 }
 
+// --- مدیریت گارانتی/سریال برای اقلام امانی ---
+const warrantyModalTarget = ref(null)
+
+function openWarrantyModal(orderItem) {
+    warrantyModalTarget.value = {
+        itemId: orderItem.item_id,
+        itemName: orderItem.product_name,
+        orderItemId: orderItem.id,
+    }
+}
+
+function closeWarrantyModal() {
+    warrantyModalTarget.value = null
+}
+
 const removingServiceJobId = ref(null)
 
 function removeServiceJob(serviceJobId) {
@@ -521,6 +563,24 @@ function doDelete() {
 
 function formatPrice(p) {
     return p ? Number(p).toLocaleString('fa-IR') + ' تومان' : '—'
+}
+
+function warrantyText(w) {
+    if (!w) return 'بدون گارانتی'
+    if (w.status === 'pending') return 'در انتظار پرداخت'
+    if (w.status === 'expired') return `منقضی شده (${formatDate(w.expires_at)})`
+    return w.remaining_label ?? formatDate(w.expires_at)
+}
+
+function warrantyBadgeClass(w) {
+    if (!w) return 'gs-warranty-none'
+    if (w.status === 'pending') return 'gs-warranty-pending'
+    if (w.status === 'expired') return 'gs-warranty-expired'
+    return 'gs-warranty-active'
+}
+
+function formatDate(d) {
+    return d ? new Date(d).toLocaleDateString('fa-IR') : '—'
 }
 </script>
 
@@ -624,6 +684,44 @@ function formatPrice(p) {
     white-space: nowrap;
 }
 
+.gs-warranty-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .3rem;
+    margin-top: .35rem;
+}
+
+.gs-warranty-chip {
+    font-size: .72rem;
+    padding: .1rem .55rem;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.gs-warranty-active {
+    background: var(--gs-success-soft);
+    color: var(--gs-success);
+    border: 1px solid var(--gs-success);
+}
+
+.gs-warranty-expired {
+    background: var(--gs-error-soft);
+    color: var(--gs-error);
+    border: 1px solid var(--gs-error);
+}
+
+.gs-warranty-pending {
+    background: var(--gs-warning-soft);
+    color: var(--gs-warning);
+    border: 1px solid var(--gs-warning);
+}
+
+.gs-warranty-none {
+    background: rgba(148, 148, 148, .12);
+    color: var(--gs-text-muted);
+    border: 1px solid var(--gs-border);
+}
+
 .gs-modal-overlay {
     position: fixed;
     inset: 0;
@@ -650,6 +748,7 @@ function formatPrice(p) {
         grid-template-columns: 1fr
     }
 }
+
 .category-select {
     position: relative;
     min-width: 180px;
@@ -679,7 +778,7 @@ function formatPrice(p) {
     background: var(--gs-bg-card);
     border: 1px solid var(--gs-border-strong);
     border-radius: 10px;
-    box-shadow: 0 12px 30px rgba(0,0,0,.35);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, .35);
     z-index: 200;
     padding: .3rem;
 }

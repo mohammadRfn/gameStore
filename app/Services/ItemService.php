@@ -39,6 +39,7 @@ class ItemService
             'tracks_stock'       => $data['tracks_stock'] ?? true,
             'has_serial_number'  => $data['has_serial_number'] ?? false,
             'has_warranty'       => $data['has_warranty'] ?? false,
+            'is_consignment'     => $data['is_consignment'] ?? false,
         ]);
     }
 
@@ -60,6 +61,7 @@ class ItemService
             'tracks_stock'       => array_key_exists('tracks_stock', $data) ? $data['tracks_stock'] : $item->tracks_stock,
             'has_serial_number'  => array_key_exists('has_serial_number', $data) ? (bool) $data['has_serial_number'] : $item->has_serial_number,
             'has_warranty'       => array_key_exists('has_warranty', $data) ? (bool) $data['has_warranty'] : $item->has_warranty,
+            'is_consignment'     => array_key_exists('is_consignment', $data) ? (bool) $data['is_consignment'] : $item->is_consignment,
         ]);
 
         return $item;

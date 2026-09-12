@@ -20,8 +20,8 @@
                 <div v-else class="snm-list">
                     <div v-for="row in rows" :key="row.id" class="snm-row">
                         <template v-if="editingId === row.id">
-                            <input v-model="editValue" type="text" class="snm-input"
-                                placeholder="شماره سریال..." @keydown.enter.prevent="saveEdit(row)" />
+                            <input v-model="editValue" type="text" class="snm-input" placeholder="شماره سریال..."
+                                @keydown.enter.prevent="saveEdit(row)" />
                             <button class="snm-btn snm-btn-primary" :disabled="savingId === row.id"
                                 @click="saveEdit(row)">ذخیره</button>
                             <button class="snm-btn snm-btn-plain" @click="cancelEdit">انصراف</button>
@@ -30,6 +30,7 @@
                             <span class="snm-badge" :class="row.serial_number ? 'snm-badge-filled' : 'snm-badge-empty'">
                                 {{ row.serial_number ?? 'بدون شماره سریال' }}
                             </span>
+                            <span v-if="row.hasWarranty" class="snm-warranty-tag">🛡️ گارانتی‌دار</span>
                             <button class="snm-btn snm-btn-secondary" @click="startEdit(row)">
                                 {{ row.serial_number ? 'ویرایش' : 'ثبت' }}
                             </button>
@@ -102,7 +103,22 @@ async function load() {
         return
     }
 
-    rows.value = [...named, ...empty]
+    // اطلاعات گارانتی صرفاً برای نمایش لیبل است؛ اگر دریافتش شکست بخورد
+    // نباید کل مدیریت سریال از کار بیفتد، پس خطایش را نادیده می‌گیریم.
+    let warrantyMap = {}
+    try {
+        const { data } = await axios.get(route('items.warranty-candidates', props.itemId))
+        warrantyMap = (data.rows ?? [])
+            .filter(r => r.anchor === 'serial')
+            .reduce((map, r) => {
+                map[r.item_serial_number_id] = !!r.warranty
+                return map
+            }, {})
+    } catch (e) {
+        console.error('warranty-candidates fetch failed:', e)
+    }
+
+    rows.value = [...named, ...empty].map(r => ({ ...r, hasWarranty: !!warrantyMap[r.id] }))
     loading.value = false
 }
 
@@ -148,9 +164,8 @@ async function saveEdit(row) {
         if (e.response) {
             const status = e.response.status
             const body = e.response.data
-            actionError.value = `خطا (کد ${status}): ${
-                (body && typeof body === 'object' && body.message) ? body.message : JSON.stringify(body).slice(0, 200)
-            }`
+            actionError.value = `خطا (کد ${status}): ${(body && typeof body === 'object' && body.message) ? body.message : JSON.stringify(body).slice(0, 200)
+                }`
         } else {
             actionError.value = `خطای شبکه/جاوااسکریپت قبل از ارسال درخواست: ${e.message}`
         }
@@ -288,9 +303,9 @@ function close() {
 }
 
 .snm-badge-filled {
-    background: rgba(34, 197, 94, .15);
-    color: #16a34a;
-    border: 1px solid rgba(34, 197, 94, .35);
+    background: var(--gs-success-soft);
+    color: var(--gs-success);
+    border: 1px solid var(--gs-success);
 }
 
 .snm-badge-empty {
@@ -300,11 +315,25 @@ function close() {
     font-style: italic;
 }
 
+.snm-warranty-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    font-size: .74rem;
+    font-weight: 600;
+    padding: .2rem .55rem;
+    border-radius: 999px;
+    background: var(--gs-gold-muted);
+    color: var(--gs-gold);
+    border: 1px solid var(--gs-border-strong);
+    white-space: nowrap;
+}
+
 .snm-input {
     flex: 1;
-    background: var(--gs-bg-input, #fff);
-    color: var(--gs-text-primary, #1a1a1a);
-    border: 1px solid var(--gs-border, #ccc);
+    background: var(--gs-bg-elevated);
+    color: var(--gs-text-primary);
+    border: 1px solid var(--gs-border);
     border-radius: 8px;
     padding: .4rem .6rem;
     font-size: .85rem;
