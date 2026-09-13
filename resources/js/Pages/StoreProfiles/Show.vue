@@ -60,8 +60,8 @@ const ownerName = computed(() =>
                 </div>
 
                 <!-- سربرگ -->
-                <div style="display:flex; align-items:flex-end; gap:1.1rem; margin-top:-42px; padding-inline:0.5rem; flex-wrap:wrap">
-                    <div class="sp-card__avatar" style="width:88px; height:88px; font-size:2rem; border-radius:22px; box-shadow:var(--gs-shadow-md)">
+                <div style="position:relative; z-index:1; display:flex; align-items:flex-end; gap:1.1rem; margin-top:-42px; padding-inline:0.5rem; flex-wrap:wrap">
+                    <div class="sp-card__avatar" style="position:relative; z-index:2; width:88px; height:88px; font-size:2rem; border-radius:22px; box-shadow:var(--gs-shadow-md); background:var(--gs-bg-elevated); flex-shrink:0">
                         <img v-if="logoUrl" :src="logoUrl" :alt="name" style="width:100%; height:100%; object-fit:cover" />
                         <span v-else>{{ name.charAt(0) }}</span>
                     </div>
