@@ -110,18 +110,26 @@ function onCoverChange(e) {
 }
 
 function submit() {
+    const options = {
+        forceFormData: true,
+        preserveScroll: true,
+        onSuccess: () => emit('close'),
+    }
+
+    // رشته‌های خالی رو قبل از ارسال به null تبدیل می‌کنیم
+    // چون قانون nullable در Laravel فقط روی null اثر می‌کنه، نه ''
+    const emptyToNull = (data) => {
+        const out = { ...data }
+        for (const key of Object.keys(out)) {
+            if (out[key] === '') out[key] = null
+        }
+        return out
+    }
+
     if (isEdit.value) {
-        form.put(route('store-profiles.update', props.profile.id), {
-            forceFormData: true,
-            preserveScroll: true,
-            onSuccess: () => emit('close'),
-        })
+        form.transform(emptyToNull).put(route('store-profiles.update', props.profile.id), options)
     } else {
-        form.post(route('store-profiles.store'), {
-            forceFormData: true,
-            preserveScroll: true,
-            onSuccess: () => emit('close'),
-        })
+        form.transform(emptyToNull).post(route('store-profiles.store'), options)
     }
 }
 </script>
