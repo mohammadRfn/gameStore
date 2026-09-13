@@ -45,6 +45,18 @@ class StoreProfileController extends Controller
 
     public function store(StoreProfileRequest $request)
     {
+        \Illuminate\Support\Facades\Log::info('پروفایل — درخواست به کنترلر رسید', array_merge(
+            $request->except(['logo', 'cover']),
+            [
+                'has_logo'   => $request->hasFile('logo'),
+                'has_cover'  => $request->hasFile('cover'),
+                'logo_size'  => $request->file('logo')?->getSize(),
+                'cover_size' => $request->file('cover')?->getSize(),
+                'php_upload_max_filesize' => ini_get('upload_max_filesize'),
+                'php_post_max_size'       => ini_get('post_max_size'),
+            ]
+        ));
+
         try {
             $profile = $this->storeProfileService->create($request->validated());
 

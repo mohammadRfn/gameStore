@@ -20,9 +20,6 @@ class StoreProfileRequest extends FormRequest
             'legal_name'        => ['required', 'string', 'max:255'],
             'brand_name'        => ['nullable', 'string', 'max:255'],
             'slug'              => ['required', 'string', 'max:255', 'alpha_dash', Rule::unique('store_profiles', 'slug')->ignore($profileId)],
-            'tax_id'            => ['nullable', 'string', 'max:50'],
-            'registration_no'   => ['nullable', 'string', 'max:50'],
-            'founding_date'     => ['nullable', 'date'],
             'phone'             => ['nullable', 'string', 'max:50'],
             'secondary_phone'   => ['nullable', 'string', 'max:50'],
             'email'             => ['nullable', 'email', 'max:255'],
@@ -39,15 +36,10 @@ class StoreProfileRequest extends FormRequest
             'owner_national_id' => ['nullable', 'string', 'max:20'],
             'owner_phone'       => ['nullable', 'string', 'max:50'],
             'owner_email'       => ['nullable', 'email', 'max:255'],
-            'currency_code'     => ['nullable', 'string', 'size:3'],
-            'currency_symbol'   => ['nullable', 'string', 'max:10'],
-            'fiscal_year_start' => ['nullable', 'integer', 'between:1,12'],
-            'logo'              => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-            'cover'             => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'logo'              => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
+            'cover'             => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
             'remove_logo'       => ['nullable', 'boolean'],
             'remove_cover'      => ['nullable', 'boolean'],
-            'receipt_footer'    => ['nullable', 'string', 'max:500'],
-            'working_hours'     => ['nullable', 'array'],
             'is_primary'        => ['nullable', 'boolean'],
             'status'            => ['nullable', Rule::in(['active', 'inactive', 'pending'])],
         ];
@@ -60,7 +52,16 @@ class StoreProfileRequest extends FormRequest
             'slug.required'        => 'شناسه (slug) فروشگاه الزامی است.',
             'slug.unique'          => 'این شناسه قبلاً ثبت شده است.',
             'slug.alpha_dash'      => 'شناسه فقط می‌تواند شامل حروف، عدد، خط تیره و زیرخط باشد.',
-            'fiscal_year_start.between' => 'ماه شروع سال مالی باید بین ۱ تا ۱۲ باشد.',
         ];
+    }
+
+    protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator)
+    {
+        \Illuminate\Support\Facades\Log::warning('پروفایل — خطای اعتبارسنجی', [
+            'errors' => $validator->errors()->toArray(),
+            'input'  => $this->except(['logo', 'cover']),
+        ]);
+
+        parent::failedValidation($validator);
     }
 }

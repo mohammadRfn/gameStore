@@ -10,7 +10,7 @@
  * تمام فیلدها دقیقاً مطابق StoreProfileRequest بک‌اند هستند.
  * از useForm اینرسیا برای multipart (آپلود لوگو/کاور) و مدیریت خطاها استفاده می‌شود.
  */
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useForm } from '@inertiajs/vue3'
 import {
     X,
@@ -18,15 +18,13 @@ import {
     PhoneCall,
     MapPinned,
     UserRound,
-    ReceiptText,
     Image as ImageIcon,
     Upload,
 } from 'lucide-vue-next'
 
 import GsToggle from '@/Components/Settings/GsToggle.vue'
 import GsSegmented from '@/Components/Settings/GsSegmented.vue'
-import WorkingHoursEditor from './WorkingHoursEditor.vue'
-import { STATUS_OPTIONS, FISCAL_MONTHS } from '@/Composables/useStoreProfileApi'
+import { STATUS_OPTIONS } from '@/Composables/useStoreProfileApi'
 
 const props = defineProps({
     open: { type: Boolean, default: false },
@@ -39,9 +37,6 @@ const DEFAULTS = {
     legal_name: '',
     brand_name: '',
     slug: '',
-    tax_id: '',
-    registration_no: '',
-    founding_date: '',
     phone: '',
     secondary_phone: '',
     email: '',
@@ -58,11 +53,6 @@ const DEFAULTS = {
     owner_national_id: '',
     owner_phone: '',
     owner_email: '',
-    currency_code: '',
-    currency_symbol: '',
-    fiscal_year_start: 1,
-    receipt_footer: '',
-    working_hours: [],
     is_primary: false,
     status: 'active',
     logo: null,
@@ -89,6 +79,8 @@ function syncFromProfile() {
         }
         form[key] = p[key] ?? DEFAULTS[key]
     }
+    logoPreview.value = ''
+    coverPreview.value = ''
     form.clearErrors()
 }
 
@@ -99,14 +91,32 @@ watch(
     },
 )
 
+const logoPreview = ref('')
+const coverPreview = ref('')
+
+function readAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result)
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+    })
+}
+
 function onLogoChange(e) {
-    form.logo = e.target.files?.[0] || null
+    const file = e.target.files?.[0] || null
+    form.logo = file
     form.remove_logo = false
+    logoPreview.value = ''
+    if (file) readAsDataUrl(file).then((url) => { logoPreview.value = url })
 }
 
 function onCoverChange(e) {
-    form.cover = e.target.files?.[0] || null
+    const file = e.target.files?.[0] || null
+    form.cover = file
     form.remove_cover = false
+    coverPreview.value = ''
+    if (file) readAsDataUrl(file).then((url) => { coverPreview.value = url })
 }
 
 function submit() {
@@ -149,14 +159,18 @@ function submit() {
                     <form class="sp-modal__body" @submit.prevent="submit">
                         <!-- هویت -->
                         <p class="sp-legend">
-                            <span class="sp-legend__icon"><Building2 :size="16" /></span>
+                            <span class="sp-legend__icon">
+                                <Building2 :size="16" />
+                            </span>
                             هویت فروشگاه
                         </p>
                         <div class="sp-form-grid">
                             <div class="sp-field">
                                 <label class="sp-field__label">نام حقوقی <em>*</em></label>
-                                <input v-model="form.legal_name" class="sp-input" :class="{ 'has-error': form.errors.legal_name }" />
-                                <p v-if="form.errors.legal_name" class="sp-field__error">{{ form.errors.legal_name }}</p>
+                                <input v-model="form.legal_name" class="sp-input"
+                                    :class="{ 'has-error': form.errors.legal_name }" />
+                                <p v-if="form.errors.legal_name" class="sp-field__error">{{ form.errors.legal_name }}
+                                </p>
                             </div>
                             <div class="sp-field">
                                 <label class="sp-field__label">نام تجاری</label>
@@ -164,7 +178,8 @@ function submit() {
                             </div>
                             <div class="sp-field">
                                 <label class="sp-field__label">شناسه (slug) <em>*</em></label>
-                                <input v-model="form.slug" class="sp-input" dir="ltr" :class="{ 'has-error': form.errors.slug }" />
+                                <input v-model="form.slug" class="sp-input" dir="ltr"
+                                    :class="{ 'has-error': form.errors.slug }" />
                                 <p v-if="form.errors.slug" class="sp-field__error">{{ form.errors.slug }}</p>
                             </div>
                             <div class="sp-field">
@@ -183,7 +198,9 @@ function submit() {
 
                         <!-- تماس -->
                         <p class="sp-legend">
-                            <span class="sp-legend__icon"><PhoneCall :size="16" /></span>
+                            <span class="sp-legend__icon">
+                                <PhoneCall :size="16" />
+                            </span>
                             تماس و شبکه‌های اجتماعی
                         </p>
                         <div class="sp-form-grid">
@@ -197,12 +214,14 @@ function submit() {
                             </div>
                             <div class="sp-field">
                                 <label class="sp-field__label">ایمیل</label>
-                                <input v-model="form.email" class="sp-input" dir="ltr" :class="{ 'has-error': form.errors.email }" />
+                                <input v-model="form.email" class="sp-input" dir="ltr"
+                                    :class="{ 'has-error': form.errors.email }" />
                                 <p v-if="form.errors.email" class="sp-field__error">{{ form.errors.email }}</p>
                             </div>
                             <div class="sp-field">
                                 <label class="sp-field__label">وب‌سایت</label>
-                                <input v-model="form.website" class="sp-input" dir="ltr" :class="{ 'has-error': form.errors.website }" />
+                                <input v-model="form.website" class="sp-input" dir="ltr"
+                                    :class="{ 'has-error': form.errors.website }" />
                             </div>
                             <div class="sp-field">
                                 <label class="sp-field__label">اینستاگرام</label>
@@ -216,7 +235,9 @@ function submit() {
 
                         <!-- آدرس -->
                         <p class="sp-legend">
-                            <span class="sp-legend__icon"><MapPinned :size="16" /></span>
+                            <span class="sp-legend__icon">
+                                <MapPinned :size="16" />
+                            </span>
                             آدرس
                         </p>
                         <div class="sp-form-grid">
@@ -244,7 +265,9 @@ function submit() {
 
                         <!-- مالک -->
                         <p class="sp-legend">
-                            <span class="sp-legend__icon"><UserRound :size="16" /></span>
+                            <span class="sp-legend__icon">
+                                <UserRound :size="16" />
+                            </span>
                             مالک
                         </p>
                         <div class="sp-form-grid">
@@ -270,69 +293,29 @@ function submit() {
                             </div>
                         </div>
 
-                        <!-- مالی و اسناد -->
-                        <p class="sp-legend">
-                            <span class="sp-legend__icon"><ReceiptText :size="16" /></span>
-                            مالی و اسناد
-                        </p>
-                        <div class="sp-form-grid">
-                            <div class="sp-field">
-                                <label class="sp-field__label">شناسهٔ مالیاتی</label>
-                                <input v-model="form.tax_id" class="sp-input" dir="ltr" />
-                            </div>
-                            <div class="sp-field">
-                                <label class="sp-field__label">شمارهٔ ثبت</label>
-                                <input v-model="form.registration_no" class="sp-input" dir="ltr" />
-                            </div>
-                            <div class="sp-field">
-                                <label class="sp-field__label">تاریخ تأسیس</label>
-                                <input v-model="form.founding_date" type="date" class="sp-input" />
-                            </div>
-                            <div class="sp-field">
-                                <label class="sp-field__label">ماه شروع سال مالی</label>
-                                <select v-model="form.fiscal_year_start" class="sp-select">
-                                    <option v-for="m in FISCAL_MONTHS" :key="m.value" :value="m.value">
-                                        {{ m.label }}
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="sp-field">
-                                <label class="sp-field__label">کد ارز (ISO)</label>
-                                <input v-model="form.currency_code" class="sp-input" dir="ltr" maxlength="3" placeholder="IRR" />
-                            </div>
-                            <div class="sp-field">
-                                <label class="sp-field__label">نماد ارز</label>
-                                <input v-model="form.currency_symbol" class="sp-input" placeholder="تومان" />
-                            </div>
-                            <div class="sp-field sp-field--full">
-                                <label class="sp-field__label">متن پاورقی رسید</label>
-                                <textarea v-model="form.receipt_footer" class="sp-textarea" maxlength="500" />
-                                <p class="cm-hint">حداکثر ۵۰۰ نویسه</p>
-                            </div>
-                            <div class="sp-field sp-field--full">
-                                <label class="sp-field__label">ساعات کاری</label>
-                                <WorkingHoursEditor v-model="form.working_hours" />
-                            </div>
-                        </div>
 
-                        <!-- برندینگ -->
                         <p class="sp-legend">
-                            <span class="sp-legend__icon"><ImageIcon :size="16" /></span>
+                            <span class="sp-legend__icon">
+                                <ImageIcon :size="16" />
+                            </span>
                             برندینگ
                         </p>
                         <div class="sp-form-grid">
                             <div class="sp-field">
                                 <label class="sp-field__label">لوگو</label>
                                 <label class="sp-upload">
-                                    <img v-if="form.logo || existingLogo" class="sp-upload__preview" :src="form.logo ? URL.createObjectURL(form.logo) : existingLogo" alt="" />
-                                    <span v-else class="sp-upload__preview" style="display:grid; place-items:center; color:var(--gs-text-muted)">
+                                    <img v-if="logoPreview || existingLogo" class="sp-upload__preview"
+                                        :src="logoPreview || existingLogo" alt="" />
+                                    <span v-else class="sp-upload__preview"
+                                        style="display:grid; place-items:center; color:var(--gs-text-muted)">
                                         <Upload :size="18" />
                                     </span>
                                     <div>
                                         <p style="font-size:0.78rem; color:var(--gs-text-primary)">انتخاب فایل لوگو</p>
                                         <p class="cm-hint">jpg / png / webp — حداکثر ۲MB</p>
                                     </div>
-                                    <input type="file" accept="image/jpeg,image/png,image/webp" hidden @change="onLogoChange" />
+                                    <input type="file" accept="image/jpeg,image/png,image/webp" hidden
+                                        @change="onLogoChange" />
                                 </label>
                                 <label v-if="existingLogo" class="cm-check" style="margin-top:0.4rem">
                                     <input v-model="form.remove_logo" type="checkbox" />
@@ -344,15 +327,18 @@ function submit() {
                             <div class="sp-field">
                                 <label class="sp-field__label">کاور</label>
                                 <label class="sp-upload">
-                                    <img v-if="form.cover || existingCover" class="sp-upload__preview" :src="form.cover ? URL.createObjectURL(form.cover) : existingCover" alt="" />
-                                    <span v-else class="sp-upload__preview" style="display:grid; place-items:center; color:var(--gs-text-muted)">
+                                    <img v-if="coverPreview || existingCover" class="sp-upload__preview"
+                                        :src="coverPreview || existingCover" alt="" />
+                                    <span v-else class="sp-upload__preview"
+                                        style="display:grid; place-items:center; color:var(--gs-text-muted)">
                                         <Upload :size="18" />
                                     </span>
                                     <div>
                                         <p style="font-size:0.78rem; color:var(--gs-text-primary)">انتخاب تصویر کاور</p>
                                         <p class="cm-hint">jpg / png / webp — حداکثر ۴MB</p>
                                     </div>
-                                    <input type="file" accept="image/jpeg,image/png,image/webp" hidden @change="onCoverChange" />
+                                    <input type="file" accept="image/jpeg,image/png,image/webp" hidden
+                                        @change="onCoverChange" />
                                 </label>
                                 <label v-if="existingCover" class="cm-check" style="margin-top:0.4rem">
                                     <input v-model="form.remove_cover" type="checkbox" />
@@ -362,7 +348,9 @@ function submit() {
                             </div>
                         </div>
                     </form>
-
+                    <p v-if="form.errors.profile" class="sp-field__error" style="margin-bottom:0.8rem">
+                        {{ form.errors.profile }}
+                    </p>
                     <div class="sp-modal__foot">
                         <button type="button" class="sp-btn sp-btn--ghost" @click="emit('close')">
                             انصراف

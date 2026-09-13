@@ -10,20 +10,15 @@ class StoreProfile extends Model
 
     protected $fillable = [
         'legal_name', 'brand_name', 'slug',
-        'tax_id', 'registration_no', 'founding_date',
         'phone', 'secondary_phone', 'email', 'website', 'instagram', 'telegram',
         'address_street', 'address_city', 'address_province', 'address_postal', 'address_country',
         'owner_first_name', 'owner_last_name', 'owner_national_id', 'owner_phone', 'owner_email',
-        'currency_code', 'currency_symbol', 'fiscal_year_start',
-        'logo_path', 'cover_path', 'receipt_footer', 'working_hours',
+        'logo_path', 'cover_path',
         'is_primary', 'status',
     ];
 
     protected $casts = [
-        'founding_date'  => 'date',
-        'fiscal_year_start' => 'integer',
-        'working_hours'  => 'array',
-        'is_primary'     => 'boolean',
+        'is_primary' => 'boolean',
     ];
 
 

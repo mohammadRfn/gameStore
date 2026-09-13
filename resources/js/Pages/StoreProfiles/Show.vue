@@ -14,15 +14,9 @@ import {
     PhoneCall,
     MapPinned,
     UserRound,
-    ReceiptText,
-    Image as ImageIcon,
-    Clock,
-    Globe,
-    Mail,
 } from 'lucide-vue-next'
 
 import AppLayout from '@/Layouts/AppLayout.vue'
-import { jalali } from '@/Utils/format'
 import { STATUS_META } from '@/Composables/useStoreProfileApi'
 
 import ProfileScene from '@/Components/StoreProfile/ProfileScene.vue'
@@ -49,18 +43,6 @@ const fullAddress = computed(() =>
 const ownerName = computed(() =>
     [props.profile.owner_first_name, props.profile.owner_last_name].filter(Boolean).join(' ') || '—',
 )
-
-const workingHours = computed(() => props.profile.working_hours || [])
-
-const DAYS = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه']
-
-function hourOf(day) {
-    const found = workingHours.value.find((w) => w?.day === day)
-    if (!found?.open && !found?.close) return null
-    return `${found.open || '—'} تا ${found.close || '—'}`
-}
-
-const infoRows = (items) => items.filter((it) => it.value)
 </script>
 
 <template>
@@ -156,50 +138,6 @@ const infoRows = (items) => items.filter((it) => it.value)
                         </div>
                     </div>
 
-                    <!-- مالی -->
-                    <div class="st-card a3d-holo" v-reveal="{ delay: 160 }">
-                        <div class="st-sechead">
-                            <span class="st-sechead__icon"><ReceiptText :size="21" /></span>
-                            <div>
-                                <h2 class="st-sechead__title" style="font-size:1.05rem">مالی و اسناد</h2>
-                            </div>
-                        </div>
-                        <div class="cm-env">
-                            <div v-if="profile.tax_id" class="cm-env__row"><span class="cm-env__k">شناسهٔ مالیاتی</span><span class="cm-env__v">{{ profile.tax_id }}</span></div>
-                            <div v-if="profile.registration_no" class="cm-env__row"><span class="cm-env__k">شمارهٔ ثبت</span><span class="cm-env__v">{{ profile.registration_no }}</span></div>
-                            <div v-if="profile.founding_date" class="cm-env__row"><span class="cm-env__k">تاریخ تأسیس</span><span class="cm-env__v">{{ jalali(profile.founding_date) }}</span></div>
-                            <div v-if="profile.currency_code" class="cm-env__row"><span class="cm-env__k">ارز</span><span class="cm-env__v">{{ profile.currency_symbol || '' }} {{ profile.currency_code }}</span></div>
-                            <div v-if="profile.fiscal_year_start" class="cm-env__row"><span class="cm-env__k">شروع سال مالی</span><span class="cm-env__v">ماه {{ profile.fiscal_year_start }}</span></div>
-                        </div>
-                    </div>
-
-                    <!-- ساعات کاری -->
-                    <div class="st-card a3d-holo" v-reveal="{ delay: 200 }">
-                        <div class="st-sechead">
-                            <span class="st-sechead__icon"><Clock :size="21" /></span>
-                            <div>
-                                <h2 class="st-sechead__title" style="font-size:1.05rem">ساعات کاری</h2>
-                            </div>
-                        </div>
-                        <div v-if="workingHours.length" class="cm-env">
-                            <div v-for="day in DAYS" :key="day" class="cm-env__row">
-                                <span class="cm-env__k">{{ day }}</span>
-                                <span class="cm-env__v">{{ hourOf(day) || 'تعطیل' }}</span>
-                            </div>
-                        </div>
-                        <p v-else class="cm-hint">ساعات کاری ثبت نشده است.</p>
-                    </div>
-
-                    <!-- پاورقی -->
-                    <div v-if="profile.receipt_footer" class="st-card a3d-holo" v-reveal="{ delay: 240 }">
-                        <div class="st-sechead">
-                            <span class="st-sechead__icon"><Globe :size="21" /></span>
-                            <div>
-                                <h2 class="st-sechead__title" style="font-size:1.05rem">متن پاورقی رسید</h2>
-                            </div>
-                        </div>
-                        <p style="font-size:0.8rem; line-height:2; color:var(--gs-text-secondary)">{{ profile.receipt_footer }}</p>
-                    </div>
                 </div>
             </div>
         </div>

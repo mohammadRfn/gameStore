@@ -54,9 +54,23 @@ class StoreProfileService
 
             $data['is_primary'] = $wantPrimary;
             $data = $this->applyUploadedFiles($data);
+            $data = $this->fillDatabaseDefaults($data);
 
             return StoreProfile::create($data);
         });
+    }
+
+    /**
+     * چند ستون توی دیتابیس NOT NULL با مقدار پیش‌فرض هستن، ولی فرانت
+     * ممکنه صراحتاً null بفرسته (بعد از تبدیل رشتهٔ خالی به null).
+     * چون Eloquent مقدار null صریح رو جای‌گزین مقدار پیش‌فرض دیتابیس می‌کنه،
+     * اینجا باید خودمون قبل از insert مقدار پیش‌فرض رو برگردونیم.
+     */
+    protected function fillDatabaseDefaults(array $data): array
+    {
+        $data['address_country'] = $data['address_country'] ?: 'Iran';
+
+        return $data;
     }
 
     public function update(int $id, array $data): StoreProfile
@@ -76,6 +90,7 @@ class StoreProfileService
             }
 
             $data = $this->applyUploadedFiles($data, $profile);
+            $data = $this->fillDatabaseDefaults($data);
             $profile->update($data);
 
             return $profile->fresh();
