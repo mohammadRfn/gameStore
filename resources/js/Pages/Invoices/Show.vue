@@ -271,6 +271,7 @@
             </div>
 
             <InvoiceRestockPanel :invoice="invoice" style="margin-top:1.25rem" />
+            <DigitalMenuPanel :invoice-id="invoice.id" :categories="categories" />
 
             <!-- Sidebar -->
             <div style="display:flex;flex-direction:column;gap:1rem">
@@ -335,7 +336,12 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 const removingAdjustmentId = ref(null)
 import InvoiceRestockPanel from '@/Components/InvoiceRestockPanel.vue'
 import ManageWarrantyModal from '@/Components/WarrantyManagerModal.vue'
-const props = defineProps({ invoice: Object, adjustment_categories: { type: Array, default: () => [] } })
+import DigitalMenuPanel from '@/Components/DigitalMenuPanel.vue'
+const props = defineProps({
+    invoice: Object,
+    adjustment_categories: { type: Array, default: () => [] },
+    categories: { type: Array, default: () => [] },
+})
 const adjustmentCategories = computed(() => props.adjustment_categories)
 
 const adjustmentForm = reactive({

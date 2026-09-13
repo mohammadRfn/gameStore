@@ -24,6 +24,8 @@ use App\Http\Controllers\BackupController;
 use App\Http\Controllers\CacheMaintenanceController;
 use App\Http\Controllers\StoreProfileController;
 use App\Http\Controllers\Setting\AppSettingController;
+use App\Http\Controllers\DigitalMenuController;
+use App\Http\Controllers\PublicMenuController;
 // ============================================================
 // Auth
 // ============================================================
@@ -100,6 +102,9 @@ Route::middleware('auth')->group(function () {
     Route::resource('items', ItemController::class);
     Route::post('invoices/{invoice}/service-jobs', [OrderItemController::class, 'attachServiceJobs'])->name('invoices.service-jobs.attach');
     Route::delete('invoices/{invoice}/service-jobs/{serviceJob}', [OrderItemController::class, 'detachServiceJob'])->name('invoices.service-jobs.detach');
+
+    Route::post('invoices/{invoice}/digital-menu', [DigitalMenuController::class, 'activate'])->name('invoices.digital-menu.activate');
+    Route::get('invoices/{invoice}/digital-menu', [DigitalMenuController::class, 'status'])->name('invoices.digital-menu.status');
     // Service Types
     Route::resource('service-types', ServiceTypeController::class);
     Route::post('order-items/{id}/return', [OrderItemController::class, 'markReturned'])->name('order-items.return');
@@ -216,4 +221,17 @@ Route::middleware('auth')->group(function () {
     Route::post('/order-items/{orderItem}/warranty', [WarrantyController::class, 'store'])->name('order-items.warranty.store');
     Route::post('/item-serial-numbers/{itemSerialNumber}/warranty', [WarrantyController::class, 'storeForSerial'])->name('item-serial-numbers.warranty.store');
     Route::get('/items/{item}/warranty-candidates', [WarrantyController::class, 'candidatesForItem'])->name('items.warranty-candidates');
+});
+
+// ============================================================
+// Digital Menu (Public — بدون auth، فقط از طریق هات‌اسپات محلی)
+// ============================================================
+Route::prefix('menu')->name('menu.')->group(function () {
+    Route::get('/', [PublicMenuController::class, 'entry'])->name('entry');
+    Route::post('/', [PublicMenuController::class, 'verify'])->name('verify');
+    Route::get('session/{token}', [PublicMenuController::class, 'session'])->name('session');
+    Route::post('session/{token}/select', [PublicMenuController::class, 'select'])->name('select');
+    Route::delete('session/{token}/select/{itemId}', [PublicMenuController::class, 'decrease'])->name('select.destroy');
+    Route::post('session/{token}/submit', [PublicMenuController::class, 'submit'])->name('submit');
+    Route::get('{code}', [PublicMenuController::class, 'show'])->where('code', '[0-9]{4}')->name('show');
 });

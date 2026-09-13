@@ -43,6 +43,7 @@ class InvoiceController extends Controller
             'adjustment_categories' => \App\Models\AdjustmentCategory::where('is_active', true)
                 ->orderBy('sort_order')
                 ->get(['key', 'label', 'default_counts_as_revenue']),
+            'categories'            => \App\Models\Category::select('id', 'name')->orderBy('name')->get(),
         ]);
     }
     public function create(HttpRequest $httpRequest)
