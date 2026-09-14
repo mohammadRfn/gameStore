@@ -1,7 +1,11 @@
 <?php
 
-namespace App\Models;
+namespace Modules\Invoice\Models;
 
+use App\Models\Category;
+use App\Models\Item;
+use App\Models\ItemSerialNumber;
+use App\Models\Warranty;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 

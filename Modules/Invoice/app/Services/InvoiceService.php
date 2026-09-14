@@ -1,12 +1,15 @@
 <?php
 
-namespace App\Services;
+namespace Modules\Invoice\Services;
 
-use App\Models\Invoice;
-use App\Models\OrderItem;
+use App\Services\StockMovementService;
+use App\Services\WarrantyService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Modules\Invoice\Models\AdjustmentCategory;
+use Modules\Invoice\Models\Invoice;
+use Modules\Invoice\Models\OrderItem;
 
 class InvoiceService
 {
@@ -288,7 +291,7 @@ class InvoiceService
         $categoryKey = $data['category_key'] ?? 'other';
 
         $countsAsRevenue = $data['counts_as_revenue']
-            ?? \App\Models\AdjustmentCategory::where('key', $categoryKey)->value('default_counts_as_revenue')
+            ?? AdjustmentCategory::where('key', $categoryKey)->value('default_counts_as_revenue')
             ?? true;
 
         $invoice->adjustments()->create([

@@ -1,13 +1,15 @@
 <?php
 
-namespace App\Services;
+namespace Modules\Invoice\Services;
 
-use App\Models\Invoice;
 use App\Models\Item;
 use App\Models\ItemSerialNumber;
-use App\Models\OrderItem;
+use App\Services\StockMovementService;
+use App\Services\WarrantyService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Modules\Invoice\Models\Invoice;
+use Modules\Invoice\Models\OrderItem;
 
 class OrderItemService
 {

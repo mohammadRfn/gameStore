@@ -1,13 +1,16 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace Modules\Invoice\Http\Controllers;
 
-use App\Http\Requests\OrderItemRequest;
+use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Item;
-use App\Services\OrderItemService;
+use App\Models\ServiceJob;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Modules\Invoice\Http\Requests\OrderItemRequest;
+use Modules\Invoice\Models\Invoice;
+use Modules\Invoice\Services\OrderItemService;
 use RuntimeException;
 
 class OrderItemController extends Controller
@@ -30,11 +33,11 @@ class OrderItemController extends Controller
     public function create(Request $request)
     {
         $invoiceId = $request->input('invoice_id');
-        $invoice = $invoiceId ? \App\Models\Invoice::find($invoiceId) : null;
+        $invoice = $invoiceId ? Invoice::find($invoiceId) : null;
 
         $eligibleServiceJobs = [];
         if ($invoice && $invoice->customer_id) {
-            $eligibleServiceJobs = \App\Models\ServiceJob::where('status', 'delivered')
+            $eligibleServiceJobs = ServiceJob::where('status', 'delivered')
                 ->whereNull('invoice_id')
                 ->where('customer_id', $invoice->customer_id)
                 ->with('serviceTypes.serviceType')
@@ -130,7 +133,7 @@ class OrderItemController extends Controller
             'service_job_ids.*' => 'integer|exists:service_jobs,id',
         ]);
 
-        app(\App\Services\OrderItemService::class)
+        app(\Modules\Invoice\Services\OrderItemService::class)
             ->attachServiceJobsToInvoice($invoiceId, $data['service_job_ids']);
 
         return redirect()->route('invoices.show', $invoiceId);

@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Services;
+namespace Modules\Invoice\Services;
 
-use App\Models\Invoice;
+use Modules\Invoice\Models\Invoice;
 use Modules\Profile\Models\StoreProfile;
 use Mpdf\Mpdf;
 use Mpdf\Config\ConfigVariables;
