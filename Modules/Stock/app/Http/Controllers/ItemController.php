@@ -1,16 +1,18 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace Modules\Stock\Http\Controllers;
 
-use App\Http\Requests\ItemRequest;
-use App\Services\ItemService;
+use App\Http\Controllers\Controller;
 use Inertia\Inertia;
+use Modules\Stock\Http\Requests\ItemRequest;
+use Modules\Stock\Services\ItemService;
+use Modules\Stock\Services\StockMovementService;
 
 class ItemController extends Controller
 {
     public function __construct(
         protected ItemService $itemService,
-        protected \App\Services\StockMovementService $stockMovementService
+        protected StockMovementService $stockMovementService
     ) {}
 
     public function index()

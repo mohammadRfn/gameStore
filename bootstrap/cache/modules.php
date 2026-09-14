@@ -13,6 +13,7 @@
     9 => 'Modules\\Setting\\Providers\\RouteServiceProvider',
     10 => 'Modules\\Stats\\Providers\\StatsServiceProvider',
     11 => 'Modules\\Stock\\Providers\\StockServiceProvider',
+    12 => 'Modules\\Warranty\\Providers\\WarrantyServiceProvider',
   ),
   'eager' => 
   array (
@@ -28,6 +29,7 @@
     9 => 'Modules\\Setting\\Providers\\RouteServiceProvider',
     10 => 'Modules\\Stats\\Providers\\StatsServiceProvider',
     11 => 'Modules\\Stock\\Providers\\StockServiceProvider',
+    12 => 'Modules\\Warranty\\Providers\\WarrantyServiceProvider',
   ),
   'deferred' => 
   array (

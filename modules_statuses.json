@@ -9,5 +9,6 @@
     "Stock": true,
     "Service": true,
     "DigitalMenu": true,
-    "Stats": true
+    "Stats": true,
+    "Warranty": true
 }

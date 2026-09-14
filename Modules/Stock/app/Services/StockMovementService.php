@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Services;
+namespace Modules\Stock\Services;
 
-use App\Models\Invoice;
-use App\Models\Item;
-use App\Models\ItemSerialNumber;
-use App\Models\OrderItem;
 use App\Models\ServiceJob;
 use App\Models\ServiceJobItem;
-use App\Models\StockMovement;
 use Illuminate\Support\Facades\DB;
+use Modules\Invoice\Models\Invoice;
+use Modules\Invoice\Models\OrderItem;
+use Modules\Stock\Models\Item;
+use Modules\Stock\Models\ItemSerialNumber;
+use Modules\Stock\Models\StockMovement;
 use RuntimeException;
 
 class StockMovementService

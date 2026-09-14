@@ -1,13 +1,14 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace Modules\Stock\Http\Controllers;
 
-use App\Http\Requests\StockMovementRequest;
-use App\Models\Item;
-use App\Models\StockMovement;
-use App\Services\StockMovementService;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Modules\Stock\Http\Requests\StockMovementRequest;
+use Modules\Stock\Models\Item;
+use Modules\Stock\Models\StockMovement;
+use Modules\Stock\Services\StockMovementService;
 
 class StockMovementController extends Controller
 {

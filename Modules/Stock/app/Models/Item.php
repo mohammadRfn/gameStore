@@ -1,10 +1,13 @@
 <?php
 
-namespace App\Models;
+namespace Modules\Stock\Models;
 
+use App\Models\Category;
+use App\Models\ServiceJobItem;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Modules\Invoice\Models\OrderItem;
 
 class Item extends Model
 {

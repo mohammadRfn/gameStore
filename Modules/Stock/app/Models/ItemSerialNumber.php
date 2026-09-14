@@ -1,8 +1,10 @@
 <?php
 
-namespace App\Models;
+namespace Modules\Stock\Models;
 
+use App\Models\Warranty;
 use Illuminate\Database\Eloquent\Model;
+use Modules\Invoice\Models\OrderItem;
 
 class ItemSerialNumber extends Model
 {

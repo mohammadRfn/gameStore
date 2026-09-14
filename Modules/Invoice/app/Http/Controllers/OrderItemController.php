@@ -141,7 +141,7 @@ class OrderItemController extends Controller
 
     public function detachServiceJob(int $invoiceId, int $serviceJobId)
     {
-        app(\App\Services\OrderItemService::class)
+        app(\Modules\Invoice\Services\OrderItemService::class)
             ->detachServiceJobFromInvoice($invoiceId, $serviceJobId);
 
         return redirect()->route('invoices.show', $invoiceId);

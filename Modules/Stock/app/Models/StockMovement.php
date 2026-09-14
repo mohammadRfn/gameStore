@@ -1,10 +1,12 @@
 <?php
 
-namespace App\Models;
+namespace Modules\Stock\Models;
 
+use App\Models\ServiceJob;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Modules\Invoice\Models\Invoice;
 
 class StockMovement extends Model
 {

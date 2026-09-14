@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Services;
+namespace Modules\Stock\Services;
 
 use App\Models\Category;
-use App\Models\Item;
 use Illuminate\Database\Eloquent\Collection;
+use Modules\Stock\Models\Item;
 
 class ItemService
 {
