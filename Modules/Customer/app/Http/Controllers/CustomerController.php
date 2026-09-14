@@ -4,53 +4,83 @@ namespace Modules\Customer\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+use Modules\Customer\Services\CustomerService;
 
 class CustomerController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function __construct(protected CustomerService $customerService) {}
+
+    public function index(Request $request): Response
     {
-        return view('customer::index');
+        $filters = $request->only(['search', 'name', 'email', 'request_status', 'invoice_status']);
+
+        return Inertia::render('Customers/Index', [
+            'customers' => $this->customerService->getAllCustomers($filters)->withQueryString(),
+            'filters'   => $filters,
+        ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function create(): Response
     {
-        return view('customer::create');
+        return Inertia::render('Customers/Create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request) {}
-
-    /**
-     * Show the specified resource.
-     */
-    public function show($id)
+    public function store(Request $request)
     {
-        return view('customer::show');
+        $data = $request->validate([
+            'name'    => 'required|string|max:255',
+            'phone'   => 'nullable|string|max:20',
+            'email'   => 'nullable|email|max:255',
+            'address' => 'nullable|string|max:500',
+            'notes'   => 'nullable|string',
+        ]);
+
+        $this->customerService->createCustomer($data);
+
+        return redirect()->route('customers.index')
+            ->with('success', 'مشتری با موفقیت اضافه شد.');
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit($id)
+    public function show(int $id, Request $request): Response
     {
-        return view('customer::edit');
+        $filters = $request->only(['request_status', 'invoice_status']);
+        $customer = $this->customerService->getCustomerById($id, $filters);
+
+        return Inertia::render('Customers/Show', [
+            'customer' => $customer,
+        ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id) {}
+    public function edit(int $id): Response
+    {
+        return Inertia::render('Customers/Edit', [
+            'customer' => $this->customerService->getCustomerById($id),
+        ]);
+    }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id) {}
+    public function update(Request $request, int $id)
+    {
+        $data = $request->validate([
+            'name'    => 'required|string|max:255',
+            'phone'   => 'nullable|string|max:20',
+            'email'   => 'nullable|email|max:255',
+            'address' => 'nullable|string|max:500',
+            'notes'   => 'nullable|string',
+        ]);
+
+        $this->customerService->updateCustomer($id, $data);
+
+        return redirect()->route('customers.show', $id)
+            ->with('success', 'اطلاعات مشتری به‌روزرسانی شد.');
+    }
+
+    public function destroy(int $id)
+    {
+        $this->customerService->deleteCustomer($id);
+
+        return redirect()->route('customers.index')
+            ->with('success', 'مشتری حذف شد.');
+    }
 }

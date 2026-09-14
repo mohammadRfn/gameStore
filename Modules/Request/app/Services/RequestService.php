@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Services;
+namespace Modules\Request\Services;
 
-use App\Models\Request;
+use Modules\Request\Models\Request;
 use Illuminate\Support\Collection;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -14,7 +14,7 @@ class RequestService
         $request = Request::create([
             'customer_name' => $data['customer_name'],
             'description'   => $data['description'],
-            'status'        => \App\Models\Request::STATUS_PENDING,
+            'status'        => Request::STATUS_PENDING,
             'customer_id'   => $data['customer_id'] ?? null,
         ]);
 

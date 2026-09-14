@@ -3,14 +3,12 @@
 use App\Http\Controllers\AppSettingsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InvoiceAdjustmentController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\MonthlySaleController;
 use App\Http\Controllers\OrderItemController;
-use App\Http\Controllers\RequestController;
 use App\Http\Controllers\ServiceJobController;
 use App\Http\Controllers\ServiceJobItemController;
 use App\Http\Controllers\ServiceTypeController;
@@ -57,11 +55,8 @@ Route::middleware('auth')->group(function () {
 
     // Dashboard
 
-    // Customers
-    Route::resource('customers', CustomerController::class);
 
-    // Requests
-    Route::resource('requests', RequestController::class);
+
 
     // Invoices
     Route::resource('invoices', InvoiceController::class);

@@ -1,9 +1,12 @@
 <?php
 
-namespace App\Models;
+namespace Modules\Customer\Models;
 
+use App\Models\Invoice;
+use App\Models\ServiceJob;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Modules\Request\Models\Request;
 
 class Customer extends Model
 {

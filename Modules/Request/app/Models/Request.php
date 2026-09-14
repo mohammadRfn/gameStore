@@ -1,7 +1,11 @@
 <?php
 
-namespace App\Models;
+namespace Modules\Request\Models;
 
+use App\Models\Category;
+use App\Models\Customer;
+use App\Models\Invoice;
+use App\Models\ServiceJob;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 

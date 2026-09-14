@@ -3,54 +3,66 @@
 namespace Modules\Request\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Services\CategoryService;
+use Illuminate\Http\Request as HttpRequest;
+use Inertia\Inertia;
+use Modules\Request\Http\Requests\RequestRequest;
+use Modules\Request\Services\RequestService;
 
 class RequestController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function __construct(
+        protected RequestService $requestService,
+        protected CategoryService $categoryService,
+    ) {}
+
+    public function index(HttpRequest $request)
     {
-        return view('request::index');
+        return Inertia::render('Requests/Index', [
+            'requests' => $this->requestService->getAllRequests($request->only(['search', 'status'])),
+            'filters'  => $request->only(['search', 'status']),
+        ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
+    public function show(int $id)
+    {
+        return Inertia::render('Requests/Show', [
+            'request' => $this->requestService->showRequest($id),
+        ]);
+    }
+
     public function create()
     {
-        return view('request::create');
+        return Inertia::render('Requests/Create', [
+            'categories' => $this->categoryService->getAllCategories(),
+            'customers'  => \App\Models\Customer::select('id', 'name')->get(),
+        ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request) {}
-
-    /**
-     * Show the specified resource.
-     */
-    public function show($id)
+    public function store(RequestRequest $request)
     {
-        return view('request::show');
+        $this->requestService->createRequest($request->validated());
+        return redirect()->route('requests.index');
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit($id)
+    public function edit(int $id)
     {
-        return view('request::edit');
+        return Inertia::render('Requests/Edit', [
+            'request'    => $this->requestService->showRequest($id),
+            'categories' => $this->categoryService->getAllCategories(),
+            'customers'  => \App\Models\Customer::select('id', 'name')->get(),
+        ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id) {}
+    public function update(int $id, RequestRequest $request)
+    {
+        $this->requestService->updateRequest($id, $request->validated());
+        return redirect()->route('requests.show', $id);
+    }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id) {}
+    public function destroy(int $id)
+    {
+        $this->requestService->deleteRequest($id);
+        return redirect()->route('requests.index');
+    }
 }

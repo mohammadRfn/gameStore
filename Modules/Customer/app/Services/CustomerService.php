@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Services;
+namespace Modules\Customer\Services;
 
-use App\Models\Customer;
+use Modules\Customer\Models\Customer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 

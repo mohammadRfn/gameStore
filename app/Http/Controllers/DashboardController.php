@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Customer;
+use Modules\Customer\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Item;
 use App\Models\Request as ServiceRequest;
