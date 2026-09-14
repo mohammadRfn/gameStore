@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Invoice;
+use Modules\Profile\Models\StoreProfile;
 use Mpdf\Mpdf;
 use Mpdf\Config\ConfigVariables;
 use Mpdf\Config\FontVariables;
@@ -13,6 +14,8 @@ class InvoicePdfService
     public function generate(Invoice $invoice): string
     {
         $invoice->loadMissing('orderItems', 'customer', 'adjustments', 'serviceJobs.serviceTypes.serviceType');
+
+        $storeProfile = StoreProfile::primary()->first();
 
         $defaultFontConfig = (new ConfigVariables())->getDefaults();
         $fontDirs = $defaultFontConfig['fontDir'];
@@ -42,7 +45,7 @@ class InvoicePdfService
             ],
         ]);
 
-        $html = view('pdf.invoice', ['invoice' => $invoice])->render();
+        $html = view('pdf.invoice', ['invoice' => $invoice, 'storeProfile' => $storeProfile])->render();
         $mpdf->WriteHTML($html);
 
         return $mpdf->Output('invoice-' . $invoice->invoice_number . '.pdf', Destination::STRING_RETURN);

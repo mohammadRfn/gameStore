@@ -49,6 +49,16 @@ class StoreProfile extends Model
         ]));
     }
 
+    /** آدرس مخصوص فاکتور: استان، شهر، خیابان — بدون کدپستی/کشور. */
+    public function getInvoiceAddressAttribute(): string
+    {
+        return implode('، ', array_filter([
+            $this->address_province,
+            $this->address_city,
+            $this->address_street,
+        ]));
+    }
+
     public function getOwnerFullNameAttribute(): ?string
     {
         return trim(($this->owner_first_name ?? '') . ' ' . ($this->owner_last_name ?? '')) ?: null;

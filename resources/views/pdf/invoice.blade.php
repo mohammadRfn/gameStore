@@ -51,6 +51,17 @@
             font-weight: bold;
         }
 
+        .shop-meta {
+            margin-top: 6px;
+            font-size: 9.5px;
+            color: #666;
+            line-height: 1.7;
+        }
+
+        .shop-meta div {
+            margin-bottom: 1px;
+        }
+
         .meta-table {
             width: 100%;
             margin-bottom: 14px;
@@ -150,8 +161,33 @@
         <table>
             <tr>
                 <td style="width:50%">
-                    <div class="shop-title">گیم‌شاپ </div>
+                    <div class="shop-title">{{ $storeProfile->brand_name ?? 'گیم‌شاپ' }}</div>
                     <div style="font-size:10px;color:#888;margin-top:2px">فاکتور فروش</div>
+                    @if($storeProfile)
+                    <div class="shop-meta">
+                        @if($storeProfile->phone)
+                        <div>تلفن: {!! ltr($storeProfile->phone) !!}</div>
+                        @endif
+                        @if($storeProfile->secondary_phone)
+                        <div>تلفن دوم: {!! ltr($storeProfile->secondary_phone) !!}</div>
+                        @endif
+                        @if($storeProfile->email)
+                        <div>ایمیل: {!! ltr($storeProfile->email) !!}</div>
+                        @endif
+                        @if($storeProfile->website)
+                        <div>وب‌سایت: {!! ltr($storeProfile->website) !!}</div>
+                        @endif
+                        @if($storeProfile->telegram)
+                        <div>تلگرام: {!! ltr($storeProfile->telegram) !!}</div>
+                        @endif
+                        @if($storeProfile->instagram)
+                        <div>اینستاگرام: {!! ltr($storeProfile->instagram) !!}</div>
+                        @endif
+                        @if($storeProfile->invoice_address)
+                        <div>آدرس: {{ $storeProfile->invoice_address }}</div>
+                        @endif
+                    </div>
+                    @endif
                 </td>
                 <td style="width:50%;text-align:left">
                     <div class="invoice-badge">شماره فاکتور: {!! ltr($invoice->invoice_number) !!}</div>
