@@ -1,0 +1,11 @@
+{
+    "name": "DigitalMenu",
+    "alias": "digitalmenu",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\DigitalMenu\\Providers\\DigitalMenuServiceProvider"
+    ],
+    "files": []
+}

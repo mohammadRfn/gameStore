@@ -1,5 +1,13 @@
 {
     "Setting": true,
     "Profile": true,
-    "CacheMaintenance": true
+    "CacheMaintenance": true,
+    "Archive": true,
+    "Customer": true,
+    "Request": true,
+    "Invoice": true,
+    "Stock": true,
+    "Service": true,
+    "DigitalMenu": true,
+    "Stats": true
 }
