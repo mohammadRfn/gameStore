@@ -3,54 +3,32 @@
 namespace Modules\Dashboard\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+use Modules\Customer\Models\Customer;
+use Modules\Invoice\Models\Invoice;
+use Modules\Request\Models\Request as ServiceRequest;
+use Modules\Service\Models\ServiceJob;
+use Modules\Stock\Models\Item;
 
 class DashboardController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(): Response
     {
-        return view('dashboard::index');
+        return Inertia::render('Dashboard', [
+            'stats' => [
+                'customers_count'     => Customer::count(),
+                'open_requests'       => ServiceRequest::whereIn('status', ['pending', 'in_progress'])->count(),
+                'items_count'         => Item::count(),
+                'active_service_jobs' => ServiceJob::whereNotIn('status', ['completed', 'delivered'])->count(),
+            ],
+            'recentRequests' => ServiceRequest::with('categories')
+                ->latest()
+                ->take(5)
+                ->get(['id', 'customer_name', 'description', 'status']),
+            'recentInvoices' => Invoice::latest()
+                ->take(5)
+                ->get(['id', 'invoice_number', 'total_amount', 'is_confirmed']),
+        ]);
     }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        return view('dashboard::create');
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request) {}
-
-    /**
-     * Show the specified resource.
-     */
-    public function show($id)
-    {
-        return view('dashboard::show');
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit($id)
-    {
-        return view('dashboard::edit');
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id) {}
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id) {}
 }

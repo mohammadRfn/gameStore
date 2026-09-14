@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Models;
+namespace Modules\DigitalMenu\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Modules\Invoice\Models\Invoice;
 
 class DigitalMenuSession extends Model
 {

@@ -1,14 +1,15 @@
 <?php
 
-namespace App\Services;
+namespace Modules\DigitalMenu\Services;
 
-use App\Models\DigitalMenuSelection;
-use App\Models\DigitalMenuSession;
-use App\Models\Invoice;
-use App\Models\Item;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Modules\DigitalMenu\Models\DigitalMenuSelection;
+use Modules\DigitalMenu\Models\DigitalMenuSession;
+use Modules\Invoice\Models\Invoice;
+use Modules\Invoice\Services\OrderItemService;
+use Modules\Stock\Models\Item;
 use RuntimeException;
 
 class DigitalMenuService

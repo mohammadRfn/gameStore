@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace Modules\DigitalMenu\Http\Controllers;
 
-use App\Services\DigitalMenuService;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Modules\DigitalMenu\Services\DigitalMenuService;
 use RuntimeException;
 
 class PublicMenuController extends Controller

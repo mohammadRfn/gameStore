@@ -4,53 +4,38 @@ namespace Modules\DigitalMenu\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Modules\DigitalMenu\Services\DigitalMenuService;
 
 class DigitalMenuController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function __construct(protected DigitalMenuService $digitalMenuService) {}
+
+    public function activate(Request $request, int $invoiceId)
     {
-        return view('digitalmenu::index');
+        $data = $request->validate([
+            'category_ids'   => 'required|array|min:1',
+            'category_ids.*' => 'integer|exists:categories,id',
+        ]);
+
+        $session = $this->digitalMenuService->activateForInvoice($invoiceId, $data['category_ids']);
+
+        return response()->json([
+            'code'       => $session->code,
+            'status'     => $session->status,
+            'expires_at' => $session->expires_at,
+            'link'       => $this->digitalMenuService->buildLink($session->code),
+        ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function status(int $invoiceId)
     {
-        return view('digitalmenu::create');
+        $session = $this->digitalMenuService->statusForInvoice($invoiceId);
+
+        return response()->json($session ? [
+            'code'       => $session->code,
+            'status'     => $session->status,
+            'expires_at' => $session->expires_at,
+            'link'       => $this->digitalMenuService->buildLink($session->code),
+        ] : null);
     }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request) {}
-
-    /**
-     * Show the specified resource.
-     */
-    public function show($id)
-    {
-        return view('digitalmenu::show');
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit($id)
-    {
-        return view('digitalmenu::edit');
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id) {}
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id) {}
 }

@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Services;
+namespace Modules\Category\Services;
 
-use App\Models\Category;
 use Illuminate\Database\Eloquent\Collection;
+use Modules\Category\Models\Category;
 use RuntimeException;
 
 class CategoryService

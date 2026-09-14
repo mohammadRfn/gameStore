@@ -3,54 +3,52 @@
 namespace Modules\Category\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Modules\Category\Http\Requests\CategoryRequest;
+use Modules\Category\Services\CategoryService;
 
 class CategoryController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    public function __construct(
+        protected CategoryService $categoryService
+    ) {}
+
     public function index()
     {
-        return view('category::index');
+        return Inertia::render('Categories/Index', [
+            'categories' => $this->categoryService->getAllCategories(),
+        ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function store(CategoryRequest $request)
     {
-        return view('category::create');
+        $category = $this->categoryService->createCategory(
+            $request->name,
+            $request->boolean('default_tracks_stock', true)
+        );
+
+        if ($request->wantsJson()) {
+            return response()->json($category, 201);
+        }
+
+        return redirect()->back();
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request) {}
-
-    /**
-     * Show the specified resource.
-     */
-    public function show($id)
+    public function destroy(int $id)
     {
-        return view('category::show');
+        try {
+            $this->categoryService->deleteCategory($id);
+        } catch (\RuntimeException $e) {
+            if (request()->wantsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+            return redirect()->back()->withErrors(['category' => $e->getMessage()]);
+        }
+
+        if (request()->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return redirect()->back();
     }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit($id)
-    {
-        return view('category::edit');
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id) {}
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id) {}
 }

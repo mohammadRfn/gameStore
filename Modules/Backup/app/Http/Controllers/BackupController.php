@@ -1,18 +1,18 @@
 <?php
 
-namespace Modules\Authentication\Http\Controllers;
+namespace Modules\Backup\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
-class AuthenticationController extends Controller
+class BackupController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        return view('authentication::index');
+        return view('backup::index');
     }
 
     /**
@@ -20,7 +20,7 @@ class AuthenticationController extends Controller
      */
     public function create()
     {
-        return view('authentication::create');
+        return view('backup::create');
     }
 
     /**
@@ -33,7 +33,7 @@ class AuthenticationController extends Controller
      */
     public function show($id)
     {
-        return view('authentication::show');
+        return view('backup::show');
     }
 
     /**
@@ -41,7 +41,7 @@ class AuthenticationController extends Controller
      */
     public function edit($id)
     {
-        return view('authentication::edit');
+        return view('backup::edit');
     }
 
     /**

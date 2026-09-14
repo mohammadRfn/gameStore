@@ -13,5 +13,6 @@
     "Warranty": true,
     "Category": true,
     "Dashboard": true,
-    "Authentication": true
+    "Authentication": true,
+    "Backup": true
 }

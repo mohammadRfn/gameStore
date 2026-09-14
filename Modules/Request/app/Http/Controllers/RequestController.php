@@ -3,7 +3,7 @@
 namespace Modules\Request\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Services\CategoryService;
+use Modules\Category\Services\CategoryService;
 use Illuminate\Http\Request as HttpRequest;
 use Inertia\Inertia;
 use Modules\Request\Http\Requests\RequestRequest;

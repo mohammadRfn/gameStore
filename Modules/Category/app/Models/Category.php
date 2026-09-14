@@ -1,9 +1,12 @@
 <?php
 
-namespace App\Models;
+namespace Modules\Category\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Modules\Invoice\Models\OrderItem;
+use Modules\Request\Models\Request;
+use Modules\Stock\Models\Item;
 
 class Category extends Model
 {
