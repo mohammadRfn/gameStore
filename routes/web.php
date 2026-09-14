@@ -1,27 +1,17 @@
 <?php
 
-use App\Http\Controllers\AppSettingsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\InvoiceAdjustmentController;
-use App\Http\Controllers\InvoiceController;
-use App\Http\Controllers\ItemController;
+
 use App\Http\Controllers\MonthlySaleController;
-use App\Http\Controllers\OrderItemController;
-use App\Http\Controllers\ServiceJobController;
-use App\Http\Controllers\ServiceJobItemController;
-use App\Http\Controllers\ServiceTypeController;
+
 use App\Http\Controllers\StatsController;
-use App\Http\Controllers\StockMovementController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ArchiveController;
 use Inertia\Inertia;
-use App\Http\Controllers\WarrantyController;
 use App\Http\Controllers\BackupController;
-use App\Http\Controllers\CacheMaintenanceController;
-use App\Http\Controllers\StoreProfileController;
-use App\Http\Controllers\Setting\AppSettingController;
+
 use App\Http\Controllers\DigitalMenuController;
 use App\Http\Controllers\PublicMenuController;
 // ============================================================
@@ -62,23 +52,14 @@ Route::middleware('auth')->group(function () {
     Route::resource('categories', CategoryController::class)->only(['index', 'store', 'destroy']);
     Route::post('/backup/pick-directory', [BackupController::class, 'pickDirectory']);
     // Service Jobs
-    Route::resource('service-jobs', ServiceJobController::class);
     Route::get('stats', [StatsController::class, 'index'])->name('stats.index');
     Route::get('stats/products', [StatsController::class, 'products'])->name('stats.products');
     Route::get('stats/services', [StatsController::class, 'services'])->name('stats.services');
     Route::get('stats/overview', [StatsController::class, 'overview'])->name('stats.overview');
     Route::get('stats/ranking', [StatsController::class, 'ranking'])
         ->name('stats.ranking');
-    // Service Job Items
-    Route::resource('service-jobs.items', ServiceJobItemController::class)
-        ->shallow()
-        ->names('service-job-items') // <--- این بخش اضافه شود
-        ->only(['index', 'store', 'update', 'destroy']);
 
-    Route::post('service-types/quick', [ServiceTypeController::class, 'quickStore'])
-        ->name('service-types.quick-store');
 
-    Route::resource('service-types', ServiceTypeController::class);
 
     Route::post('invoices/{invoice}/digital-menu', [DigitalMenuController::class, 'activate'])->name('invoices.digital-menu.activate');
     Route::get('invoices/{invoice}/digital-menu', [DigitalMenuController::class, 'status'])->name('invoices.digital-menu.status');
@@ -169,11 +150,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('monthly-sales', MonthlySaleController::class)->only(['index', 'store']);
 
 
-    Route::get('/warranty-providers', [WarrantyController::class, 'providers'])->name('warranty-providers.index');
-    Route::post('/warranty-providers', [WarrantyController::class, 'storeProvider'])->name('warranty-providers.store');
-    Route::post('/order-items/{orderItem}/warranty', [WarrantyController::class, 'store'])->name('order-items.warranty.store');
-    Route::post('/item-serial-numbers/{itemSerialNumber}/warranty', [WarrantyController::class, 'storeForSerial'])->name('item-serial-numbers.warranty.store');
-    Route::get('/items/{item}/warranty-candidates', [WarrantyController::class, 'candidatesForItem'])->name('items.warranty-candidates');
+  
 });
 
 // ============================================================

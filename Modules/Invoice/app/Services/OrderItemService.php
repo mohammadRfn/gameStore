@@ -4,8 +4,8 @@ namespace Modules\Invoice\Services;
 
 use App\Models\Item;
 use App\Models\ItemSerialNumber;
-use App\Services\StockMovementService;
-use App\Services\WarrantyService;
+use Modules\Stock\Services\StockMovementService;
+use Modules\Warranty\Services\WarrantyService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Modules\Invoice\Models\Invoice;

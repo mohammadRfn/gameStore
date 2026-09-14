@@ -10,5 +10,8 @@
     "Service": true,
     "DigitalMenu": true,
     "Stats": true,
-    "Warranty": true
+    "Warranty": true,
+    "Category": true,
+    "Dashboard": true,
+    "Authentication": true
 }

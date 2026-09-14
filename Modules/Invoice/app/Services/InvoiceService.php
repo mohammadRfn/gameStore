@@ -2,8 +2,8 @@
 
 namespace Modules\Invoice\Services;
 
-use App\Services\StockMovementService;
-use App\Services\WarrantyService;
+use Modules\Stock\Services\StockMovementService;
+use Modules\Warranty\Services\WarrantyService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
