@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Services\Backup;
+namespace Modules\Backup\Services;
 
-use App\Models\BackupRun;
+use Modules\Backup\Models\BackupRun;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;

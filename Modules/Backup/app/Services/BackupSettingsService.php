@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Services\Backup;
+namespace Modules\Backup\Services;
 
-use App\Models\BackupSetting;
 use Illuminate\Support\Facades\Cache;
+use Modules\Backup\Models\BackupSetting;
 use Illuminate\Support\Facades\Schema;
 
 /**

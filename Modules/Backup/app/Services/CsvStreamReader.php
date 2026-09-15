@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Backup;
+namespace Modules\Backup\Services;
 
 use Generator;
 use RuntimeException;

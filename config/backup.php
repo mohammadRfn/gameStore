@@ -1,27 +1,26 @@
 <?php
 
+use App\Models\AppSetting;
 use App\Models\ArchiveAction;
 use App\Models\ArchivedRecord;
-use App\Models\Category;
-use App\Models\Customer;
 use App\Models\DailyItemStat;
-use App\Models\Invoice;
-use App\Models\InvoiceAdjustment;
-use App\Models\Item;
 use App\Models\MonthlySale;
-use App\Models\OrderItem;
-use App\Models\Request as ServiceRequest;
-use App\Models\ServiceJob;
-use App\Models\ServiceJobItem;
-use App\Models\ServiceJobServiceType;
-use App\Models\ServiceType;
-use App\Models\StockMovement;
-use App\Models\User;
-use App\Models\AppSetting;
 use App\Models\SettingGroup;
 use App\Models\StoreProfile;
-use App\Models\AdjustmentCategory;
-use App\Models\RequestCategory;
+use App\Models\User;
+use Modules\Category\Models\Category;
+use Modules\Customer\Models\Customer;
+use Modules\Invoice\Models\AdjustmentCategory;
+use Modules\Invoice\Models\Invoice;
+use Modules\Invoice\Models\InvoiceAdjustment;
+use Modules\Invoice\Models\OrderItem;
+use Modules\Request\Models\Request as ServiceRequest;
+use Modules\Service\Models\ServiceJob;
+use Modules\Service\Models\ServiceJobItem;
+use Modules\Service\Models\ServiceJobServiceType;
+use Modules\Service\Models\ServiceType;
+use Modules\Stock\Models\Item;
+use Modules\Stock\Models\StockMovement;
 
 return [
 

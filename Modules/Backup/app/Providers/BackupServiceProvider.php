@@ -22,7 +22,9 @@ class BackupServiceProvider extends ModuleServiceProvider
      *
      * @var string[]
      */
-    // protected array $commands = [];
+    protected array $commands = [
+        \Modules\Backup\Console\Commands\BackupRunCommand::class,
+    ];
 
     /**
      * Provider classes to register.

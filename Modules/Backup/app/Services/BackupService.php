@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Services\Backup;
+namespace Modules\Backup\Services;
 
-use App\Models\BackupFile;
-use App\Models\BackupRun;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Modules\Backup\Models\BackupFile;
+use Modules\Backup\Models\BackupRun;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;

@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Services\Backup;
+namespace Modules\Backup\Services;
 
-use App\Models\BackupRun;
-use App\Models\BackupRunEntity;
-use App\Models\BackupRunEvent;
 use Illuminate\Support\Facades\Log;
+use Modules\Backup\Models\BackupRun;
+use Modules\Backup\Models\BackupRunEntity;
+use Modules\Backup\Models\BackupRunEvent;
 use Throwable;
 
 /**

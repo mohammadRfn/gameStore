@@ -1,12 +1,11 @@
 <?php
 
-namespace App\Console\Commands;
+namespace Modules\Backup\Console\Commands;
 
-use App\Models\BackupRun;
-use App\Services\Backup\BackupService;
 use Illuminate\Console\Command;
+use Modules\Backup\Models\BackupRun;
+use Modules\Backup\Services\BackupService;
 use Throwable;
-
 /**
  * اجرای بکاپ از خط فرمان (برای زمان‌بندی خودکار در اپ دسکتاپ).
  *
