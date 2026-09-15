@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Exports;
+namespace Modules\Archive\Exports;
 
-use App\Exports\Concerns\FormatsArchiveExports;
-use App\Models\ArchivedRecord;
-use App\Services\ArchiveService;
+use Modules\Archive\Exports\Concerns\FormatsArchiveExports;
+use Modules\Archive\Models\ArchivedRecord;
+use Modules\Archive\Services\ArchiveService;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\Export;
 use Maatwebsite\Excel\Concerns\FromCollection;

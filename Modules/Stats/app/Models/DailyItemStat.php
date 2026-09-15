@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Models;
+namespace Modules\Stats\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Modules\Stock\Models\Item;
 
 class DailyItemStat extends Model
 {

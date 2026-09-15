@@ -1,13 +1,13 @@
 <?php
 
 use App\Models\AppSetting;
-use App\Models\ArchiveAction;
-use App\Models\ArchivedRecord;
-use App\Models\DailyItemStat;
-use App\Models\MonthlySale;
 use App\Models\SettingGroup;
 use App\Models\StoreProfile;
 use App\Models\User;
+use Modules\Archive\Models\ArchiveAction;
+use Modules\Archive\Models\ArchivedRecord;
+use Modules\Stats\Models\DailyItemStat;
+use Modules\Stats\Models\MonthlySale;
 use Modules\Category\Models\Category;
 use Modules\Customer\Models\Customer;
 use Modules\Invoice\Models\AdjustmentCategory;

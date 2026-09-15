@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace Modules\Stats\Http\Controllers;
 
-use App\Http\Requests\MonthlySaleRequest;
-use App\Services\MonthlySaleService;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Modules\Stats\Http\Requests\MonthlySaleRequest;
+use Modules\Stats\Services\MonthlySaleService;
 
 class MonthlySaleController extends Controller
 {

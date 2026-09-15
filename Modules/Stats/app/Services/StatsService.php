@@ -1,23 +1,23 @@
 <?php
 
-namespace App\Services;
+namespace Modules\Stats\Services;
 
-use App\Models\Customer;
-use App\Models\DailyItemStat;
-use App\Models\Invoice;
-use App\Models\Item;
-use App\Models\MonthlySale;
-use App\Models\OrderItem;
-use App\Models\ServiceJob;
-use App\Models\ServiceJobItem;
-use App\Models\StockMovement;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
-use App\Models\ServiceType;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use App\Models\ArchivedRecord;
+use Modules\Archive\Models\ArchivedRecord;
+use Modules\Customer\Models\Customer;
+use Modules\Invoice\Models\Invoice;
+use Modules\Invoice\Models\OrderItem;
+use Modules\Service\Models\ServiceJob;
+use Modules\Service\Models\ServiceJobItem;
+use Modules\Service\Models\ServiceType;
+use Modules\Stats\Models\DailyItemStat;
+use Modules\Stats\Models\MonthlySale;
+use Modules\Stock\Models\Item;
+use Modules\Stock\Models\StockMovement;
 
 class StatsService
 {

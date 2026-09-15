@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Exports;
+namespace Modules\Archive\Exports;
 
 use Maatwebsite\Excel\Concerns\Export;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;

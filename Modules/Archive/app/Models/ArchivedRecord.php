@@ -1,11 +1,14 @@
 <?php
 
-namespace App\Models;
+namespace Modules\Archive\Models;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Modules\Customer\Models\Customer;
+use Modules\Invoice\Models\Invoice;
 
 class ArchivedRecord extends Model
 {

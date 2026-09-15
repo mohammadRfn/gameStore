@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Services;
+namespace Modules\Archive\Services;
 
-use App\Models\ArchiveAction;
-use App\Models\ArchivedRecord;
-use App\Models\Invoice;
-use App\Models\Request as ServiceRequest;
-use App\Models\ServiceJob;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Modules\Archive\Models\ArchiveAction;
+use Modules\Archive\Models\ArchivedRecord;
+use Modules\Invoice\Models\Invoice;
+use Modules\Request\Models\Request as ServiceRequest;
+use Modules\Service\Models\ServiceJob;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;

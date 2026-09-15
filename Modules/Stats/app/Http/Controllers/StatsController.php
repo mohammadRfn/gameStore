@@ -3,54 +3,135 @@
 namespace Modules\Stats\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+use Modules\Stats\Services\StatsService;
 
 class StatsController extends Controller
 {
+    public function __construct(
+        protected StatsService $statsService
+    ) {}
+
     /**
-     * Display a listing of the resource.
+     * مرکز گزارشات — صفحهٔ اصلی ایندکس.
+     * stats.daily و stats.monthly هم همین را رندر می‌کنند تا منوی فعلی نشکند.
      */
-    public function index()
+    public function index(Request $request): Response
     {
-        return view('stats::index');
+        return Inertia::render('Stats/Index', $this->payload($request));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function dailyStats(Request $request): Response
     {
-        return view('stats::create');
+        if (! $request->filled('from') && ! $request->filled('to')) {
+            $request->merge([
+                'from' => now()->toDateString(),
+                'to'   => now()->toDateString(),
+            ]);
+        }
+
+        return $this->index($request);
+    }
+    public function ranking(Request $request): Response
+    {
+        return Inertia::render('Stats/Ranking', $this->payload($request));
+    }
+    public function monthlyStats(Request $request): Response
+    {
+        if (! $request->filled('from') && ! $request->filled('to')) {
+            $request->merge([
+                'from' => now()->startOfMonth()->toDateString(),
+                'to'   => now()->endOfMonth()->toDateString(),
+            ]);
+        }
+
+        return $this->index($request);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request) {}
-
-    /**
-     * Show the specified resource.
-     */
-    public function show($id)
+    public function products(Request $request): Response
     {
-        return view('stats::show');
+        return Inertia::render('Stats/Product', $this->payload($request));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit($id)
+    public function services(Request $request): Response
     {
-        return view('stats::edit');
+        return Inertia::render('Stats/Service', $this->payload($request));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id) {}
+    public function overview(Request $request): Response
+    {
+        return Inertia::render('Stats/Overview', $this->payload($request));
+    }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id) {}
+    private function payload(Request $request): array
+    {
+        $range = $request->input('range', 'month');
+        [$from, $to] = $this->resolveRange($request, $range);
+        $paidOnly = $request->boolean('paid_only', true);
+
+        $data = $this->statsService->dashboard($from, $to, $paidOnly);
+        $data['range'] = $range;
+
+        return $data;
+    }
+
+    private function resolveRange(Request $request, string $range): array
+    {
+        if ($request->filled('from') && $request->filled('to')) {
+            return [
+                Carbon::parse($request->input('from'))->toDateString(),
+                Carbon::parse($request->input('to'))->toDateString(),
+            ];
+        }
+
+        return match ($range) {
+            'today' => [
+                now()->toDateString(),
+                now()->toDateString(),
+            ],
+
+            'yesterday' => [
+                now()->subDay()->toDateString(),
+                now()->subDay()->toDateString(),
+            ],
+
+            'week' => [
+                now()->subDays(6)->toDateString(),
+                now()->toDateString(),
+            ],
+
+            'last_30' => [
+                now()->subDays(29)->toDateString(),
+                now()->toDateString(),
+            ],
+
+            'month' => [
+                now()->startOfMonth()->toDateString(),
+                now()->toDateString(),
+            ],
+
+            'last_month' => [
+                now()->subMonthNoOverflow()->startOfMonth()->toDateString(),
+                now()->subMonthNoOverflow()->endOfMonth()->toDateString(),
+            ],
+
+            'year' => [
+                now()->startOfYear()->toDateString(),
+                now()->toDateString(),
+            ],
+
+            'last_year' => [
+                now()->subYearNoOverflow()->startOfYear()->toDateString(),
+                now()->subYearNoOverflow()->endOfYear()->toDateString(),
+            ],
+
+            default => [
+                now()->startOfMonth()->toDateString(),
+                now()->toDateString(),
+            ],
+        };
+    }
 }

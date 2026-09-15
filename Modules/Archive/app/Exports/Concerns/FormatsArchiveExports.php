@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Exports\Concerns;
+namespace Modules\Archive\Exports\Concerns;
 
-use App\Models\ArchivedRecord;
+use Modules\Archive\Models\ArchivedRecord;
 use Illuminate\Support\Carbon;
 use Morilog\Jalali\Jalalian;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;

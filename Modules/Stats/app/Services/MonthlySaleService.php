@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Services;
+namespace Modules\Stats\Services;
 
-use App\Models\MonthlySale;
 use Illuminate\Database\Eloquent\Collection;
+use Modules\Stats\Models\MonthlySale;
 
 class MonthlySaleService
 {
