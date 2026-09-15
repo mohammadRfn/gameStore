@@ -2,8 +2,8 @@
 
 namespace Modules\Invoice\Services;
 
-use App\Models\Item;
-use App\Models\ItemSerialNumber;
+use Modules\Stock\Models\Item;
+use Modules\Stock\Models\ItemSerialNumber;
 use Modules\Stock\Services\StockMovementService;
 use Modules\Warranty\Services\WarrantyService;
 use Illuminate\Database\Eloquent\Collection;
@@ -295,7 +295,7 @@ class OrderItemService
             }
 
             if ($orderItem->restock_on_return) {
-                \App\Models\StockMovement::where('order_item_id', $orderItem->id)
+               \Modules\Stock\Models\StockMovement::where('order_item_id', $orderItem->id)
                     ->where('reason', 'return')
                     ->delete();
 
@@ -327,9 +327,9 @@ class OrderItemService
             throw new \RuntimeException('فاکتور پرداخت‌شده یا مرجوع‌شده را نمی‌توان ویرایش کرد.');
         }
 
-        \App\Models\ServiceJob::where('customer_id', $invoice->customer_id)
+        \Modules\Service\Models\ServiceJob::where('customer_id', $invoice->customer_id)
             ->whereNull('invoice_id')
-            ->where('status', \App\Models\ServiceJob::STATUS_DELIVERED)
+            ->where('status', \Modules\Service\Models\ServiceJob::STATUS_DELIVERED)
             ->whereIn('id', $serviceJobIds)
             ->update(['invoice_id' => $invoice->id]);
 
@@ -345,7 +345,7 @@ class OrderItemService
             throw new \RuntimeException('فاکتور پرداخت‌شده یا مرجوع‌شده را نمی‌توان ویرایش کرد.');
         }
 
-        \App\Models\ServiceJob::where('id', $serviceJobId)
+        \Modules\Service\Models\ServiceJob::where('id', $serviceJobId)
             ->where('invoice_id', $invoice->id)
             ->update(['invoice_id' => null]);
 

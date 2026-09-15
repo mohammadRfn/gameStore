@@ -3,7 +3,7 @@
 namespace Modules\Service\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\Category;
+use Modules\Category\Models\Category;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Modules\Customer\Models\Customer;

@@ -2,7 +2,7 @@
 
 namespace Modules\Stock\Services;
 
-use App\Models\Category;
+use Modules\Category\Models\Category;
 use Illuminate\Database\Eloquent\Collection;
 use Modules\Stock\Models\Item;
 

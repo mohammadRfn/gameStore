@@ -3,9 +3,9 @@
 namespace Modules\Invoice\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\Category;
-use App\Models\Item;
-use App\Models\ServiceJob;
+use Modules\Category\Models\Category;
+use Modules\Stock\Models\Item;
+use Modules\Service\Models\ServiceJob;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Modules\Invoice\Http\Requests\OrderItemRequest;

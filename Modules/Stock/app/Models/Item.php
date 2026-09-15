@@ -2,8 +2,8 @@
 
 namespace Modules\Stock\Models;
 
-use App\Models\Category;
-use App\Models\ServiceJobItem;
+use Modules\Category\Models\Category;
+use Modules\Service\Models\ServiceJobItem;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;

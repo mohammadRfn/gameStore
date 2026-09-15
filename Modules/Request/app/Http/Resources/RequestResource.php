@@ -2,7 +2,7 @@
 
 namespace Modules\Request\Http\Resources;
 
-use App\Models\Category;
+use Modules\Category\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 

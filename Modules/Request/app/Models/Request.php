@@ -2,10 +2,10 @@
 
 namespace Modules\Request\Models;
 
-use App\Models\Category;
-use App\Models\Customer;
-use App\Models\Invoice;
-use App\Models\ServiceJob;
+use Modules\Category\Models\Category;
+use Modules\Customer\Models\Customer;
+use Modules\Invoice\Models\Invoice;
+use Modules\Service\Models\ServiceJob;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 

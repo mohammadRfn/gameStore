@@ -1,8 +1,7 @@
 <?php
 
 namespace Modules\Stock\Models;
-
-use App\Models\Warranty;
+use Modules\Warranty\Models\Warranty;
 use Illuminate\Database\Eloquent\Model;
 use Modules\Invoice\Models\OrderItem;
 

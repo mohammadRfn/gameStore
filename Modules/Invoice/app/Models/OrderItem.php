@@ -2,10 +2,10 @@
 
 namespace Modules\Invoice\Models;
 
-use App\Models\Category;
-use App\Models\Item;
-use App\Models\ItemSerialNumber;
-use App\Models\Warranty;
+use Modules\Category\Models\Category;
+use Modules\Stock\Models\Item;
+use Modules\Stock\Models\ItemSerialNumber;
+use Modules\Warranty\Models\Warranty;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 

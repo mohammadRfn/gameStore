@@ -3,7 +3,7 @@
 namespace Modules\Invoice\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\Category;
+use Modules\Category\Models\Category;
 use Illuminate\Http\Request as HttpRequest;
 use Inertia\Inertia;
 use Modules\Customer\Models\Customer;

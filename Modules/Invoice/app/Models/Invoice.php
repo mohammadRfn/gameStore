@@ -2,7 +2,7 @@
 
 namespace Modules\Invoice\Models;
 
-use App\Models\ServiceJob;
+use Modules\Service\Models\ServiceJob;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Customer\Models\Customer;

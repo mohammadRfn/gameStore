@@ -2,8 +2,8 @@
 
 namespace Modules\Stock\Services;
 
-use App\Models\ServiceJob;
-use App\Models\ServiceJobItem;
+use Modules\Service\Models\ServiceJob;
+use Modules\Service\Models\ServiceJobItem;
 use Illuminate\Support\Facades\DB;
 use Modules\Invoice\Models\Invoice;
 use Modules\Invoice\Models\OrderItem;
