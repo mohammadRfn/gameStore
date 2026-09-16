@@ -2,11 +2,8 @@
 
 declare(strict_types=1);
 
-use Modules\Setting\Enums\Settings\CalendarType;
-use Modules\Setting\Enums\Settings\PriceDisplayMode;
 use Modules\Setting\Enums\Settings\SettingGroup;
 use Modules\Setting\Enums\Settings\ThemeMode;
-use Modules\Setting\Enums\Settings\TimeFormat;
 use Modules\Setting\Services\Setting\SettingService;
 
 /*
@@ -19,7 +16,7 @@ use Modules\Setting\Services\Setting\SettingService;
 | را برمی‌گردانند، بنابراین استفاده‌ی مکرر از آن‌ها مشکلی از نظر پرفورمنس ندارد.
 |
 | نکته: برای دسترسی مستقیم‌تر به SettingService از helper() یا resolve() استفاده کنید:
-|   resolve(SettingService::class)->get('general.calendar')
+|   resolve(SettingService::class)->get('general.theme')
 |
 */
 
@@ -29,8 +26,8 @@ if (! function_exists('setting')) {
      *
      * استفاده‌ها:
      *   setting()                               -> SettingService instance
-     *   setting('general.calendar')             -> مقدار این کلید
-     *   setting('general.calendar', 'jalali')   -> مقدار با fallback
+     *   setting('general.theme')             -> مقدار این کلید
+     *   setting('general.theme', 'dark')     -> مقدار با fallback
      *
      * @return SettingService|mixed
      */
@@ -98,26 +95,6 @@ if (! function_exists('setting_flush_cache')) {
 |--------------------------------------------------------------------------
 */
 
-if (! function_exists('app_calendar')) {
-    /**
-     * تقویم فعلی اپ.
-     */
-    function app_calendar(): CalendarType
-    {
-        return app(SettingService::class)->calendar();
-    }
-}
-
-if (! function_exists('app_time_format')) {
-    /**
-     * فرمت ساعت فعلی.
-     */
-    function app_time_format(): TimeFormat
-    {
-        return app(SettingService::class)->timeFormat();
-    }
-}
-
 if (! function_exists('app_theme')) {
     /**
      * تم ظاهری فعلی.
@@ -125,69 +102,6 @@ if (! function_exists('app_theme')) {
     function app_theme(): ThemeMode
     {
         return app(SettingService::class)->theme();
-    }
-}
-
-if (! function_exists('app_currency')) {
-    /**
-     * واحد پول فعلی.
-     */
-    function app_currency(): string
-    {
-        return app(SettingService::class)->currency();
-    }
-}
-
-if (! function_exists('app_currency_code')) {
-    /**
-     * کد ارز فعلی (ISO).
-     */
-    function app_currency_code(): string
-    {
-        return app(SettingService::class)->currencyCode();
-    }
-}
-
-if (! function_exists('app_price_display')) {
-    /**
-     * نحوه‌ی نمایش قیمت.
-     */
-    function app_price_display(): PriceDisplayMode
-    {
-        return app(SettingService::class)->priceDisplay();
-    }
-}
-
-if (! function_exists('format_price')) {
-    /**
-     * فرمت قیمت به‌صورت رشته با رعایت جداکننده‌ها و واحد.
-     *
-     * @example format_price(1200000) -> "۱٬۲۰۰٬۰۰۰ تومان"
-     */
-    function format_price(int|float $amount, ?string $locale = null): string
-    {
-        return app(SettingService::class)->formatPrice($amount, $locale);
-    }
-}
-
-if (! function_exists('format_date_app')) {
-    /**
-     * فرمت تاریخ با توجه به تقویم فعال.
-     * برای تقویم جلالی از Morilog\\Jalali استفاده می‌کند.
-     */
-    function format_date_app(\DateTimeInterface|string $date, ?string $format = null): string
-    {
-        return app(SettingService::class)->formatDate($date, $format);
-    }
-}
-
-if (! function_exists('format_time_app')) {
-    /**
-     * فرمت ساعت با توجه به تنظیمات.
-     */
-    function format_time_app(\DateTimeInterface|string $date, ?string $format = null): string
-    {
-        return app(SettingService::class)->formatTime($date, $format);
     }
 }
 

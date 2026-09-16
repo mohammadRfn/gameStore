@@ -61,12 +61,11 @@ const api = useSettingsApi()
  * ۱) پیکربندی نمایشی گروه‌ها/بخش‌ها (مطابق SettingGroup و section بک‌اند)
  * ========================================================================= */
 const GROUP_UI = {
-    general: { label: 'عمومی و محلی‌سازی', icon: Globe },
+    general: { label: 'عمومی', icon: Globe },
     desktop: { label: 'دسکتاپ', icon: MonitorSmartphone },
 }
 
 const SECTION_UI = {
-    locale: { label: 'محلی‌سازی', icon: Globe, desc: 'تقویم، ارز، جداکننده‌ها و زبان' },
     appearance: { label: 'ظاهر', icon: Palette, desc: 'تم روشن/تیره رابط کاربری' },
     startup: { label: 'راه‌اندازی', icon: MonitorSmartphone, desc: 'رفتار برنامه هنگام روشن‌شدن سیستم' },
     updates: { label: 'بروزرسانی', icon: RefreshCw, desc: 'بررسی و نصب بروزرسانی خودکار' },
@@ -74,15 +73,7 @@ const SECTION_UI = {
 
 /** توضیح کمکی برای هر کلید (UX بهتر — بک‌اند فقط label دارد) */
 const KEY_DESC = {
-    'general.calendar': 'مبنای نمایش تاریخ‌ها در کل برنامه',
-    'general.decimal_separator': 'نویسهٔ جداکنندهٔ بخش اعشاری اعداد',
-    'general.thousand_separator': 'نویسهٔ جداکنندهٔ هزارگان در اعداد',
-    'general.time_format': 'نمایش ساعت به‌صورت ۱۲ یا ۲۴ ساعته',
-    'general.currency': 'واحد پولی که کنار قیمت‌ها نوشته می‌شود',
-    'general.currency_code': 'کد سه‌حرفی ارز مطابق استاندارد ISO',
-    'general.price_display': 'قالب نمایش قیمت‌ها در فاکتور و لیست‌ها',
     'general.theme': 'ظاهر کلی برنامه',
-    'general.locale': 'زبان پیش‌فرض رابط کاربری',
     'desktop.auto_launch': 'اجرای برنامه هم‌زمان با روشن‌شدن سیستم',
     'desktop.minimize_to_tray': 'کوچک‌شدن به Tray به‌جای بستن کامل',
     'desktop.auto_update_url': 'آدرس سرور بروزرسانی خودکار',
@@ -411,7 +402,7 @@ onBeforeUnmount(() => {
                         </h1>
 
                         <p class="st-hero__lead">
-                            پیکربندی مرکزی فروشگاه — محلی‌سازی و رفتار نسخهٔ دسکتاپ.
+                            پیکربندی مرکزی فروشگاه — ظاهر و رفتار نسخهٔ دسکتاپ.
                             همهٔ مقادیر از دیتابیس خوانده و در همان‌جا ذخیره می‌شوند.
                         </p>
 

@@ -4,11 +4,10 @@
  * مسیر: resources/js/Components/Settings/GsField.vue
  *
  * برای تنظیماتی از نوع string / int / float در بک‌اند استفاده می‌شود
- * (مثل invoice.prefix، invoice.counter، desktop.database_path ...).
+ * (مثل desktop.auto_update_url ...).
  *
  * استفاده:
- *   <GsField v-model="form['invoice.prefix']" placeholder="INV-" />
- *   <GsField v-model="form['invoice.tax_rate']" type="number" :step="0.1" suffix="%" />
+ *   <GsField v-model="form['desktop.auto_update_url']" placeholder="https://..." />
  */
 import { computed } from 'vue'
 

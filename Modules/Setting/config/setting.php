@@ -2,11 +2,8 @@
 
 declare(strict_types=1);
 
-use Modules\Setting\Enums\Settings\CalendarType;
-use Modules\Setting\Enums\Settings\PriceDisplayMode;
 use Modules\Setting\Enums\Settings\SettingGroup;
 use Modules\Setting\Enums\Settings\ThemeMode;
-use Modules\Setting\Enums\Settings\TimeFormat;
 
 /**
  * پیکربندی مرکزی ماژول تنظیمات.
@@ -72,72 +69,6 @@ return [
         | گروه عمومی / محلی‌سازی
         |--------------------------------------------------------------
         */
-        'general.calendar' => [
-            'group'   => SettingGroup::General,
-            'type'    => 'enum',
-            'enum'    => CalendarType::class,
-            'rules'   => ['sometimes', 'string'],
-            'default' => CalendarType::Jalali,
-            'label'   => 'تقویم',
-            'section' => 'locale',
-        ],
-
-        'general.decimal_separator' => [
-            'group'   => SettingGroup::General,
-            'type'    => 'string',
-            'rules'   => ['sometimes', 'string', 'in:.,،'],
-            'default' => '.',
-            'label'   => 'جداکننده‌ی اعشار',
-            'section' => 'locale',
-        ],
-
-        'general.thousand_separator' => [
-            'group'   => SettingGroup::General,
-            'type'    => 'string',
-            'rules'   => ['sometimes', 'string', 'in:,,،,\xA0'],
-            'default' => ',',
-            'label'   => 'جداکننده‌ی هزارگان',
-            'section' => 'locale',
-        ],
-
-        'general.time_format' => [
-            'group'   => SettingGroup::General,
-            'type'    => 'enum',
-            'enum'    => TimeFormat::class,
-            'rules'   => ['sometimes', 'string'],
-            'default' => TimeFormat::H24,
-            'label'   => 'فرمت نمایش ساعت',
-            'section' => 'locale',
-        ],
-
-        'general.currency' => [
-            'group'   => SettingGroup::General,
-            'type'    => 'string',
-            'rules'   => ['sometimes', 'string', 'max:10'],
-            'default' => 'تومان',
-            'label'   => 'واحد پول',
-            'section' => 'locale',
-        ],
-
-        'general.currency_code' => [
-            'group'   => SettingGroup::General,
-            'type'    => 'string',
-            'rules'   => ['sometimes', 'string', 'max:10'],
-            'default' => 'IRT',
-            'label'   => 'کد ارز (ISO)',
-            'section' => 'locale',
-        ],
-
-        'general.price_display' => [
-            'group'   => SettingGroup::General,
-            'type'    => 'enum',
-            'enum'    => PriceDisplayMode::class,
-            'rules'   => ['sometimes', 'string'],
-            'default' => PriceDisplayMode::WithUnit,
-            'label'   => 'نحوه‌ی نمایش قیمت',
-            'section' => 'locale',
-        ],
-
         'general.theme' => [
             'group'   => SettingGroup::General,
             'type'    => 'enum',
@@ -146,15 +77,6 @@ return [
             'default' => ThemeMode::Light,
             'label'   => 'تم ظاهری',
             'section' => 'appearance',
-        ],
-
-        'general.locale' => [
-            'group'   => SettingGroup::General,
-            'type'    => 'string',
-            'rules'   => ['sometimes', 'string', 'max:10'],
-            'default' => 'fa',
-            'label'   => 'زبان پیش‌فرض',
-            'section' => 'locale',
         ],
 
         /*

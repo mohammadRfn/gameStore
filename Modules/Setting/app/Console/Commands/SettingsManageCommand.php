@@ -14,9 +14,9 @@ use Illuminate\Console\Command;
  * مثال‌ها:
  *   php artisan settings:list
  *   php artisan settings:list --group=general
- *   php artisan settings:get general.calendar
- *   php artisan settings:set general.calendar jalali
- *   php artisan settings:reset general.calendar
+ *   php artisan settings:get general.theme
+ *   php artisan settings:set general.theme dark
+ *   php artisan settings:reset general.theme
  *   php artisan settings:reset-group general
  *   php artisan settings:reset-all
  *   php artisan settings:flush-cache

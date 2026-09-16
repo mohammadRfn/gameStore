@@ -495,16 +495,6 @@ class CacheMaintenanceService
         $backups = $this->backupsMetrics();
 
         return [
-            'environment' => [
-                'app_env' => app()->environment(),
-                'cache_driver' => config('cache.default'),
-                'session_driver' => config('session.driver'),
-                'queue_connection' => config('queue.default'),
-                'database_driver' => config('database.default'),
-                'php_version' => PHP_VERSION,
-                'laravel_version' => app()->version(),
-                'os' => PHP_OS_FAMILY,
-            ],
             'bootstrap_cache' => $bootstrap,
             'compiled_views' => $views,
             'framework_cache' => $frameworkCache,

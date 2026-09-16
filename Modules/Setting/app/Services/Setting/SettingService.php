@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\Setting\Services\Setting;
 
-use Modules\Setting\Enums\Settings\CalendarType;
-use Modules\Setting\Enums\Settings\PriceDisplayMode;
 use Modules\Setting\Enums\Settings\SettingGroup;
 use Modules\Setting\Enums\Settings\ThemeMode;
-use Modules\Setting\Enums\Settings\TimeFormat;
 use Modules\Setting\Events\SettingsChanged;
 use Modules\Setting\Services\Setting\Contracts\SettingRepositoryContract;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
@@ -342,34 +339,9 @@ final class SettingService
     | این متدها ترکیب‌های پرکاربرد تنظیمات را در قالب API تمیز ارائه می‌دهند.
     */
 
-    public function calendar(): CalendarType
-    {
-        return $this->getEnum('general.calendar', CalendarType::class) ?? CalendarType::Jalali;
-    }
-
-    public function timeFormat(): TimeFormat
-    {
-        return $this->getEnum('general.time_format', TimeFormat::class) ?? TimeFormat::H24;
-    }
-
     public function theme(): ThemeMode
     {
         return $this->getEnum('general.theme', ThemeMode::class) ?? ThemeMode::Light;
-    }
-
-    public function currency(): string
-    {
-        return $this->getString('general.currency', 'تومان');
-    }
-
-    public function currencyCode(): string
-    {
-        return $this->getString('general.currency_code', 'IRT');
-    }
-
-    public function priceDisplay(): PriceDisplayMode
-    {
-        return $this->getEnum('general.price_display', PriceDisplayMode::class) ?? PriceDisplayMode::WithUnit;
     }
 
     public function autoLaunch(): bool
@@ -380,72 +352,6 @@ final class SettingService
     public function minimizeToTray(): bool
     {
         return $this->getBool('desktop.minimize_to_tray', true);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | محاسبات مشتق‌شده
-    |--------------------------------------------------------------------------
-    */
-
-    /**
-     * فرمت نمایش قیمت مطابق تنظیمات.
-     * از NumberFormatter ICU برای locale-aware بودن استفاده می‌کند.
-     */
-    public function formatPrice(int|float $amount, ?string $locale = null): string
-    {
-        $locale = $locale ?? $this->getString('general.locale', 'fa');
-        $decimal = $this->getString('general.decimal_separator', '.');
-        $thousand = $this->getString('general.thousand_separator', ',');
-
-        $amountFloat = (float) $amount;
-        $formatted = number_format(
-            abs($amountFloat),
-            0, // قیمت معمولاً اعشار ندارد
-            $decimal,
-            $thousand
-        );
-        if ($amountFloat < 0) {
-            $formatted = '-' . $formatted;
-        }
-
-        return match ($this->priceDisplay()) {
-            PriceDisplayMode::WithUnit => $formatted . ' ' . $this->currency(),
-            PriceDisplayMode::WithoutUnit => $formatted,
-            PriceDisplayMode::WithCurrencyCode => $formatted . ' ' . $this->currencyCode(),
-        };
-    }
-
-    /**
-     * فرمت تاریخ با توجه به تقویم انتخابی.
-     * برای تقویم جلالی نیاز به پکیج verta/morandi یا مشابه دارد.
-     */
-    public function formatDate(\DateTimeInterface|string $date, ?string $format = null): string
-    {
-        if (is_string($date)) {
-            $date = new \DateTimeImmutable($date);
-        }
-
-        $calendar = $this->calendar();
-
-        if ($calendar === CalendarType::Jalali && class_exists(\Morilog\Jalali\Jalalian::class)) {
-            $jalali = \Morilog\Jalali\Jalalian::fromDateTime($date);
-            return $jalali->format($format ?? 'Y/m/d');
-        }
-
-        return $date->format($format ?? 'Y-m-d');
-    }
-
-    /**
-     * فرمت ساعت با توجه به تنظیم.
-     */
-    public function formatTime(\DateTimeInterface|string $date, ?string $format = null): string
-    {
-        if (is_string($date)) {
-            $date = new \DateTimeImmutable($date);
-        }
-        $fmt = $format ?? $this->timeFormat()->carbonFormat();
-        return $date->format($fmt);
     }
 
     /*

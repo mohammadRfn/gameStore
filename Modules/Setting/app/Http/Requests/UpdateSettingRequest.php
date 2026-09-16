@@ -12,15 +12,15 @@ use Illuminate\Foundation\Http\FormRequest;
  * ساختار payload:
  * {
  *   "settings": {
- *     "general.calendar": "jalali",
- *     "general.theme": "dark"
+ *     "general.theme": "dark",
+ *     "desktop.auto_launch": true
  *   }
  * }
  *
  * یا به‌صورت flat:
  * {
- *   "general.calendar": "jalali",
- *   "general.theme": "dark"
+ *   "general.theme": "dark",
+ *   "desktop.auto_launch": true
  * }
  */
 class UpdateSettingRequest extends FormRequest

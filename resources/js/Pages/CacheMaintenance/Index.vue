@@ -24,7 +24,6 @@ import {
     Zap,
     History,
     RefreshCw,
-    HardDrive,
     Boxes,
 } from 'lucide-vue-next'
 
@@ -35,7 +34,6 @@ import { useCacheMaintenanceApi } from '@/Composables/useCacheMaintenanceApi'
 
 import CacheScene from '@/Components/CacheMaintenance/CacheScene.vue'
 import MetricCard from '@/Components/CacheMaintenance/MetricCard.vue'
-import EnvironmentCard from '@/Components/CacheMaintenance/EnvironmentCard.vue'
 import RecommendationsCard from '@/Components/CacheMaintenance/RecommendationsCard.vue'
 import ClearPanel from '@/Components/CacheMaintenance/ClearPanel.vue'
 import OptimizePanel from '@/Components/CacheMaintenance/OptimizePanel.vue'
@@ -226,9 +224,6 @@ onBeforeUnmount(() => {
                                 <span class="st-dot" />
                                 Live
                             </span>
-                            <span v-if="metrics" class="st-chip st-chip--plain">
-                                درایور کش: {{ metrics.environment.cache_driver }}
-                            </span>
                             <button type="button" class="cm-btn cm-btn--ghost" style="min-height:34px; padding:0.2rem 0.7rem" @click="loadOverview(true)">
                                 <RefreshCw :size="14" :class="{ 'is-loading': loading }" />
                                 بازبینی
@@ -301,28 +296,15 @@ onBeforeUnmount(() => {
                                     />
                                 </div>
 
-                                <div class="st-grid" style="grid-template-columns:1fr 1fr; gap:1.2rem; margin-top:1.2rem">
-                                    <div class="st-card a3d-holo" v-reveal="{ delay: 80 }">
-                                        <div class="st-sechead">
-                                            <span class="st-sechead__icon"><HardDrive :size="21" /></span>
-                                            <div>
-                                                <h2 class="st-sechead__title" style="font-size:1.05rem">محیط اجرا</h2>
-                                                <p class="st-sechead__desc">نسخه‌ها و درایورهای فعال</p>
-                                            </div>
+                                <div class="st-card a3d-holo" v-reveal="{ delay: 80 }" style="margin-top:1.2rem">
+                                    <div class="st-sechead">
+                                        <span class="st-sechead__icon"><Boxes :size="21" /></span>
+                                        <div>
+                                            <h2 class="st-sechead__title" style="font-size:1.05rem">پیشنهادهای هوشمند</h2>
+                                            <p class="st-sechead__desc">بر اساس متریک‌های فعلی</p>
                                         </div>
-                                        <EnvironmentCard :env="metrics.environment" />
                                     </div>
-
-                                    <div class="st-card a3d-holo" v-reveal="{ delay: 120 }">
-                                        <div class="st-sechead">
-                                            <span class="st-sechead__icon"><Boxes :size="21" /></span>
-                                            <div>
-                                                <h2 class="st-sechead__title" style="font-size:1.05rem">پیشنهادهای هوشمند</h2>
-                                                <p class="st-sechead__desc">بر اساس متریک‌های فعلی</p>
-                                            </div>
-                                        </div>
-                                        <RecommendationsCard :items="recommendations" />
-                                    </div>
+                                    <RecommendationsCard :items="recommendations" />
                                 </div>
                             </template>
                         </section>

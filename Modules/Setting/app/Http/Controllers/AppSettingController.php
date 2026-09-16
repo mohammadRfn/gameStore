@@ -104,7 +104,7 @@ class AppSettingController extends Controller
     /**
      * گرفتن مقدار یک تنظیم خاص.
      *
-     * @example GET /api/settings/general.calendar
+     * @example GET /api/settings/general.theme
      */
     public function show(string $key): JsonResponse
     {
@@ -161,7 +161,7 @@ class AppSettingController extends Controller
      * به‌روزرسانی تنظیمات.
      * payload: آرایه‌ای از key=>value (مختلط از گروه‌های مختلف مجاز است).
      *
-     * @example PUT /api/settings { "general.calendar": "jalali", "general.theme": "dark" }
+     * @example PUT /api/settings { "general.theme": "dark", "desktop.auto_launch": true }
      *
      * @throws ValidationException
      */
@@ -190,7 +190,7 @@ class AppSettingController extends Controller
     /**
      * ریست یک تنظیم به مقدار پیش‌فرض.
      *
-     * @example DELETE /api/settings/general.calendar
+     * @example DELETE /api/settings/general.theme
      */
     public function reset(string $key): JsonResponse
     {

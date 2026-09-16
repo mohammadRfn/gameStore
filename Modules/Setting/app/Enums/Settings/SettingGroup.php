@@ -20,7 +20,7 @@ enum SettingGroup: string
     public function label(): string
     {
         return match ($this) {
-            self::General => 'عمومی و محلی‌سازی',
+            self::General => 'عمومی',
             self::Desktop => 'دسکتاپ (Native/Electron)',
         };
     }
