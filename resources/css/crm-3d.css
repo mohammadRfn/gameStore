@@ -1,0 +1,1995 @@
+/* ==========================================================================
+   GameStore · CRM 3D Layer  (Dashboard · Customers · Requests)
+   --------------------------------------------------------------------------
+   مسیر فایل: resources/css/crm-3d.css
+
+   فعال‌سازی — در resources/css/app.css کنار بقیهٔ ایمپورت‌ها (بالای فایل):
+       @import "tailwindcss";
+       @import "./archive-3d.css";
+       @import "./backup-royal.css";
+       @import "./settings-3d.css";
+       @import "./profile-3d.css";
+       @import "./cache-maintenance-3d.css";
+       @import "./crm-3d.css";            <-- این خط
+
+   این لایه هیچ توکنی را بازنویسی نمی‌کند و کاملاً روی --gs-* سوار است؛
+   بنابراین با تم روشن/تیره ۱۰۰٪ سازگار می‌ماند. کلاس‌های st-* (هیرو، چیپ،
+   کارت، savebar، توست) و a3d-* (هولو، دکمه، صحنه) از فایل‌های موجود
+   دوباره تعریف نشده‌اند و مستقیم استفاده می‌شوند.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   0) توکن‌های محلی
+   -------------------------------------------------------------------------- */
+:root {
+    --crm-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --crm-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --crm-accent: var(--gs-gold);
+}
+
+/* --------------------------------------------------------------------------
+   1) پوستهٔ صفحه
+   -------------------------------------------------------------------------- */
+.crm-page {
+    position: relative;
+    min-height: 100%;
+}
+
+.crm-body {
+    padding-block: 1.8rem 6rem;
+}
+
+.crm-body--form {
+    padding-block: 1.8rem 10rem; /* جا برای نوار ذخیرهٔ شناور */
+}
+
+.crm-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.6rem;
+}
+
+.crm-grid-kpi {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.crm-grid-2 {
+    display: grid;
+    gap: 1.4rem;
+    align-items: start;
+}
+
+@media (min-width: 1024px) {
+    .crm-grid-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.crm-grid-side {
+    display: grid;
+    gap: 1.4rem;
+    align-items: start;
+}
+
+@media (min-width: 1024px) {
+    .crm-grid-side {
+        grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr);
+    }
+}
+
+.crm-narrow {
+    max-width: 880px;
+    margin-inline: auto;
+}
+
+/* هیرو: عنوان + دکور + اکشن‌ها */
+.crm-hero__side {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    flex: none;
+}
+
+.crm-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    flex: none;
+}
+
+.crm-hero__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.crm-hero__stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-top: 1.25rem;
+}
+
+@media (max-width: 760px) {
+    .st-hero {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   2) دکور مداری هیرو (CrmOrbit)
+   -------------------------------------------------------------------------- */
+.crm-orbit {
+    position: relative;
+    width: 250px;
+    height: 250px;
+    flex-shrink: 0;
+    user-select: none;
+    --crm-ox: 0;
+    --crm-oy: 0;
+}
+
+@media (max-width: 900px) {
+    .crm-orbit {
+        display: none;
+    }
+}
+
+.crm-orbit__ring {
+    position: absolute;
+    top: 50%;
+    inset-inline-start: 50%;
+    translate: 50% -50%;
+    border-radius: 50%;
+    border: 1px dashed var(--gs-border-hover);
+    opacity: 0.8;
+}
+
+.crm-orbit__layer {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    transition: transform 0.34s ease-out;
+    will-change: transform;
+}
+
+.crm-orbit__core {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 92px;
+    height: 92px;
+    border-radius: 50%;
+    border: 1px solid var(--gs-border-strong);
+    background: radial-gradient(
+        circle at 30% 25%,
+        color-mix(in srgb, var(--crm-accent) 28%, transparent),
+        color-mix(in srgb, var(--gs-bg-card-strong) 70%, transparent) 70%
+    );
+    color: var(--crm-accent);
+    box-shadow:
+        0 0 0 8px color-mix(in srgb, var(--crm-accent) 8%, transparent),
+        0 0 46px color-mix(in srgb, var(--crm-accent) 32%, transparent),
+        inset 0 0 22px color-mix(in srgb, var(--crm-accent) 18%, transparent);
+    animation: crm-hover 5.5s ease-in-out infinite;
+}
+
+.crm-orbit__core::after {
+    content: "";
+    position: absolute;
+    inset: -14px;
+    border-radius: 50%;
+    border: 1px solid color-mix(in srgb, var(--crm-accent) 35%, transparent);
+    animation: crm-pulse-ring 3s ease-out infinite;
+}
+
+@keyframes crm-pulse-ring {
+    0% {
+        transform: scale(0.85);
+        opacity: 0.9;
+    }
+    100% {
+        transform: scale(1.35);
+        opacity: 0;
+    }
+}
+
+@keyframes crm-hover {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-9px);
+    }
+}
+
+.crm-orbit__track {
+    position: absolute;
+    top: 50%;
+    inset-inline-start: 50%;
+    width: 0;
+    height: 0;
+}
+
+.crm-orbit__sat {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin: -22px 0 0 -22px;
+    border-radius: 14px;
+    border: 1px solid var(--gs-border-hover);
+    background: color-mix(in srgb, var(--gs-bg-card-strong) 80%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: var(--gs-shadow-sm), 0 0 18px color-mix(in srgb, var(--crm-sat, var(--gs-gold)) 30%, transparent);
+    color: var(--crm-sat, var(--gs-gold));
+}
+
+/* --------------------------------------------------------------------------
+   3) چیپ وضعیت
+   -------------------------------------------------------------------------- */
+.crm-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--crm-tone) 34%, transparent);
+    background: color-mix(in srgb, var(--crm-tone) 12%, transparent);
+    color: var(--crm-tone);
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.5;
+    white-space: nowrap;
+    --crm-tone: var(--gs-text-secondary);
+}
+
+.crm-status--sm {
+    padding: 0.18rem 0.55rem;
+    font-size: 0.66rem;
+}
+
+.crm-status--success {
+    --crm-tone: var(--gs-success);
+}
+.crm-status--warning {
+    --crm-tone: var(--gs-warning);
+}
+.crm-status--info {
+    --crm-tone: var(--gs-info);
+}
+.crm-status--error {
+    --crm-tone: var(--gs-error);
+}
+.crm-status--gold {
+    --crm-tone: var(--gs-gold);
+}
+.crm-status--violet {
+    --crm-tone: var(--gs-accent-3);
+}
+
+.crm-status__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+}
+
+.crm-status.is-live .crm-status__dot {
+    animation: st-blink 1.6s ease-in-out infinite;
+}
+
+/* چیپ‌های تگ (دسته‌بندی) */
+.crm-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 8px;
+    border: 1px solid var(--gs-border);
+    background: var(--gs-gold-muted);
+    color: var(--gs-gold);
+    font-size: 0.68rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.crm-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+/* --------------------------------------------------------------------------
+   4) آواتار
+   -------------------------------------------------------------------------- */
+.crm-avatar {
+    --hue: 42;
+    position: relative;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 46px;
+    height: 46px;
+    border-radius: 15px;
+    font-weight: 900;
+    font-size: 1rem;
+    color: hsl(var(--hue) 70% 78%);
+    background:
+        linear-gradient(145deg, hsl(var(--hue) 60% 40% / 0.42), hsl(var(--hue) 60% 22% / 0.55)),
+        var(--gs-bg-elevated);
+    border: 1px solid hsl(var(--hue) 60% 60% / 0.38);
+    box-shadow: inset 0 1px 0 hsl(var(--hue) 80% 90% / 0.16), 0 6px 18px hsl(var(--hue) 60% 30% / 0.25);
+    transition: transform 0.45s var(--crm-spring);
+}
+
+.light .crm-avatar {
+    color: hsl(var(--hue) 55% 28%);
+    background:
+        linear-gradient(145deg, hsl(var(--hue) 70% 78% / 0.75), hsl(var(--hue) 70% 68% / 0.6)),
+        #fff;
+}
+
+.crm-avatar--lg {
+    width: 84px;
+    height: 84px;
+    border-radius: 26px;
+    font-size: 2rem;
+}
+
+.crm-avatar--sm {
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
+    font-size: 0.8rem;
+}
+
+.crm-avatar--ring::after {
+    content: "";
+    position: absolute;
+    inset: -7px;
+    border-radius: inherit;
+    border: 1px dashed var(--gs-border-hover);
+    animation: st-spin 18s linear infinite;
+}
+
+/* --------------------------------------------------------------------------
+   5) کارت KPI
+   -------------------------------------------------------------------------- */
+.crm-kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1.2rem 1.3rem 1.1rem;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+.crm-kpi__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+}
+
+.crm-kpi__icon {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 15px;
+    color: var(--crm-accent);
+    background: color-mix(in srgb, var(--crm-accent) 13%, transparent);
+    border: 1px solid color-mix(in srgb, var(--crm-accent) 30%, transparent);
+    box-shadow: 0 8px 26px color-mix(in srgb, var(--crm-accent) 18%, transparent);
+    transition: transform 0.5s var(--crm-spring);
+}
+
+.crm-kpi:hover .crm-kpi__icon {
+    transform: rotate(-8deg) scale(1.1);
+}
+
+.crm-kpi__go {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    border: 1px solid var(--gs-border);
+    color: var(--gs-text-muted);
+    transition: all 0.3s var(--crm-ease);
+}
+
+.crm-kpi:hover .crm-kpi__go {
+    color: var(--crm-accent);
+    border-color: color-mix(in srgb, var(--crm-accent) 40%, transparent);
+    transform: translate(-3px, -3px);
+}
+
+.crm-kpi__label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--gs-text-secondary);
+}
+
+.crm-kpi__value {
+    font-size: 2.1rem;
+    font-weight: 900;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--gs-text-primary);
+}
+
+.crm-kpi__hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    color: var(--crm-accent);
+}
+
+.crm-kpi__bar {
+    position: relative;
+    height: 4px;
+    margin-top: 0.7rem;
+    border-radius: 999px;
+    background: var(--gs-bg-elevated);
+    overflow: hidden;
+}
+
+.crm-kpi__bar i {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: var(--crm-fill, 60%);
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--crm-accent), color-mix(in srgb, var(--crm-accent) 30%, transparent));
+    transform-origin: right;
+    animation: crm-grow 1.2s 0.3s var(--crm-ease) both;
+}
+
+@keyframes crm-grow {
+    from {
+        transform: scaleX(0);
+    }
+    to {
+        transform: scaleX(1);
+    }
+}
+
+/* --------------------------------------------------------------------------
+   6) کاشی دسترسی سریع
+   -------------------------------------------------------------------------- */
+.crm-tiles {
+    display: grid;
+    gap: 0.8rem;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.crm-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 1.15rem 0.8rem 1rem;
+    text-align: center;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+.crm-tile__icon {
+    display: grid;
+    place-items: center;
+    width: 50px;
+    height: 50px;
+    margin-bottom: 0.45rem;
+    border-radius: 16px;
+    color: var(--crm-accent);
+    background: color-mix(in srgb, var(--crm-accent) 13%, transparent);
+    border: 1px solid color-mix(in srgb, var(--crm-accent) 32%, transparent);
+    box-shadow: 0 10px 26px color-mix(in srgb, var(--crm-accent) 16%, transparent);
+    transform: translateZ(30px);
+    transition: transform 0.5s var(--crm-spring), box-shadow 0.4s ease;
+}
+
+.crm-tile:hover .crm-tile__icon {
+    transform: translateZ(46px) scale(1.12) rotate(-6deg);
+    box-shadow: 0 16px 34px color-mix(in srgb, var(--crm-accent) 30%, transparent);
+}
+
+.crm-tile__title {
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: var(--gs-text-primary);
+    transition: color 0.25s ease;
+}
+
+.crm-tile:hover .crm-tile__title {
+    color: var(--crm-accent);
+}
+
+.crm-tile__desc {
+    font-size: 0.68rem;
+    color: var(--gs-text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   7) پنل (کارت با سربرگ)
+   -------------------------------------------------------------------------- */
+.crm-panel {
+    padding: 0;
+}
+
+.crm-panel__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.05rem 1.3rem;
+    border-bottom: 1px dashed var(--gs-border);
+}
+
+.crm-panel__title {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    min-width: 0;
+}
+
+.crm-panel__icon {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border-radius: 12px;
+    color: var(--crm-accent);
+    background: color-mix(in srgb, var(--crm-accent) 13%, transparent);
+    border: 1px solid color-mix(in srgb, var(--crm-accent) 30%, transparent);
+    transition: transform 0.45s var(--crm-spring);
+}
+
+.crm-panel:hover .crm-panel__icon {
+    transform: rotate(-8deg) scale(1.08);
+}
+
+.crm-panel__t {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--gs-text-primary);
+    line-height: 1.5;
+}
+
+.crm-panel__d {
+    font-size: 0.72rem;
+    color: var(--gs-text-muted);
+}
+
+.crm-panel__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex: none;
+}
+
+.crm-panel__body {
+    padding: 1rem 1.3rem 1.2rem;
+}
+
+.crm-panel__body--flush {
+    padding: 0;
+}
+
+/* لینک «مشاهدهٔ همه» */
+.crm-more {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid var(--gs-border);
+    background: var(--gs-glass);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--gs-text-secondary);
+    text-decoration: none;
+    transition: all var(--gs-transition);
+}
+
+.crm-more:hover {
+    color: var(--gs-gold);
+    border-color: var(--gs-border-hover);
+    background: var(--gs-gold-muted);
+}
+
+.crm-more svg {
+    transition: transform 0.3s var(--crm-ease);
+}
+
+.crm-more:hover svg {
+    transform: translateX(-3px);
+}
+
+/* --------------------------------------------------------------------------
+   8) ردیف‌های فهرست (داخل پنل)
+   -------------------------------------------------------------------------- */
+.crm-rows {
+    display: flex;
+    flex-direction: column;
+}
+
+.crm-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.85rem 1.3rem;
+    border-bottom: 1px solid var(--gs-border-soft);
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.25s ease;
+    animation: crm-row-in 0.55s var(--crm-ease) both;
+    animation-delay: calc(var(--i, 0) * 55ms);
+}
+
+.crm-row:last-child {
+    border-bottom: 0;
+}
+
+.crm-row::before {
+    content: "";
+    position: absolute;
+    inset-block: 18%;
+    inset-inline-start: 0;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--gs-gold-grad);
+    transform: scaleY(0);
+    transition: transform 0.3s var(--crm-spring);
+}
+
+.crm-row:hover {
+    background: var(--gs-glass-hover);
+}
+
+.crm-row:hover::before {
+    transform: scaleY(1);
+}
+
+@keyframes crm-row-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.crm-row__main {
+    flex: 1;
+    min-width: 0;
+}
+
+.crm-row__title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--gs-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.crm-row__sub {
+    font-size: 0.72rem;
+    color: var(--gs-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 0.1rem;
+}
+
+.crm-row__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: none;
+}
+
+.crm-row__num {
+    font-size: 0.9rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--gs-gold);
+    white-space: nowrap;
+}
+
+.crm-code {
+    font-family: ui-monospace, "SFMono-Regular", monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--gs-gold);
+    direction: ltr;
+    unicode-bidi: isolate;
+}
+
+/* --------------------------------------------------------------------------
+   9) جدول شیشه‌ای
+   -------------------------------------------------------------------------- */
+.crm-table-wrap {
+    overflow-x: auto;
+}
+
+.crm-table {
+    width: 100%;
+    min-width: 720px;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+}
+
+.crm-table th {
+    padding: 0.85rem 1.1rem;
+    text-align: start;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--gs-gold);
+    background: color-mix(in srgb, var(--gs-bg-elevated) 70%, transparent);
+    border-bottom: 1px solid var(--gs-border);
+    white-space: nowrap;
+}
+
+.crm-table td {
+    padding: 0.85rem 1.1rem;
+    color: var(--gs-text-primary);
+    border-bottom: 1px solid var(--gs-border-soft);
+    vertical-align: middle;
+    font-variant-numeric: tabular-nums;
+}
+
+.crm-table tbody tr {
+    position: relative;
+    transition: background 0.22s ease;
+    animation: crm-row-in 0.5s var(--crm-ease) both;
+    animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+.crm-table tbody tr:hover {
+    background: var(--gs-gold-muted);
+}
+
+.crm-table tbody tr:hover td:first-child {
+    box-shadow: inset 3px 0 0 var(--gs-gold);
+}
+
+.crm-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.crm-table .is-end {
+    text-align: end;
+}
+
+.crm-table .is-muted {
+    color: var(--gs-text-muted);
+}
+
+.crm-cell-clip {
+    max-width: 300px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.crm-name {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
+}
+
+.crm-name__t {
+    font-weight: 700;
+    color: var(--gs-text-primary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+a.crm-name__t:hover {
+    color: var(--gs-gold);
+}
+
+.crm-name__s {
+    font-size: 0.7rem;
+    color: var(--gs-text-muted);
+}
+
+/* دکمه‌های آیکونی عملیات */
+.crm-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.crm-iconbtn {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid var(--gs-border);
+    background: var(--gs-glass);
+    color: var(--gs-text-secondary);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.25s var(--crm-ease);
+}
+
+.crm-iconbtn:hover {
+    color: var(--gs-gold);
+    border-color: var(--gs-border-hover);
+    background: var(--gs-gold-muted);
+    transform: translateY(-2px);
+}
+
+.crm-iconbtn--danger:hover {
+    color: var(--gs-error);
+    border-color: color-mix(in srgb, var(--gs-error) 40%, transparent);
+    background: var(--gs-error-soft);
+}
+
+/* --------------------------------------------------------------------------
+   10) کارت مشتری (نمای شبکه‌ای)
+   -------------------------------------------------------------------------- */
+.crm-cards {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+}
+
+.crm-person {
+    display: flex;
+    flex-direction: column;
+    padding: 1.2rem 1.25rem 1rem;
+}
+
+.crm-person__head {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.crm-person__name {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--gs-text-primary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.crm-person__name:hover {
+    color: var(--gs-gold);
+}
+
+.crm-person__id {
+    font-size: 0.7rem;
+    color: var(--gs-text-muted);
+}
+
+.crm-person__lines {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-top: 1rem;
+    padding-top: 0.9rem;
+    border-top: 1px dashed var(--gs-border);
+}
+
+.crm-line {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.78rem;
+    color: var(--gs-text-secondary);
+    min-width: 0;
+}
+
+.crm-line svg {
+    flex-shrink: 0;
+    color: var(--crm-accent);
+}
+
+.crm-line span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.crm-line.is-empty {
+    color: var(--gs-text-muted);
+    font-style: italic;
+}
+
+.crm-person__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--gs-border-soft);
+}
+
+/* --------------------------------------------------------------------------
+   11) نوار ابزار: جستجو، سگمنت، سوییچ نما
+   -------------------------------------------------------------------------- */
+.crm-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.8rem 0.9rem;
+}
+
+.crm-toolbar__grow {
+    flex: 1 1 260px;
+    min-width: 0;
+}
+
+.crm-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    height: 44px;
+    padding-inline: 0.85rem 0.5rem;
+    border-radius: 13px;
+    border: 1px solid var(--gs-border);
+    background: var(--gs-glass);
+    transition: border-color var(--gs-transition), box-shadow var(--gs-transition), background var(--gs-transition);
+}
+
+.crm-search:focus-within {
+    border-color: var(--gs-border-hover);
+    background: var(--gs-glass-hover);
+    box-shadow: 0 0 0 4px var(--gs-gold-muted);
+}
+
+.crm-search__icon {
+    color: var(--gs-text-muted);
+    flex-shrink: 0;
+    transition: color 0.2s ease;
+}
+
+.crm-search:focus-within .crm-search__icon {
+    color: var(--gs-gold);
+}
+
+.crm-search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--gs-text-primary);
+    font: inherit;
+    font-size: 0.86rem;
+}
+
+.crm-search input::placeholder {
+    color: var(--gs-text-muted);
+}
+
+.crm-search input::-webkit-search-cancel-button {
+    display: none;
+}
+
+.crm-search__clear {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--gs-bg-elevated);
+    color: var(--gs-text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.crm-search__clear:hover {
+    color: var(--gs-error);
+    background: var(--gs-error-soft);
+}
+
+.crm-search__kbd {
+    padding: 0.1rem 0.4rem;
+    border-radius: 6px;
+    border: 1px solid var(--gs-border);
+    font-family: ui-monospace, monospace;
+    font-size: 0.62rem;
+    color: var(--gs-text-muted);
+}
+
+/* سگمنت با قرص لغزان (اندازه‌گیری‌شده — امن در RTL و اسکرول) */
+.crm-seg {
+    position: relative;
+    display: inline-flex;
+    gap: 2px;
+    max-width: 100%;
+    padding: 4px;
+    border-radius: 13px;
+    border: 1px solid var(--gs-border);
+    background: var(--gs-bg-soft);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.crm-seg::-webkit-scrollbar {
+    display: none;
+}
+
+.crm-seg__pill {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    border-radius: 10px;
+    background: var(--gs-gold-grad);
+    box-shadow: 0 3px 14px var(--gs-gold-glow);
+    transition: left 0.42s var(--crm-ease), width 0.42s var(--crm-ease), background 0.3s ease;
+    pointer-events: none;
+}
+
+.crm-seg__pill.is-success {
+    background: linear-gradient(135deg, var(--gs-success), #1f9d63);
+    box-shadow: 0 3px 14px var(--gs-success-soft);
+}
+.crm-seg__pill.is-info {
+    background: linear-gradient(135deg, #7db4f5, var(--gs-info));
+    box-shadow: 0 3px 14px var(--gs-info-soft);
+}
+.crm-seg__pill.is-warning {
+    background: linear-gradient(135deg, #f6c66f, var(--gs-warning));
+    box-shadow: 0 3px 14px var(--gs-warning-soft);
+}
+.crm-seg__pill.is-error {
+    background: linear-gradient(135deg, #f78f8f, var(--gs-error));
+    box-shadow: 0 3px 14px var(--gs-error-soft);
+}
+
+.crm-seg__btn {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.85rem;
+    border: 0;
+    background: none;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--gs-text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.25s ease;
+}
+
+.crm-seg__btn:hover {
+    color: var(--gs-text-primary);
+}
+
+.crm-seg__btn.is-active {
+    color: #14100a;
+    font-weight: 800;
+}
+
+.crm-seg__count {
+    padding: 0 0.4rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, currentColor 14%, transparent);
+    font-size: 0.66rem;
+    font-style: normal;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+/* سوییچ نمای شبکه/جدول */
+.crm-view {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 11px;
+    border: 1px solid var(--gs-border);
+    background: var(--gs-bg-soft);
+}
+
+.crm-view button {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 9px;
+    background: none;
+    color: var(--gs-text-muted);
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.crm-view button.is-active {
+    color: #14100a;
+    background: var(--gs-gold-grad);
+    box-shadow: 0 3px 12px var(--gs-gold-glow);
+}
+
+/* --------------------------------------------------------------------------
+   12) صفحه‌بندی
+   -------------------------------------------------------------------------- */
+.crm-pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding-top: 0.4rem;
+}
+
+.crm-pager__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    min-width: 38px;
+    height: 38px;
+    padding-inline: 0.6rem;
+    border-radius: 11px;
+    border: 1px solid var(--gs-border);
+    background: var(--gs-glass);
+    color: var(--gs-text-secondary);
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.25s var(--crm-ease);
+}
+
+.crm-pager__btn:hover {
+    color: var(--gs-gold);
+    border-color: var(--gs-border-hover);
+    transform: translateY(-2px);
+}
+
+.crm-pager__btn.is-active {
+    color: #14100a;
+    background: var(--gs-gold-grad);
+    border-color: transparent;
+    box-shadow: 0 4px 16px var(--gs-gold-glow);
+}
+
+.crm-pager__btn.is-disabled {
+    opacity: 0.35;
+    pointer-events: none;
+}
+
+.crm-pager__dots {
+    color: var(--gs-text-muted);
+    padding-inline: 0.2rem;
+}
+
+.crm-pager__info {
+    width: 100%;
+    text-align: center;
+    margin-top: 0.4rem;
+    font-size: 0.72rem;
+    color: var(--gs-text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   13) حالت خالی
+   -------------------------------------------------------------------------- */
+.crm-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 3rem 1.5rem;
+    text-align: center;
+}
+
+.crm-empty__icon {
+    display: grid;
+    place-items: center;
+    width: 74px;
+    height: 74px;
+    margin-bottom: 0.6rem;
+    border-radius: 24px;
+    color: var(--gs-gold);
+    background: var(--gs-gold-muted);
+    border: 1px solid var(--gs-border-hover);
+    box-shadow: var(--gs-shadow-gold);
+    animation: crm-hover 4.5s ease-in-out infinite;
+}
+
+.crm-empty__title {
+    font-size: 0.98rem;
+    font-weight: 800;
+    color: var(--gs-text-primary);
+}
+
+.crm-empty__desc {
+    max-width: 380px;
+    font-size: 0.78rem;
+    line-height: 1.9;
+    color: var(--gs-text-secondary);
+}
+
+.crm-empty__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 0.8rem;
+}
+
+/* --------------------------------------------------------------------------
+   14) فرم‌ها
+   -------------------------------------------------------------------------- */
+.crm-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+}
+
+.crm-form__grid {
+    display: grid;
+    gap: 1.1rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.crm-form__grid > .is-full {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+    .crm-form__grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.crm-form__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 0.4rem;
+    padding-top: 1rem;
+    border-top: 1px dashed var(--gs-border);
+}
+
+.crm-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    min-width: 0;
+}
+
+.crm-field__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--gs-text-primary);
+}
+
+.crm-field__label svg {
+    color: var(--gs-gold);
+}
+
+.crm-field__req {
+    color: var(--gs-error);
+    font-weight: 900;
+}
+
+.crm-field__box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 46px;
+    padding-inline: 0.9rem;
+    border-radius: 13px;
+    border: 1px solid var(--gs-border);
+    background: var(--gs-glass);
+    transition: border-color var(--gs-transition), box-shadow var(--gs-transition), background var(--gs-transition);
+}
+
+.crm-field__box:focus-within {
+    border-color: var(--gs-border-hover);
+    background: var(--gs-glass-hover);
+    box-shadow: 0 0 0 4px var(--gs-gold-muted);
+}
+
+.crm-field.is-invalid .crm-field__box {
+    border-color: var(--gs-error);
+    box-shadow: 0 0 0 4px var(--gs-error-soft);
+    animation: crm-shake 0.4s var(--crm-ease);
+}
+
+.crm-field__box--area {
+    align-items: stretch;
+    padding-block: 0.6rem;
+}
+
+.crm-field__box input,
+.crm-field__box textarea,
+.crm-field__box select {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--gs-text-primary);
+    font: inherit;
+    font-size: 0.9rem;
+    line-height: 1.8;
+}
+
+.crm-field__box textarea {
+    resize: vertical;
+    min-height: 96px;
+}
+
+.crm-field__box input::placeholder,
+.crm-field__box textarea::placeholder {
+    color: var(--gs-text-muted);
+}
+
+.crm-field__box select {
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    padding-inline-end: 1.4rem;
+}
+
+.crm-field__box select option {
+    background: var(--gs-bg-card-strong);
+    color: var(--gs-text-primary);
+}
+
+.crm-field__chev {
+    position: absolute;
+    inset-inline-end: 0.85rem;
+    top: 50%;
+    translate: 0 -50%;
+    color: var(--gs-text-muted);
+    pointer-events: none;
+}
+
+.crm-field__affix {
+    flex: none;
+    color: var(--gs-text-muted);
+}
+
+.crm-field__hint {
+    font-size: 0.7rem;
+    color: var(--gs-text-muted);
+}
+
+.crm-field__error {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--gs-error);
+}
+
+.crm-field__count {
+    font-size: 0.66rem;
+    color: var(--gs-text-muted);
+    text-align: end;
+}
+
+@keyframes crm-shake {
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(-5px);
+    }
+    75% {
+        transform: translateX(5px);
+    }
+}
+
+/* انتقال خطای فیلد */
+.crm-err-enter-active,
+.crm-err-leave-active {
+    transition: all 0.25s var(--crm-ease);
+}
+.crm-err-enter-from,
+.crm-err-leave-to {
+    opacity: 0;
+    transform: translateY(-4px);
+}
+
+/* چیپ‌های چندانتخابی (دسته‌بندی‌ها) */
+.crm-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.crm-choice {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: 12px;
+    border: 1px solid var(--gs-border);
+    background: var(--gs-glass);
+    color: var(--gs-text-secondary);
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.28s var(--crm-spring);
+}
+
+.crm-choice:hover {
+    border-color: var(--gs-border-hover);
+    color: var(--gs-text-primary);
+    transform: translateY(-2px);
+}
+
+.crm-choice.is-on {
+    color: #14100a;
+    background: var(--gs-gold-grad);
+    border-color: transparent;
+    box-shadow: 0 6px 18px var(--gs-gold-glow);
+}
+
+.crm-choice__check {
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    transition: all 0.25s var(--crm-spring);
+}
+
+.crm-choice.is-on .crm-choice__check {
+    background: #14100a;
+    color: var(--gs-gold-light);
+    border-color: transparent;
+    transform: scale(1.05);
+}
+
+/* پیش‌نمایش زندهٔ فرم (کنار فرم) */
+.crm-preview {
+    position: sticky;
+    top: 84px;
+    padding: 1.3rem 1.35rem;
+}
+
+.crm-preview__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--gs-gold);
+    margin-bottom: 1rem;
+}
+
+.crm-preview__desc {
+    margin-top: 0.9rem;
+    padding: 0.85rem 0.95rem;
+    border-radius: 12px;
+    border: 1px dashed var(--gs-border);
+    background: var(--gs-bg-elevated);
+    font-size: 0.78rem;
+    line-height: 1.9;
+    color: var(--gs-text-secondary);
+    white-space: pre-line;
+    min-height: 64px;
+}
+
+.crm-preview__tip {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding: 0.8rem 0.9rem;
+    border-radius: 12px;
+    border: 1px solid color-mix(in srgb, var(--gs-info) 30%, transparent);
+    background: var(--gs-info-soft);
+    color: var(--gs-info);
+    font-size: 0.72rem;
+    line-height: 1.85;
+}
+
+/* --------------------------------------------------------------------------
+   15) جزئیات (Show)
+   -------------------------------------------------------------------------- */
+.crm-details {
+    display: grid;
+    gap: 0.6rem;
+}
+
+.crm-detail {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 0.85rem;
+    border-radius: 13px;
+    border: 1px solid var(--gs-border-soft);
+    background: var(--gs-bg-elevated);
+    transition: border-color 0.25s ease, transform 0.3s var(--crm-ease);
+}
+
+.crm-detail:hover {
+    border-color: var(--gs-border-hover);
+    transform: translateX(-3px);
+}
+
+.crm-detail__icon {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 11px;
+    color: var(--crm-accent);
+    background: color-mix(in srgb, var(--crm-accent) 13%, transparent);
+    border: 1px solid color-mix(in srgb, var(--crm-accent) 28%, transparent);
+}
+
+.crm-detail__k {
+    font-size: 0.66rem;
+    letter-spacing: 0.04em;
+    color: var(--gs-text-muted);
+}
+
+.crm-detail__v {
+    margin-top: 0.1rem;
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: var(--gs-text-primary);
+    word-break: break-word;
+    line-height: 1.8;
+}
+
+.crm-detail__v.is-empty {
+    color: var(--gs-text-muted);
+    font-weight: 400;
+    font-style: italic;
+}
+
+.crm-detail__v a {
+    color: var(--gs-gold);
+    text-decoration: none;
+}
+
+.crm-detail__v a:hover {
+    text-decoration: underline;
+}
+
+/* بلوک متن بلند (شرح درخواست / یادداشت) */
+.crm-prose {
+    padding: 1.05rem 1.15rem;
+    border-radius: 14px;
+    border: 1px solid var(--gs-border-soft);
+    background: var(--gs-bg-elevated);
+    font-size: 0.88rem;
+    line-height: 2.05;
+    color: var(--gs-text-primary);
+    white-space: pre-line;
+    word-break: break-word;
+}
+
+.crm-note {
+    display: flex;
+    gap: 0.6rem;
+    padding: 0.85rem 0.95rem;
+    border-radius: 13px;
+    border: 1px solid color-mix(in srgb, var(--gs-warning) 30%, transparent);
+    background: var(--gs-warning-soft);
+    color: var(--gs-warning);
+    font-size: 0.78rem;
+    line-height: 1.9;
+}
+
+/* آمار داخل کارت (Show) */
+.crm-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1.15rem 1.25rem;
+}
+
+.crm-metric__k {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--gs-text-secondary);
+}
+
+.crm-metric__k svg {
+    color: var(--crm-accent);
+}
+
+.crm-metric__v {
+    font-size: 1.6rem;
+    font-weight: 900;
+    line-height: 1.3;
+    font-variant-numeric: tabular-nums;
+    color: var(--gs-text-primary);
+}
+
+.crm-metric__v small {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--gs-text-muted);
+    margin-inline-start: 0.3rem;
+}
+
+.crm-metric__s {
+    font-size: 0.7rem;
+    color: var(--gs-text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   16) مراحل چرخهٔ عمر درخواست
+   -------------------------------------------------------------------------- */
+.crm-steps {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+    padding: 0.5rem 0.25rem 0.25rem;
+}
+
+.crm-steps__line {
+    position: absolute;
+    top: 25px;
+    inset-inline: 16.6%;
+    height: 3px;
+    border-radius: 999px;
+    background: var(--gs-bg-elevated);
+    overflow: hidden;
+}
+
+.crm-steps__fill {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: var(--crm-progress, 0%);
+    background: var(--gs-gold-grad);
+    box-shadow: 0 0 12px var(--gs-gold-glow);
+    transition: width 1.1s 0.25s var(--crm-ease);
+}
+
+.crm-step {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    text-align: center;
+}
+
+.crm-step__dot {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--gs-border);
+    background: var(--gs-bg-card-strong);
+    color: var(--gs-text-muted);
+    transition: all 0.45s var(--crm-spring);
+}
+
+.crm-step.is-done .crm-step__dot {
+    color: #14100a;
+    background: var(--gs-gold-grad);
+    border-color: transparent;
+    box-shadow: 0 0 18px var(--gs-gold-glow);
+}
+
+.crm-step.is-current .crm-step__dot {
+    color: var(--gs-gold);
+    border-color: var(--gs-border-strong);
+    box-shadow: 0 0 0 6px var(--gs-gold-muted);
+    animation: crm-step-pulse 2s ease-in-out infinite;
+}
+
+@keyframes crm-step-pulse {
+    0%,
+    100% {
+        box-shadow: 0 0 0 6px var(--gs-gold-muted);
+    }
+    50% {
+        box-shadow: 0 0 0 11px transparent;
+    }
+}
+
+.crm-step__t {
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--gs-text-secondary);
+}
+
+.crm-step.is-done .crm-step__t,
+.crm-step.is-current .crm-step__t {
+    color: var(--gs-text-primary);
+}
+
+.crm-step__s {
+    font-size: 0.64rem;
+    color: var(--gs-text-muted);
+}
+
+.crm-steps.is-canceled .crm-step__dot {
+    opacity: 0.45;
+    filter: grayscale(1);
+}
+
+.crm-steps__canceled {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.9rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 12px;
+    border: 1px solid color-mix(in srgb, var(--gs-error) 34%, transparent);
+    background: var(--gs-error-soft);
+    color: var(--gs-error);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   17) مودال تأیید
+   -------------------------------------------------------------------------- */
+.crm-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 400;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(4, 4, 8, 0.66);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    perspective: 1200px;
+}
+
+.crm-modal {
+    position: relative;
+    width: min(440px, 100%);
+    padding: 1.6rem 1.5rem 1.35rem;
+    text-align: center;
+    transform-style: preserve-3d;
+}
+
+.crm-modal__icon {
+    display: grid;
+    place-items: center;
+    width: 66px;
+    height: 66px;
+    margin: 0 auto 0.9rem;
+    border-radius: 22px;
+    color: var(--gs-error);
+    background: var(--gs-error-soft);
+    border: 1px solid color-mix(in srgb, var(--gs-error) 34%, transparent);
+    box-shadow: 0 0 34px color-mix(in srgb, var(--gs-error) 22%, transparent);
+    animation: crm-hover 3.5s ease-in-out infinite;
+}
+
+.crm-modal--gold .crm-modal__icon {
+    color: var(--gs-gold);
+    background: var(--gs-gold-muted);
+    border-color: var(--gs-border-hover);
+    box-shadow: var(--gs-shadow-gold);
+}
+
+.crm-modal__title {
+    font-size: 1.12rem;
+    font-weight: 900;
+    color: var(--gs-text-primary);
+}
+
+.crm-modal__msg {
+    margin-top: 0.45rem;
+    font-size: 0.8rem;
+    line-height: 1.95;
+    color: var(--gs-text-secondary);
+}
+
+.crm-modal__hl {
+    display: inline-block;
+    margin-top: 0.7rem;
+    padding: 0.4rem 0.9rem;
+    border-radius: 10px;
+    border: 1px solid var(--gs-border-hover);
+    background: var(--gs-gold-muted);
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: var(--gs-gold);
+}
+
+.crm-modal__actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.6rem;
+    margin-top: 1.3rem;
+}
+
+.crm-modal-fade-enter-active,
+.crm-modal-fade-leave-active {
+    transition: opacity 0.3s ease;
+}
+.crm-modal-fade-enter-from,
+.crm-modal-fade-leave-to {
+    opacity: 0;
+}
+
+.crm-modal-3d-enter-active {
+    transition: transform 0.55s var(--crm-spring), opacity 0.35s ease;
+}
+.crm-modal-3d-leave-active {
+    transition: transform 0.25s ease-in, opacity 0.2s ease;
+}
+.crm-modal-3d-enter-from {
+    opacity: 0;
+    transform: rotateX(-18deg) translateY(40px) scale(0.92);
+}
+.crm-modal-3d-leave-to {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+}
+
+/* --------------------------------------------------------------------------
+   18) اسپینر و ابزارهای کوچک
+   -------------------------------------------------------------------------- */
+.crm-spin {
+    animation: st-spin 0.9s linear infinite;
+}
+
+.crm-sep {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gs-border-hover), transparent);
+}
+
+.crm-muted {
+    color: var(--gs-text-muted);
+}
+
+.crm-gold {
+    color: var(--gs-gold);
+}
+
+.crm-fade-enter-active,
+.crm-fade-leave-active {
+    transition: opacity 0.28s ease, transform 0.28s var(--crm-ease);
+}
+.crm-fade-enter-from,
+.crm-fade-leave-to {
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+/* orb سبز (برای صحنهٔ مشتریان) */
+.crm-orb--green {
+    background: radial-gradient(circle, var(--gs-accent-2) 0%, transparent 68%);
+}
+
+/* پاورقی صفحه */
+.crm-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+    padding-top: 1.1rem;
+    border-top: 1px dashed var(--gs-border);
+    font-size: 0.72rem;
+    color: var(--gs-text-muted);
+}
+
+.crm-footer span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+/* نوار ظرفیت (نبض کارگاه) */
+.crm-load {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.crm-load__row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.crm-load__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    color: var(--gs-text-secondary);
+}
+
+.crm-load__top b {
+    color: var(--gs-text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.crm-load__track {
+    height: 8px;
+    border-radius: 999px;
+    background: var(--gs-bg-elevated);
+    overflow: hidden;
+}
+
+.crm-load__fill {
+    height: 100%;
+    width: var(--crm-w, 0%);
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--crm-accent), color-mix(in srgb, var(--crm-accent) 45%, transparent));
+    box-shadow: 0 0 12px color-mix(in srgb, var(--crm-accent) 40%, transparent);
+    transition: width 1.2s 0.3s var(--crm-ease);
+}
+
+/* --------------------------------------------------------------------------
+   19) احترام به کاهش حرکت
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+    .crm-orbit__core,
+    .crm-orbit__core::after,
+    .crm-orbit__ring,
+    .crm-orbit__track,
+    .crm-empty__icon,
+    .crm-modal__icon,
+    .crm-avatar--ring::after,
+    .crm-kpi__bar i,
+    .crm-row,
+    .crm-table tbody tr {
+        animation: none !important;
+    }
+}

@@ -1,374 +1,410 @@
 <script setup>
 /**
- * صفحهٔ داشبورد گیم‌استور — بازطراحی سه‌بعدی مطابق استانداردهای صفحه تنظیمات
+ * داشبورد گیم‌استور — بازطراحی هم‌سطح با صفحهٔ تنظیمات
  * مسیر: resources/js/Pages/Dashboard.vue
  * ---------------------------------------------------------------------------
- * داده‌ها و روتا کاملاً با ساختار کنترلر ماژول Dashboard هماهنگ است.
- * وابستگی‌ها:
- *   • @/Layouts/AppLayout.vue
- *   • @/Composables/useTilt (vTilt, vReveal)
- *   • @/Utils/format (faInt, money, jalali, jalaliLong)
- *   • lucide-vue-next
+ * props دقیقاً همان خروجی Modules\Dashboard\Http\Controllers\DashboardController:
+ *   stats           { customers_count, open_requests, items_count, active_service_jobs }
+ *   recentRequests  [{ id, customer_name, description, status, categories[] }]
+ *   recentInvoices  [{ id, invoice_number, total_amount, is_confirmed }]
+ *
+ * روت‌ها: customers.* / requests.* / invoices.* / service-jobs.* / items.* /
+ *         stock-movements.index  (همه در ماژول‌های مربوطه تعریف شده‌اند)
+ *
+ * وابستگی‌ها: resources/css/crm-3d.css (ایمپورت در app.css) + Components/Crm/*
  */
-import { ref, computed } from 'vue'
-import { Head, Link } from '@inertiajs/vue3'
+import { computed } from 'vue'
+import { Head, Link, usePage } from '@inertiajs/vue3'
 import {
-    Users,
-    ClipboardList,
+    Activity,
+    ArrowLeftRight,
     Boxes,
-    Wrench,
-    ArrowUpRight,
-    Plus,
-    Receipt,
-    FileText,
-    TrendingUp,
-    Sparkles,
-    ShieldCheck,
+    ChevronLeft,
+    ClipboardList,
     Clock,
     Flame,
     Gamepad2,
-    ChevronLeft,
+    Layers,
+    Plus,
+    Receipt,
+    ShieldCheck,
+    Sparkles,
+    TrendingUp,
+    UserPlus,
+    Users,
+    Wrench,
+    Zap,
 } from 'lucide-vue-next'
 
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { vReveal, vTilt } from '@/Composables/useTilt'
 import { faInt } from '@/Utils/format'
+import { avatarHue, clip, greeting, initials, money, todayFa } from '@/Utils/crm'
+
+import CrmScene from '@/Components/Crm/CrmScene.vue'
+import CrmOrbit from '@/Components/Crm/CrmOrbit.vue'
+import CrmKpiCard from '@/Components/Crm/CrmKpiCard.vue'
+import CrmPanel from '@/Components/Crm/CrmPanel.vue'
+import CrmStatusChip from '@/Components/Crm/CrmStatusChip.vue'
+import CrmEmptyState from '@/Components/Crm/CrmEmptyState.vue'
 
 const props = defineProps({
     stats: {
         type: Object,
-        default: () => ({
-            customers_count: 0,
-            open_requests: 0,
-            items_count: 0,
-            active_service_jobs: 0,
-        }),
+        default: () => ({ customers_count: 0, open_requests: 0, items_count: 0, active_service_jobs: 0 }),
     },
-    recentRequests: {
-        type: Array,
-        default: () => [],
-    },
-    recentInvoices: {
-        type: Array,
-        default: () => [],
-    },
+    recentRequests: { type: Array, default: () => [] },
+    recentInvoices: { type: Array, default: () => [] },
 })
 
-/* وضعیت و برچسب‌های درخواست */
-function statusLabel(status) {
-    const map = {
-        pending: 'در انتظار',
-        in_progress: 'در جریان',
-        completed: 'تکمیل شده',
-        canceled: 'لغو شده',
-    }
-    return map[status] ?? status
-}
+const page = usePage()
+const userName = computed(() => page.props.auth?.user?.name || 'مدیر سیستم')
+const today = todayFa()
+const hello = greeting()
 
-function statusBadgeClass(status) {
-    const map = {
-        pending: 'st-chip--warning',
-        in_progress: 'st-chip--info',
-        completed: 'st-chip--success',
-        canceled: 'st-chip--error',
-    }
-    return map[status] ?? 'st-chip--plain'
-}
+/* ---------------- شاخص‌ها ---------------- */
+const kpis = computed(() => [
+    {
+        key: 'customers',
+        label: 'کل مشتریان',
+        value: props.stats.customers_count,
+        icon: Users,
+        accent: 'var(--gs-info)',
+        hint: 'اعضای باشگاه مشتریان',
+        hintIcon: TrendingUp,
+        to: route('customers.index'),
+        fill: 78,
+    },
+    {
+        key: 'requests',
+        label: 'درخواست‌های باز',
+        value: props.stats.open_requests,
+        icon: ClipboardList,
+        accent: 'var(--gs-gold)',
+        hint: 'در انتظار یا در جریان',
+        hintIcon: Clock,
+        to: route('requests.index'),
+        fill: 64,
+    },
+    {
+        key: 'items',
+        label: 'تنوع اقلام انبار',
+        value: props.stats.items_count,
+        icon: Boxes,
+        accent: 'var(--gs-accent-2)',
+        hint: 'کالاهای تعریف‌شده در انبار',
+        hintIcon: ShieldCheck,
+        to: route('items.index'),
+        fill: 84,
+    },
+    {
+        key: 'service',
+        label: 'سرویس‌های فعال کارگاه',
+        value: props.stats.active_service_jobs,
+        icon: Wrench,
+        accent: 'var(--gs-accent-3)',
+        hint: 'در خط تعمیرات',
+        hintIcon: Flame,
+        to: route('service-jobs.index'),
+        fill: 52,
+    },
+])
 
-function formatPrice(amount) {
-    if (!amount) return '—'
-    return Number(amount).toLocaleString('fa-IR') + ' تومان'
-}
-
-/* اکشن‌های دسترسی سریع */
+/* ---------------- دسترسی سریع ---------------- */
 const quickActions = [
-    { title: 'مشتری جدید', desc: 'ثبت پرونده مشتری', route: 'customers.create', icon: Users, color: '#5b9df0' },
-    { title: 'درخواست جدید', desc: 'تعمیر یا سرویس', route: 'requests.create', icon: ClipboardList, color: '#e3bd5c' },
-    { title: 'فاکتور فروش', desc: 'صدور فاکتور جدید', route: 'invoices.create', icon: Receipt, color: '#45d68b' },
-    { title: 'سرویس سخت‌افزار', desc: 'تسک فنی کارگاه', route: 'service-jobs.create', icon: Wrench, color: '#9f7bf6' },
-    { title: 'محصول و کالا', desc: 'افزودن به موجودی', route: 'items.create', icon: Boxes, color: '#38bdf8' },
-    { title: 'ورودی انبار', desc: 'شارژ کالا و قطعات', route: 'stock-movements.store', icon: ArrowUpRight, color: '#f59e0b' },
+    { title: 'مشتری جدید', desc: 'ثبت پروندهٔ مشتری', route: 'customers.create', icon: UserPlus, accent: 'var(--gs-info)' },
+    { title: 'درخواست جدید', desc: 'تعمیر یا سرویس', route: 'requests.create', icon: ClipboardList, accent: 'var(--gs-gold)' },
+    { title: 'فاکتور فروش', desc: 'صدور فاکتور جدید', route: 'invoices.create', icon: Receipt, accent: 'var(--gs-success)' },
+    { title: 'سرویس سخت‌افزار', desc: 'تسک فنی کارگاه', route: 'service-jobs.create', icon: Wrench, accent: 'var(--gs-accent-3)' },
+    { title: 'محصول و کالا', desc: 'افزودن به موجودی', route: 'items.create', icon: Boxes, accent: '#38bdf8' },
+    { title: 'گردش انبار', desc: 'ورود و خروج کالا', route: 'stock-movements.index', icon: ArrowLeftRight, accent: 'var(--gs-warning)' },
+]
+
+/* ---------------- نبض کارگاه (از داده‌های واقعی) ---------------- */
+const workload = computed(() => {
+    const open = Number(props.stats.open_requests || 0)
+    const active = Number(props.stats.active_service_jobs || 0)
+    const max = Math.max(open, active, 1)
+    return [
+        { label: 'درخواست‌های باز', value: open, pct: (open / max) * 100, accent: 'var(--gs-gold)', to: route('requests.index') },
+        { label: 'سرویس‌های در جریان', value: active, pct: (active / max) * 100, accent: 'var(--gs-accent-3)', to: route('service-jobs.index') },
+    ]
+})
+
+const orbitSats = [
+    { icon: Users, color: 'var(--gs-info)' },
+    { icon: ClipboardList, color: 'var(--gs-gold)', reverse: true },
+    { icon: Wrench, color: 'var(--gs-accent-3)' },
 ]
 </script>
 
 <template>
+    <Head title="داشبورد مدیریت" />
+
     <AppLayout>
-        <Head title="داشبورد مدیریت" />
+        <div class="crm-page">
+            <CrmScene tone="blue" />
 
-        <!-- پس‌زمینه محیطی سه‌بعدی -->
-        <div class="a3d-scene st-scene" aria-hidden="true">
-            <span class="a3d-grid-floor" />
-            <span class="a3d-orb a3d-orb--gold a3d-float-a" style="width: 480px; height: 480px; top: -180px; inset-inline-end: 4%" />
-            <span class="a3d-orb a3d-orb--blue a3d-float-b" style="width: 420px; height: 420px; bottom: -160px; inset-inline-start: 3%" />
-        </div>
+            <!-- ================= سربرگ ================= -->
+            <header class="st-shell">
+                <div class="st-hero">
+                    <div style="min-width: 0">
+                        <div class="crm-hero__chips">
+                            <span class="st-chip st-chip--live">
+                                <span class="st-dot" />
+                                LIVE · سیستم آنلاین
+                            </span>
+                            <span class="st-chip">
+                                <Gamepad2 :size="13" />
+                                مرکز فرمان گیم‌استور
+                            </span>
+                            <span class="st-chip st-chip--plain">
+                                <Clock :size="13" />
+                                {{ today }}
+                            </span>
+                        </div>
 
-        <div class="st-page relative z-10 space-y-8 pb-12">
-            <!-- سربرگ شیشه‌ای لوکس -->
-            <header class="st-hero" v-reveal="{ delay: 50 }">
-                <div>
-                    <div class="flex items-center gap-2">
-                        <span class="st-chip st-chip--live">
-                            <span class="st-dot"></span>
-                            سیستم عملیاتی آنلاین
-                        </span>
-                        <span class="text-xs text-neutral-400">GameStore Control Center</span>
+                        <h1 class="st-hero__title">
+                            <span>داشبورد</span>
+                            <svg class="st-underline" viewBox="0 0 220 14" aria-hidden="true">
+                                <path
+                                    d="M4 10 C 60 2, 150 2, 216 8"
+                                    fill="none"
+                                    stroke="var(--gs-gold)"
+                                    stroke-width="3.5"
+                                    stroke-linecap="round"
+                                />
+                            </svg>
+                        </h1>
+
+                        <p class="st-hero__lead">
+                            {{ hello }}، <b style="color: var(--gs-text-primary)">{{ userName }}</b> — نمای زندهٔ مشتریان،
+                            درخواست‌ها، انبار و کارگاه در یک نگاه.
+                        </p>
+
+                        <div class="crm-hero__stats">
+                            <span class="st-stat">
+                                <Users :size="15" />
+                                مشتریان
+                                <b>{{ faInt(stats.customers_count) }}</b>
+                            </span>
+                            <span class="st-stat">
+                                <ClipboardList :size="15" />
+                                درخواست باز
+                                <b>{{ faInt(stats.open_requests) }}</b>
+                            </span>
+                            <span class="st-stat">
+                                <Wrench :size="15" />
+                                سرویس فعال
+                                <b>{{ faInt(stats.active_service_jobs) }}</b>
+                            </span>
+                        </div>
                     </div>
 
-                    <h1 class="st-hero__title">
-                        داشبورد <span>مدیریت فروشگاه</span>
-                    </h1>
-                    <p class="st-hero__lead">
-                        خوش آمدید، {{ $page.props.auth?.user?.name || 'مدیر سیستم' }} — نمای جامع عملکرد، مشتریان و سرویس‌ها
-                    </p>
-                    <svg class="st-underline" viewBox="0 0 230 11" fill="none">
-                        <path d="M2 8.5C65 2.5 165 2.5 228 8.5" stroke="url(#goldGrad)" stroke-width="3.5" stroke-linecap="round" />
-                        <defs>
-                            <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="0">
-                                <stop stop-color="#f3d98a" />
-                                <stop offset="0.5" stop-color="#e3bd5c" />
-                                <stop offset="1" stop-color="#b08c34" />
-                            </linearGradient>
-                        </defs>
-                    </svg>
-                </div>
-
-                <!-- وضعیت سریع سمت چپ هیرو -->
-                <div class="hidden lg:flex items-center gap-3">
-                    <div class="st-card p-3 px-4 flex items-center gap-3 border border-amber-500/20 bg-black/40 backdrop-blur-md rounded-2xl">
-                        <div class="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400">
-                            <Gamepad2 :size="22" />
-                        </div>
-                        <div>
-                            <p class="text-xs text-neutral-400">سرویس‌های در دست اقدام</p>
-                            <p class="text-lg font-bold text-amber-400">{{ faInt(stats.active_service_jobs) }} دستگاه</p>
+                    <div class="crm-hero__side">
+                        <CrmOrbit :icon="Gamepad2" :satellites="orbitSats" />
+                        <div class="crm-hero__actions" style="flex-direction: column">
+                            <Link :href="route('requests.create')" class="a3d-btn a3d-btn--gold a3d-btn--sm">
+                                <Plus :size="14" /> درخواست جدید
+                            </Link>
+                            <Link :href="route('customers.create')" class="a3d-btn a3d-btn--ghost a3d-btn--sm">
+                                <UserPlus :size="14" /> مشتری جدید
+                            </Link>
                         </div>
                     </div>
                 </div>
             </header>
 
-            <!-- ۴ کارت آمار سه‌بعدی KPI -->
-            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" v-reveal="{ delay: 120 }">
-                <!-- مشتریان -->
-                <article v-tilt="{ max: 9, scale: 1.02, lift: 14 }" class="st-card group relative p-5 overflow-hidden transition-all duration-300">
-                    <div class="flex items-start justify-between">
+            <!-- ================= بدنه ================= -->
+            <div class="st-shell crm-body crm-stack">
+                <!-- شاخص‌ها -->
+                <section class="crm-grid-kpi">
+                    <CrmKpiCard
+                        v-for="(k, i) in kpis"
+                        :key="k.key"
+                        :label="k.label"
+                        :value="k.value"
+                        :icon="k.icon"
+                        :accent="k.accent"
+                        :hint="k.hint"
+                        :hint-icon="k.hintIcon"
+                        :to="k.to"
+                        :fill="k.fill"
+                        :delay="60 + i * 70"
+                    />
+                </section>
+
+                <!-- دسترسی سریع -->
+                <section v-reveal="{ delay: 120 }">
+                    <div class="st-sechead" style="margin-bottom: 0.9rem">
+                        <span class="st-sechead__icon"><Sparkles :size="21" /></span>
                         <div>
-                            <p class="text-xs font-medium text-neutral-400">کل مشتریان ثبت‌شده</p>
-                            <h3 class="text-2xl font-black text-amber-300 mt-2 tracking-tight">
-                                {{ faInt(stats.customers_count) }}
-                            </h3>
-                            <span class="inline-flex items-center gap-1 text-[11px] text-emerald-400 mt-2 font-medium">
-                                <TrendingUp :size="12" /> فعال در باشگاه
-                            </span>
-                        </div>
-                        <div class="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/25 flex items-center justify-center text-blue-400 shadow-lg shadow-blue-500/10 group-hover:scale-110 transition-transform">
-                            <Users :size="24" />
+                            <h2 class="st-sechead__title">دسترسی سریع</h2>
+                            <p class="st-sechead__desc">پرتکرارترین عملیات روزانهٔ فروشگاه</p>
                         </div>
                     </div>
-                    <div class="mt-4 h-1 w-full bg-neutral-800 rounded-full overflow-hidden">
-                        <div class="h-full bg-gradient-to-r from-blue-500 to-amber-400 w-3/4 rounded-full"></div>
-                    </div>
-                </article>
 
-                <!-- درخواست‌های باز -->
-                <article v-tilt="{ max: 9, scale: 1.02, lift: 14 }" class="st-card group relative p-5 overflow-hidden transition-all duration-300">
-                    <div class="flex items-start justify-between">
-                        <div>
-                            <p class="text-xs font-medium text-neutral-400">درخواست‌های باز</p>
-                            <h3 class="text-2xl font-black text-amber-400 mt-2 tracking-tight">
-                                {{ faInt(stats.open_requests) }}
-                            </h3>
-                            <span class="inline-flex items-center gap-1 text-[11px] text-amber-400 mt-2 font-medium">
-                                <Clock :size="12" /> نیازمند پیگیری
-                            </span>
-                        </div>
-                        <div class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400 shadow-lg shadow-amber-500/10 group-hover:scale-110 transition-transform">
-                            <ClipboardList :size="24" />
-                        </div>
-                    </div>
-                    <div class="mt-4 h-1 w-full bg-neutral-800 rounded-full overflow-hidden">
-                        <div class="h-full bg-gradient-to-r from-amber-500 to-amber-300 w-2/3 rounded-full"></div>
-                    </div>
-                </article>
-
-                <!-- اقلام انبار -->
-                <article v-tilt="{ max: 9, scale: 1.02, lift: 14 }" class="st-card group relative p-5 overflow-hidden transition-all duration-300">
-                    <div class="flex items-start justify-between">
-                        <div>
-                            <p class="text-xs font-medium text-neutral-400">تنوع اقلام انبار</p>
-                            <h3 class="text-2xl font-black text-emerald-400 mt-2 tracking-tight">
-                                {{ faInt(stats.items_count) }}
-                            </h3>
-                            <span class="inline-flex items-center gap-1 text-[11px] text-emerald-400 mt-2 font-medium">
-                                <ShieldCheck :size="12" /> موجودی انبار پایدار
-                            </span>
-                        </div>
-                        <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10 group-hover:scale-110 transition-transform">
-                            <Boxes :size="24" />
-                        </div>
-                    </div>
-                    <div class="mt-4 h-1 w-full bg-neutral-800 rounded-full overflow-hidden">
-                        <div class="h-full bg-gradient-to-r from-emerald-500 to-teal-300 w-4/5 rounded-full"></div>
-                    </div>
-                </article>
-
-                <!-- سرویس‌های جاری -->
-                <article v-tilt="{ max: 9, scale: 1.02, lift: 14 }" class="st-card group relative p-5 overflow-hidden transition-all duration-300">
-                    <div class="flex items-start justify-between">
-                        <div>
-                            <p class="text-xs font-medium text-neutral-400">سرویس‌های جاری کارگاه</p>
-                            <h3 class="text-2xl font-black text-purple-400 mt-2 tracking-tight">
-                                {{ faInt(stats.active_service_jobs) }}
-                            </h3>
-                            <span class="inline-flex items-center gap-1 text-[11px] text-purple-400 mt-2 font-medium">
-                                <Flame :size="12" /> در خط تعمیرات
-                            </span>
-                        </div>
-                        <div class="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/25 flex items-center justify-center text-purple-400 shadow-lg shadow-purple-500/10 group-hover:scale-110 transition-transform">
-                            <Wrench :size="24" />
-                        </div>
-                    </div>
-                    <div class="mt-4 h-1 w-full bg-neutral-800 rounded-full overflow-hidden">
-                        <div class="h-full bg-gradient-to-r from-purple-500 to-pink-400 w-1/2 rounded-full"></div>
-                    </div>
-                </article>
-            </section>
-
-            <!-- دسترسی سریع گیمینگ -->
-            <section v-reveal="{ delay: 180 }" class="space-y-3">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <Sparkles :size="18" class="text-amber-400" />
-                        <h2 class="text-sm font-bold tracking-wide text-amber-400 uppercase">دسترسی سریع عملیاتی</h2>
-                    </div>
-                    <div class="h-[1px] flex-1 bg-gradient-to-r from-amber-500/20 to-transparent mr-4"></div>
-                </div>
-
-                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                    <Link
-                        v-for="action in quickActions"
-                        :key="action.route"
-                        :href="route(action.route)"
-                        v-tilt="{ max: 12, scale: 1.04, lift: 12 }"
-                        class="st-card p-4 rounded-xl flex flex-col items-center text-center group hover:border-amber-500/50 hover:bg-amber-500/5 transition-all duration-200"
-                    >
-                        <div
-                            class="w-11 h-11 rounded-xl flex items-center justify-center mb-2.5 transition-transform group-hover:scale-110 shadow-md"
-                            :style="{ backgroundColor: action.color + '18', color: action.color, borderColor: action.color + '40' }"
+                    <div class="crm-tiles">
+                        <Link
+                            v-for="(a, i) in quickActions"
+                            :key="a.route"
+                            v-reveal="{ delay: 140 + i * 50 }"
+                            v-tilt="{ max: 12, lift: 16, scale: 1.04 }"
+                            :href="route(a.route)"
+                            class="a3d-holo a3d-aura crm-tile"
+                            :style="{ '--crm-accent': a.accent, '--a3d-aura-color': a.accent }"
                         >
-                            <component :is="action.icon" :size="20" />
-                        </div>
-                        <span class="text-xs font-bold text-neutral-200 group-hover:text-amber-300">{{ action.title }}</span>
-                        <span class="text-[10px] text-neutral-400 mt-0.5">{{ action.desc }}</span>
-                    </Link>
-                </div>
-            </section>
-
-            <!-- دو ستون: آخرین درخواست‌ها و آخرین فاکتورها -->
-            <section class="grid grid-cols-1 lg:grid-cols-2 gap-6" v-reveal="{ delay: 240 }">
-                <!-- آخرین درخواست‌ها -->
-                <div class="st-card rounded-2xl overflow-hidden border border-neutral-800 flex flex-col justify-between">
-                    <div class="p-4 border-b border-neutral-800 flex items-center justify-between bg-white/[0.02]">
-                        <div class="flex items-center gap-2.5">
-                            <span class="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center">
-                                <ClipboardList :size="18" />
-                            </span>
-                            <div>
-                                <h3 class="text-sm font-bold text-neutral-200">آخرین درخواست‌های ثبت‌شده</h3>
-                                <p class="text-[11px] text-neutral-400">وضعیت رسیدگی به دستگاه‌های ورودی</p>
-                            </div>
-                        </div>
-                        <Link :href="route('requests.index')" class="st-chip st-chip--plain hover:border-amber-500/40 text-xs">
-                            مشاهده همه <ChevronLeft :size="14" />
+                            <span class="crm-tile__icon"><component :is="a.icon" :size="22" /></span>
+                            <span class="crm-tile__title">{{ a.title }}</span>
+                            <span class="crm-tile__desc">{{ a.desc }}</span>
                         </Link>
                     </div>
+                </section>
 
-                    <div class="p-2 flex-1">
-                        <table v-if="recentRequests.length" class="w-full text-right text-xs">
-                            <thead>
-                                <tr class="text-neutral-400 border-b border-neutral-800/60 text-[11px]">
-                                    <th class="py-2.5 px-3">مشتری</th>
-                                    <th class="py-2.5 px-3">وضعیت</th>
-                                    <th class="py-2.5 px-3 text-left">عملیات</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-neutral-800/40">
-                                <tr v-for="req in recentRequests" :key="req.id" class="hover:bg-white/[0.03] transition-colors">
-                                    <td class="py-3 px-3">
-                                        <p class="font-semibold text-neutral-200">{{ req.customer_name }}</p>
-                                        <p class="text-[10px] text-neutral-400 truncate max-w-[180px]">{{ req.description }}</p>
-                                    </td>
-                                    <td class="py-3 px-3">
-                                        <span class="st-chip text-[11px]" :class="statusBadgeClass(req.status)">
-                                            {{ statusLabel(req.status) }}
-                                        </span>
-                                    </td>
-                                    <td class="py-3 px-3 text-left">
-                                        <Link :href="route('requests.show', req.id)" class="px-2.5 py-1 rounded-lg bg-neutral-800/80 hover:bg-amber-500/20 hover:text-amber-300 text-neutral-300 text-[11px] font-medium transition-colors">
-                                            جزئیات
-                                        </Link>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                <!-- آخرین‌ها -->
+                <section class="crm-grid-2">
+                    <!-- آخرین درخواست‌ها -->
+                    <CrmPanel
+                        title="آخرین درخواست‌ها"
+                        desc="وضعیت رسیدگی به دستگاه‌های ورودی"
+                        :icon="ClipboardList"
+                        accent="var(--gs-gold)"
+                        :delay="180"
+                        flush
+                    >
+                        <template #actions>
+                            <Link :href="route('requests.index')" class="crm-more">
+                                مشاهدهٔ همه <ChevronLeft :size="14" />
+                            </Link>
+                        </template>
 
-                        <div v-else class="text-center py-8 text-neutral-400 text-xs">
-                            درخواستی ثبت نشده است
+                        <div v-if="recentRequests.length" class="crm-rows">
+                            <Link
+                                v-for="(req, i) in recentRequests"
+                                :key="req.id"
+                                :href="route('requests.show', req.id)"
+                                class="crm-row"
+                                :style="{ '--i': i }"
+                            >
+                                <span class="crm-avatar crm-avatar--sm" :style="{ '--hue': avatarHue(req.customer_name) }">
+                                    {{ initials(req.customer_name) }}
+                                </span>
+                                <div class="crm-row__main">
+                                    <p class="crm-row__title">{{ req.customer_name }}</p>
+                                    <p class="crm-row__sub">
+                                        <template v-if="req.categories?.length">
+                                            {{ req.categories.map((c) => c.name).join('، ') }} ·
+                                        </template>
+                                        {{ clip(req.description, 70) || 'بدون شرح' }}
+                                    </p>
+                                </div>
+                                <div class="crm-row__meta">
+                                    <CrmStatusChip :status="req.status" sm />
+                                    <ChevronLeft :size="15" class="crm-muted" />
+                                </div>
+                            </Link>
                         </div>
-                    </div>
-                </div>
 
-                <!-- آخرین فاکتورها -->
-                <div class="st-card rounded-2xl overflow-hidden border border-neutral-800 flex flex-col justify-between">
-                    <div class="p-4 border-b border-neutral-800 flex items-center justify-between bg-white/[0.02]">
-                        <div class="flex items-center gap-2.5">
-                            <span class="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
-                                <Receipt :size="18" />
-                            </span>
-                            <div>
-                                <h3 class="text-sm font-bold text-neutral-200">آخرین فاکتورهای فروش</h3>
-                                <p class="text-[11px] text-neutral-400">صورت‌حساب‌های صادره اخیر</p>
+                        <CrmEmptyState
+                            v-else
+                            :icon="ClipboardList"
+                            title="هنوز درخواستی ثبت نشده"
+                            desc="اولین درخواست تعمیر یا سرویس را ثبت کنید تا این‌جا نمایش داده شود."
+                        >
+                            <Link :href="route('requests.create')" class="a3d-btn a3d-btn--gold a3d-btn--sm">
+                                <Plus :size="14" /> ثبت درخواست
+                            </Link>
+                        </CrmEmptyState>
+                    </CrmPanel>
+
+                    <!-- آخرین فاکتورها -->
+                    <CrmPanel
+                        title="آخرین فاکتورهای فروش"
+                        desc="صورت‌حساب‌های صادرشدهٔ اخیر"
+                        :icon="Receipt"
+                        accent="var(--gs-success)"
+                        :delay="240"
+                        flush
+                    >
+                        <template #actions>
+                            <Link :href="route('invoices.index')" class="crm-more">
+                                مشاهدهٔ همه <ChevronLeft :size="14" />
+                            </Link>
+                        </template>
+
+                        <div v-if="recentInvoices.length" class="crm-rows">
+                            <Link
+                                v-for="(inv, i) in recentInvoices"
+                                :key="inv.id"
+                                :href="route('invoices.show', inv.id)"
+                                class="crm-row"
+                                :style="{ '--i': i }"
+                            >
+                                <span
+                                    class="crm-panel__icon"
+                                    style="--crm-accent: var(--gs-success); width: 36px; height: 36px; border-radius: 11px"
+                                >
+                                    <Receipt :size="16" />
+                                </span>
+                                <div class="crm-row__main">
+                                    <p class="crm-row__title"><span class="crm-code">{{ inv.invoice_number }}</span></p>
+                                    <p class="crm-row__sub">مبلغ کل فاکتور</p>
+                                </div>
+                                <div class="crm-row__meta">
+                                    <span class="crm-row__num">{{ money(inv.total_amount) }}</span>
+                                    <CrmStatusChip :invoice="inv" sm :icon="false" />
+                                </div>
+                            </Link>
+                        </div>
+
+                        <CrmEmptyState
+                            v-else
+                            :icon="Receipt"
+                            title="فاکتوری صادر نشده"
+                            desc="با ثبت اولین فروش، فاکتورهای اخیر این‌جا فهرست می‌شوند."
+                        >
+                            <Link :href="route('invoices.create')" class="a3d-btn a3d-btn--gold a3d-btn--sm">
+                                <Plus :size="14" /> صدور فاکتور
+                            </Link>
+                        </CrmEmptyState>
+                    </CrmPanel>
+                </section>
+
+                <!-- نبض کارگاه -->
+                <CrmPanel
+                    title="نبض کارگاه"
+                    desc="بار کاری جاری بر اساس درخواست‌های باز و سرویس‌های فعال"
+                    :icon="Activity"
+                    accent="var(--gs-accent-3)"
+                    :delay="300"
+                >
+                    <template #actions>
+                        <span class="st-chip st-chip--plain"><Zap :size="12" /> به‌روزرسانی زنده با هر بازدید</span>
+                    </template>
+
+                    <div class="crm-load">
+                        <Link
+                            v-for="w in workload"
+                            :key="w.label"
+                            :href="w.to"
+                            class="crm-load__row"
+                            :style="{ '--crm-accent': w.accent, '--crm-w': w.pct + '%' }"
+                            style="text-decoration: none; color: inherit"
+                        >
+                            <div class="crm-load__top">
+                                <span>{{ w.label }}</span>
+                                <b>{{ faInt(w.value) }}</b>
                             </div>
-                        </div>
-                        <Link :href="route('invoices.index')" class="st-chip st-chip--plain hover:border-amber-500/40 text-xs">
-                            مشاهده همه <ChevronLeft :size="14" />
+                            <div class="crm-load__track"><div class="crm-load__fill" /></div>
                         </Link>
                     </div>
+                </CrmPanel>
 
-                    <div class="p-2 flex-1">
-                        <table v-if="recentInvoices.length" class="w-full text-right text-xs">
-                            <thead>
-                                <tr class="text-neutral-400 border-b border-neutral-800/60 text-[11px]">
-                                    <th class="py-2.5 px-3">شماره فاکتور</th>
-                                    <th class="py-2.5 px-3">مبلغ کل</th>
-                                    <th class="py-2.5 px-3 text-left">وضعیت تأیید</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-neutral-800/40">
-                                <tr v-for="inv in recentInvoices" :key="inv.id" class="hover:bg-white/[0.03] transition-colors">
-                                    <td class="py-3 px-3 font-mono font-medium text-amber-300">
-                                        {{ inv.invoice_number }}
-                                    </td>
-                                    <td class="py-3 px-3 font-semibold text-neutral-200">
-                                        {{ formatPrice(inv.total_amount) }}
-                                    </td>
-                                    <td class="py-3 px-3 text-left">
-                                        <span
-                                            class="st-chip text-[11px]"
-                                            :class="inv.is_confirmed === 1 ? 'st-chip--success' : inv.is_confirmed === 0 ? 'st-chip--error' : 'st-chip--warning'"
-                                        >
-                                            {{ inv.is_confirmed === 1 ? 'تأیید شده' : inv.is_confirmed === 0 ? 'رد شده' : 'در انتظار' }}
-                                        </span>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-
-                        <div v-else class="text-center py-8 text-neutral-400 text-xs">
-                            فاکتوری ثبت نشده است
-                        </div>
-                    </div>
-                </div>
-            </section>
+                <footer class="crm-footer">
+                    <span><Gamepad2 :size="14" /> گیم‌استور — داشبورد مدیریت</span>
+                    <span><Layers :size="13" /> همگام با ماژول Dashboard</span>
+                </footer>
+            </div>
         </div>
     </AppLayout>
 </template>

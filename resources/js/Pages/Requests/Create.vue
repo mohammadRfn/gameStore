@@ -1,17 +1,30 @@
 <script setup>
 /**
- * ثبت درخواست جدید — فرم مدرن ۳D
+ * ثبت درخواست جدید
  * مسیر: resources/js/Pages/Requests/Create.vue
+ * ---------------------------------------------------------------------------
+ * RequestController@create → props: { categories[], customers[{id,name}] }
+ * ارسال: form.post(route('requests.store')) با کلیدهای
+ *        customer_id | customer_name | description | category_ids[]
+ * اگر صفحه با ?customer_id=… باز شود (از پروندهٔ مشتری)، مشتری از پیش انتخاب می‌شود.
  */
+import { onMounted } from 'vue'
 import { Head, Link, useForm } from '@inertiajs/vue3'
-import { ClipboardList, ArrowRight, Save, User, Tag, FileText } from 'lucide-vue-next'
+import { ArrowRight, ClipboardList, Sparkles, Wrench } from 'lucide-vue-next'
+
 import AppLayout from '@/Layouts/AppLayout.vue'
-import { vReveal } from '@/Composables/useTilt'
+import { useToasts } from '@/Composables/useToasts'
+
+import CrmScene from '@/Components/Crm/CrmScene.vue'
+import RequestForm from '@/Components/Crm/RequestForm.vue'
+import ToastHost from '@/Components/Settings/ToastHost.vue'
 
 const props = defineProps({
     customers: { type: Array, default: () => [] },
     categories: { type: Array, default: () => [] },
 })
+
+const { toasts, dismiss, danger } = useToasts({ flash: true })
 
 const form = useForm({
     customer_id: '',
@@ -20,114 +33,71 @@ const form = useForm({
     category_ids: [],
 })
 
-function onCustomerSelect(e) {
-    const cid = e.target.value
-    if (cid) {
-        const found = props.customers.find((c) => String(c.id) === String(cid))
-        if (found) form.customer_name = found.name
+/* پیش‌انتخاب مشتری از query string (?customer_id=12) */
+onMounted(() => {
+    const id = new URLSearchParams(window.location.search).get('customer_id')
+    if (!id) return
+    const found = props.customers.find((c) => String(c.id) === String(id))
+    if (found) {
+        form.defaults({ customer_id: found.id, customer_name: found.name })
+        form.reset()
     }
-}
-
-function toggleCategory(catId) {
-    const idx = form.category_ids.indexOf(catId)
-    if (idx > -1) {
-        form.category_ids.splice(idx, 1)
-    } else {
-        form.category_ids.push(catId)
-    }
-}
+})
 
 function submit() {
-    form.post(route('requests.store'))
+    form.post(route('requests.store'), {
+        onError: () => danger('لطفاً خطاهای فرم را برطرف کنید.'),
+    })
 }
 </script>
 
 <template>
-    <AppLayout>
-        <Head title="ثبت درخواست جدید" />
+    <Head title="ثبت درخواست جدید" />
 
-        <div class="st-page relative z-10 max-w-3xl mx-auto space-y-6 pb-12">
-            <header class="st-hero" v-reveal="{ delay: 50 }">
-                <div>
-                    <span class="st-chip st-chip--live text-xs">خدمات و پشتیبانی</span>
-                    <h1 class="st-hero__title">ثبت <span>درخواست جدید</span></h1>
-                    <p class="st-hero__lead">ثبت شرح مشکل دستگاه، انتخاب دسته‌بندی و الصاق به پرونده مشتری</p>
+    <AppLayout>
+        <div class="crm-page">
+            <CrmScene tone="gold" />
+
+            <header class="st-shell">
+                <div class="st-hero" style="padding-block: 2rem 1.6rem">
+                    <div style="min-width: 0">
+                        <div class="crm-hero__chips">
+                            <span class="st-chip"><Wrench :size="13" /> خدمات و پشتیبانی</span>
+                            <span class="st-chip st-chip--plain"><Sparkles :size="12" /> تیکت جدید</span>
+                        </div>
+
+                        <h1 class="st-hero__title" style="font-size: clamp(2rem, 5vw, 3rem)">
+                            ثبت <span>درخواست جدید</span>
+                            <svg class="st-underline" viewBox="0 0 220 14" aria-hidden="true">
+                                <path d="M4 10 C 60 2, 150 2, 216 8" fill="none" stroke="var(--gs-gold)" stroke-width="3.5" stroke-linecap="round" />
+                            </svg>
+                        </h1>
+
+                        <p class="st-hero__lead">
+                            شرح مشکل دستگاه را ثبت کنید، دسته‌بندی خدمت را انتخاب کنید و در صورت وجود، به پروندهٔ مشتری متصل کنید.
+                        </p>
+                    </div>
+
+                    <div class="crm-hero__actions">
+                        <Link :href="route('requests.index')" class="a3d-btn a3d-btn--ghost a3d-btn--sm">
+                            <ArrowRight :size="14" /> بازگشت به فهرست
+                        </Link>
+                    </div>
                 </div>
-                <Link :href="route('requests.index')" class="px-3 py-2 rounded-xl bg-neutral-800 text-neutral-300 text-xs hover:bg-neutral-700 flex items-center gap-1">
-                    بازگشت <ArrowRight :size="14" />
-                </Link>
             </header>
 
-            <form @submit.prevent="submit" class="st-card p-6 rounded-2xl space-y-5" v-reveal="{ delay: 100 }">
-                <!-- انتخاب مشتری -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="space-y-1.5">
-                        <label class="text-xs font-bold text-neutral-200">انتخاب مشتری از قبل ثبت‌شده</label>
-                        <select
-                            v-model="form.customer_id"
-                            @change="onCustomerSelect"
-                            class="w-full bg-neutral-900/80 border border-neutral-700 focus:border-amber-400 rounded-xl py-2.5 px-3.5 text-xs text-neutral-200 outline-none"
-                        >
-                            <option value="">— مشتری ثبت نشده / موردی —</option>
-                            <option v-for="c in customers" :key="c.id" :value="c.id">{{ c.name }}</option>
-                        </select>
-                    </div>
+            <div class="st-shell crm-body crm-body--form">
+                <RequestForm
+                    :form="form"
+                    :customers="customers"
+                    :categories="categories"
+                    mode="create"
+                    :cancel-href="route('requests.index')"
+                    @submit="submit"
+                />
+            </div>
 
-                    <div class="space-y-1.5">
-                        <label class="text-xs font-bold text-neutral-200">
-                            نام مشتری <span class="text-rose-500">*</span>
-                        </label>
-                        <input
-                            v-model="form.customer_name"
-                            type="text"
-                            class="w-full bg-neutral-900/80 border rounded-xl py-2.5 px-3.5 text-xs text-neutral-200 outline-none transition-all placeholder:text-neutral-500"
-                            :class="form.errors.customer_name ? 'border-rose-500/80 bg-rose-500/5' : 'border-neutral-700 focus:border-amber-400'"
-                            placeholder="نام کامل مشتری"
-                        />
-                        <p v-if="form.errors.customer_name" class="text-[11px] text-rose-400">{{ form.errors.customer_name }}</p>
-                    </div>
-                </div>
-
-                <!-- دسته‌بندی‌ها با چیپ چندانتخابی -->
-                <div class="space-y-2">
-                    <label class="text-xs font-bold text-neutral-200">دسته‌بندی‌های خدمت / قطعه</label>
-                    <div class="flex flex-wrap gap-2">
-                        <button
-                            v-for="cat in categories"
-                            :key="cat.id"
-                            type="button"
-                            @click="toggleCategory(cat.id)"
-                            :class="form.category_ids.includes(cat.id) ? 'bg-amber-500/20 text-amber-300 border-amber-500/60 shadow-md shadow-amber-500/10' : 'bg-neutral-900/60 text-neutral-400 border-neutral-800 hover:border-neutral-700'"
-                            class="px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all"
-                        >
-                            {{ cat.name }}
-                        </button>
-                    </div>
-                </div>
-
-                <!-- شرح مشکل -->
-                <div class="space-y-1.5">
-                    <label class="text-xs font-bold text-neutral-200">
-                        شرح مشکل یا درخواست <span class="text-rose-500">*</span>
-                    </label>
-                    <textarea
-                        v-model="form.description"
-                        rows="4"
-                        class="w-full bg-neutral-900/80 border rounded-xl py-2.5 px-3.5 text-xs text-neutral-200 outline-none transition-all placeholder:text-neutral-500 leading-relaxed"
-                        :class="form.errors.description ? 'border-rose-500/80 bg-rose-500/5' : 'border-neutral-700 focus:border-amber-400'"
-                        placeholder="توضیحات ایراد دستگاه، مدل کنسول، دسته یا دیتای مورد نیاز..."
-                    ></textarea>
-                    <p v-if="form.errors.description" class="text-[11px] text-rose-400">{{ form.errors.description }}</p>
-                </div>
-
-                <div class="pt-4 border-t border-neutral-800 flex items-center justify-end gap-3">
-                    <Link :href="route('requests.index')" class="gs-btn-ghost text-xs">انصراف</Link>
-                    <button type="submit" :disabled="form.processing" class="gs-btn-gold text-xs">
-                        <Save :size="15" />
-                        <span>{{ form.processing ? 'در حال ثبت...' : 'ثبت نهایی درخواست' }}</span>
-                    </button>
-                </div>
-            </form>
+            <ToastHost :toasts="toasts" @close="dismiss" />
         </div>
     </AppLayout>
 </template>

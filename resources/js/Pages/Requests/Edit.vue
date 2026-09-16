@@ -1,82 +1,96 @@
+<script setup>
+/**
+ * ویرایش درخواست
+ * مسیر: resources/js/Pages/Requests/Edit.vue
+ * ---------------------------------------------------------------------------
+ * RequestController@edit → props: { request, categories[], customers[] }
+ * ارسال: form.put(route('requests.update', id)) با کلیدهای
+ *        customer_id | customer_name | description | category_ids[]
+ * (وضعیت از این‌جا تغییر نمی‌کند؛ RequestService فقط این فیلدها را به‌روز می‌کند.)
+ */
+import { Head, Link, useForm } from '@inertiajs/vue3'
+import { ArrowRight, Eye, Pencil } from 'lucide-vue-next'
+
+import AppLayout from '@/Layouts/AppLayout.vue'
+import { useToasts } from '@/Composables/useToasts'
+import { dateFa } from '@/Utils/crm'
+
+import CrmScene from '@/Components/Crm/CrmScene.vue'
+import CrmStatusChip from '@/Components/Crm/CrmStatusChip.vue'
+import RequestForm from '@/Components/Crm/RequestForm.vue'
+import ToastHost from '@/Components/Settings/ToastHost.vue'
+
+const props = defineProps({
+    request: { type: Object, required: true },
+    categories: { type: Array, default: () => [] },
+    customers: { type: Array, default: () => [] },
+})
+
+const { toasts, dismiss, danger } = useToasts({ flash: true })
+
+const form = useForm({
+    customer_id: props.request.customer_id ?? props.request.customer?.id ?? '',
+    customer_name: props.request.customer_name ?? '',
+    description: props.request.description ?? '',
+    category_ids: (props.request.categories || []).map((c) => c.id),
+})
+
+function submit() {
+    form.put(route('requests.update', props.request.id), {
+        onError: () => danger('لطفاً خطاهای فرم را برطرف کنید.'),
+    })
+}
+</script>
+
 <template>
+    <Head :title="`ویرایش درخواست #${request.id}`" />
+
     <AppLayout>
-        <template #header>
-            <div class="gs-page-header">
-                <div>
-                    <h1 class="gs-title">ویرایش درخواست #{{ request.id }}</h1>
-                    <p class="gs-subtitle">{{ request.customer_name }}</p>
+        <div class="crm-page">
+            <CrmScene tone="gold" />
+
+            <header class="st-shell">
+                <div class="st-hero" style="padding-block: 2rem 1.6rem">
+                    <div style="min-width: 0">
+                        <div class="crm-hero__chips">
+                            <span class="st-chip"><Pencil :size="12" /> ویرایش درخواست</span>
+                            <span class="st-chip st-chip--plain crm-code" style="font-size: 0.7rem">#{{ request.id }}</span>
+                            <CrmStatusChip :status="request.status" sm />
+                            <span v-if="request.created_at" class="st-chip st-chip--plain">ثبت {{ dateFa(request.created_at) }}</span>
+                        </div>
+
+                        <h1 class="st-hero__title" style="font-size: clamp(1.8rem, 4.5vw, 2.7rem)">
+                            درخواست <span>{{ request.customer_name }}</span>
+                            <svg class="st-underline" viewBox="0 0 220 14" aria-hidden="true">
+                                <path d="M4 10 C 60 2, 150 2, 216 8" fill="none" stroke="var(--gs-gold)" stroke-width="3.5" stroke-linecap="round" />
+                            </svg>
+                        </h1>
+                    </div>
+
+                    <div class="crm-hero__actions">
+                        <Link :href="route('requests.show', request.id)" class="a3d-btn a3d-btn--sm">
+                            <Eye :size="14" /> مشاهدهٔ درخواست
+                        </Link>
+                        <Link :href="route('requests.index')" class="a3d-btn a3d-btn--ghost a3d-btn--sm">
+                            <ArrowRight :size="14" /> فهرست
+                        </Link>
+                    </div>
                 </div>
-                <Link :href="route('requests.show', request.id)" class="gs-btn gs-btn-secondary">← بازگشت</Link>
+            </header>
+
+            <div class="st-shell crm-body crm-body--form">
+                <RequestForm
+                    :form="form"
+                    :customers="customers"
+                    :categories="categories"
+                    mode="edit"
+                    :status="request.status"
+                    :cancel-href="route('requests.show', request.id)"
+                    @submit="submit"
+                />
             </div>
-        </template>
 
-        <div class="gs-card gs-card-elevated" style="max-width:680px">
-            <form @submit.prevent="submit">
-                <div class="gs-form-grid">
-                    <div class="gs-input-group" style="grid-column:span 2">
-                        <label class="gs-input-label">نام مشتری <span style="color:var(--gs-error)">*</span></label>
-                        <input v-model="form.customer_name" type="text" class="gs-input"
-                            :class="{'gs-input-error': form.errors.customer_name}" />
-                        <span v-if="form.errors.customer_name" class="gs-error-msg">{{ form.errors.customer_name }}</span>
-                    </div>
-
-                    
-                </div>
-
-                <div class="gs-input-group">
-                    <label class="gs-input-label">دسته‌بندی‌ها</label>
-                    <div class="gs-cat-grid">
-                        <label v-for="cat in categories" :key="cat.id" class="gs-cat-item"
-                            :class="{ active: form.category_ids.includes(cat.id) }">
-                            <input type="checkbox" :value="cat.id" v-model="form.category_ids" class="gs-checkbox" />
-                            <span>{{ cat.name }}</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="gs-input-group">
-                    <label class="gs-input-label">توضیحات <span style="color:var(--gs-error)">*</span></label>
-                    <textarea v-model="form.description" class="gs-input" rows="4"
-                        :class="{'gs-input-error': form.errors.description}" style="resize:vertical"></textarea>
-                    <span v-if="form.errors.description" class="gs-error-msg">{{ form.errors.description }}</span>
-                </div>
-
-                <div class="gs-divider"></div>
-                <div style="display:flex;gap:.75rem;justify-content:space-between;align-items:center">
-                    <span v-if="form.isDirty" class="gs-badge gs-badge-warning">تغییرات ذخیره نشده</span>
-                    <span v-else></span>
-                    <div style="display:flex;gap:.75rem">
-                        <Link :href="route('requests.show', request.id)" class="gs-btn gs-btn-ghost">انصراف</Link>
-                        <button type="submit" class="gs-btn gs-btn-primary" :disabled="form.processing || !form.isDirty">
-                            {{ form.processing ? 'در حال ذخیره...' : 'ذخیره تغییرات' }}
-                        </button>
-                    </div>
-                </div>
-            </form>
+            <ToastHost :toasts="toasts" @close="dismiss" />
         </div>
     </AppLayout>
 </template>
-
-<script setup>
-import { Link, useForm } from '@inertiajs/vue3'
-import AppLayout from '@/Layouts/AppLayout.vue'
-
-const props = defineProps({ request: Object, categories: Array })
-
-const form = useForm({
-    customer_name: props.request.customer_name,
-    description: props.request.description,
-    category_ids: props.request.categories?.map(c => c.id) ?? [],
-})
-
-function submit() { form.put(route('requests.update', props.request.id)) }
-</script>
-
-<style scoped>
-.gs-page-header { display:flex;align-items:center;justify-content:space-between }
-.gs-form-grid { display:grid;grid-template-columns:1fr 1fr;gap:0 1.25rem }
-.gs-cat-grid { display:flex;flex-wrap:wrap;gap:.5rem;padding:.5rem 0 }
-.gs-cat-item { display:flex;align-items:center;gap:.4rem;font-size:.875rem;color:var(--gs-text-secondary);cursor:pointer;padding:.35rem .75rem;border:1px solid var(--gs-border);border-radius:20px;transition:all var(--gs-transition) }
-.gs-cat-item:hover,.gs-cat-item.active { border-color:var(--gs-gold);color:var(--gs-gold);background:var(--gs-gold-muted) }
-.gs-checkbox { accent-color:var(--gs-gold) }
-</style>

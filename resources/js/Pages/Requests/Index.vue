@@ -1,293 +1,361 @@
 <script setup>
 /**
- * صفحه لیست درخواست‌ها — نسخه بازطراحی‌شده ۳D
+ * فهرست درخواست‌ها — بازطراحی هم‌سطح با صفحهٔ تنظیمات
  * مسیر: resources/js/Pages/Requests/Index.vue
- * هماهنگ با Modules/Request/Http/Controllers/RequestController
+ * ---------------------------------------------------------------------------
+ * هماهنگ با Modules\Request\Http\Controllers\RequestController@index:
+ *   props.requests → paginate(10) با with('categories','customer')
+ *   props.filters  → { search, status }
+ * فیلترها با همان کلیدها به route('requests.index') ارسال می‌شوند.
+ * حذف: router.delete(route('requests.destroy', id))
  */
-import { ref, computed } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import {
-    ClipboardList,
-    Plus,
-    Search,
-    Filter,
-    Clock,
-    Wrench,
+    CalendarDays,
     CheckCircle2,
-    XCircle,
+    ClipboardList,
+    Clock,
     Eye,
-    Edit3,
+    Filter,
+    LayoutGrid,
+    Layers,
+    List,
+    Pencil,
+    Plus,
     Trash2,
-    Tag,
-    ChevronLeft,
-    ChevronRight,
-    AlertCircle,
+    Wrench,
+    X,
+    XCircle,
 } from 'lucide-vue-next'
 
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { vReveal, vTilt } from '@/Composables/useTilt'
+import { useToasts } from '@/Composables/useToasts'
 import { faInt } from '@/Utils/format'
+import { avatarHue, clip, dateFa, initials, statusMeta } from '@/Utils/crm'
+
+import CrmScene from '@/Components/Crm/CrmScene.vue'
+import CrmOrbit from '@/Components/Crm/CrmOrbit.vue'
+import CrmSearchBar from '@/Components/Crm/CrmSearchBar.vue'
+import CrmSegmented from '@/Components/Crm/CrmSegmented.vue'
+import CrmStatusChip from '@/Components/Crm/CrmStatusChip.vue'
+import CrmPagination from '@/Components/Crm/CrmPagination.vue'
+import CrmEmptyState from '@/Components/Crm/CrmEmptyState.vue'
+import CrmConfirmDialog from '@/Components/Crm/CrmConfirmDialog.vue'
+import ToastHost from '@/Components/Settings/ToastHost.vue'
 
 const props = defineProps({
-    requests: {
-        type: Object,
-        required: true,
-    },
-    filters: {
-        type: Object,
-        default: () => ({}),
-    },
+    requests: { type: Object, required: true },
+    filters: { type: Object, default: () => ({}) },
 })
 
-const searchFilter = ref(props.filters?.search || '')
-const statusFilter = ref(props.filters?.status || '')
+const { toasts, dismiss } = useToasts({ flash: true })
 
-const hasFilters = computed(() => searchFilter.value !== '' || statusFilter.value !== '')
+/* ------------------------------------------------------------------ */
+/* فیلترها                                                               */
+/* ------------------------------------------------------------------ */
+const search = ref(props.filters?.search || '')
+const status = ref(props.filters?.status || '')
+const busy = ref(false)
 
-let debounceTimer = null
-function debounceSearch() {
-    clearTimeout(debounceTimer)
-    debounceTimer = setTimeout(applyFilters, 320)
-}
+const STATUS_OPTIONS = [
+    { value: '', label: 'همه', icon: Layers },
+    { value: 'pending', label: 'در انتظار', icon: Clock, tone: 'warning' },
+    { value: 'in_progress', label: 'در جریان', icon: Wrench, tone: 'info' },
+    { value: 'completed', label: 'تکمیل‌شده', icon: CheckCircle2, tone: 'success' },
+    { value: 'canceled', label: 'لغوشده', icon: XCircle, tone: 'error' },
+]
+
+const activeFilters = computed(() => [search.value, status.value].filter(Boolean).length)
 
 function applyFilters() {
     router.get(
         route('requests.index'),
+        { search: search.value || undefined, status: status.value || undefined },
         {
-            search: searchFilter.value || undefined,
-            status: statusFilter.value || undefined,
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            onStart: () => (busy.value = true),
+            onFinish: () => (busy.value = false),
         },
-        { preserveState: true, replace: true },
     )
 }
 
-function setStatus(st) {
-    statusFilter.value = st
-    applyFilters()
-}
+let debounce = null
+watch(search, () => {
+    clearTimeout(debounce)
+    debounce = setTimeout(applyFilters, 350)
+})
+watch(status, applyFilters)
+onBeforeUnmount(() => clearTimeout(debounce))
 
 function clearFilters() {
-    searchFilter.value = ''
-    statusFilter.value = ''
-    applyFilters()
+    clearTimeout(debounce)
+    search.value = ''
+    status.value = ''
 }
 
-function statusBadgeClass(status) {
-    const map = {
-        pending: 'st-chip--warning',
-        in_progress: 'st-chip--info',
-        completed: 'st-chip--success',
-        canceled: 'st-chip--error',
-    }
-    return map[status] ?? 'st-chip--plain'
-}
+/* ------------------------------------------------------------------ */
+/* نما                                                                   */
+/* ------------------------------------------------------------------ */
+const VIEW_KEY = 'gs.requests.view'
+const view = ref(typeof localStorage !== 'undefined' ? localStorage.getItem(VIEW_KEY) || 'table' : 'table')
+watch(view, (v) => localStorage?.setItem(VIEW_KEY, v))
 
-function statusLabel(status) {
-    const map = {
-        pending: 'در انتظار',
-        in_progress: 'در جریان',
-        completed: 'تکمیل شده',
-        canceled: 'لغو شده',
-    }
-    return map[status] ?? status
-}
-
-/* حذف درخواست */
+/* ------------------------------------------------------------------ */
+/* حذف                                                                   */
+/* ------------------------------------------------------------------ */
 const deleteTarget = ref(null)
-const isDeleting = ref(false)
-
-function confirmDelete(req) {
-    deleteTarget.value = req
-}
+const deleting = ref(false)
+const confirmOpen = computed({
+    get: () => !!deleteTarget.value,
+    set: (v) => {
+        if (!v) deleteTarget.value = null
+    },
+})
 
 function doDelete() {
     if (!deleteTarget.value) return
-    isDeleting.value = true
+    deleting.value = true
     router.delete(route('requests.destroy', deleteTarget.value.id), {
+        preserveScroll: true,
         onFinish: () => {
-            isDeleting.value = false
+            deleting.value = false
             deleteTarget.value = null
         },
     })
 }
+
+const list = computed(() => props.requests?.data || [])
+const openOnPage = computed(() => list.value.filter((r) => ['pending', 'in_progress'].includes(r.status)).length)
+
+const TONE_VAR = {
+    warning: 'var(--gs-warning)',
+    info: 'var(--gs-info)',
+    success: 'var(--gs-success)',
+    error: 'var(--gs-error)',
+}
+const toneVar = (s) => TONE_VAR[statusMeta(s).tone] || 'var(--gs-gold)'
+
+const orbitSats = [
+    { icon: Clock, color: 'var(--gs-warning)' },
+    { icon: Wrench, color: 'var(--gs-info)', reverse: true },
+    { icon: CheckCircle2, color: 'var(--gs-success)' },
+]
 </script>
 
 <template>
+    <Head title="درخواست‌ها" />
+
     <AppLayout>
-        <Head title="درخواست‌های سرویس و تعمیر" />
+        <div class="crm-page">
+            <CrmScene tone="gold" />
 
-        <div class="a3d-scene st-scene" aria-hidden="true">
-            <span class="a3d-grid-floor" />
-            <span class="a3d-orb a3d-orb--gold a3d-float-a" style="width: 460px; height: 460px; top: -160px; inset-inline-end: 5%" />
-            <span class="a3d-orb a3d-orb--blue a3d-float-b" style="width: 380px; height: 380px; bottom: -120px; inset-inline-start: 4%" />
-        </div>
+            <!-- ================= سربرگ ================= -->
+            <header class="st-shell">
+                <div class="st-hero">
+                    <div style="min-width: 0">
+                        <div class="crm-hero__chips">
+                            <span class="st-chip"><Wrench :size="13" /> پایپ‌لاین خدمات فنی</span>
+                            <span class="st-chip st-chip--plain">ماژول Request</span>
+                        </div>
 
-        <div class="st-page relative z-10 space-y-6 pb-12">
-            <!-- هیرو -->
-            <header class="st-hero" v-reveal="{ delay: 50 }">
-                <div>
-                    <div class="flex items-center gap-2">
-                        <span class="st-chip st-chip--live">
-                            <Wrench :size="13" />
-                            پایپ‌لاین خدمات فنی
-                        </span>
-                        <span class="text-xs text-neutral-400">Hardware & Software Services</span>
+                        <h1 class="st-hero__title">
+                            <span>درخواست‌ها</span>
+                            <svg class="st-underline" viewBox="0 0 220 14" aria-hidden="true">
+                                <path d="M4 10 C 60 2, 150 2, 216 8" fill="none" stroke="var(--gs-gold)" stroke-width="3.5" stroke-linecap="round" />
+                            </svg>
+                        </h1>
+
+                        <p class="st-hero__lead">
+                            درخواست‌های تعمیر و سرویس از لحظهٔ ثبت تا تحویل — با وضعیت زنده، دسته‌بندی و اتصال به پروندهٔ مشتری.
+                        </p>
+
+                        <div class="crm-hero__stats">
+                            <span class="st-stat"><ClipboardList :size="15" /> کل درخواست‌ها <b>{{ faInt(requests.total || 0) }}</b></span>
+                            <span class="st-stat"><Wrench :size="15" /> باز در این صفحه <b>{{ faInt(openOnPage) }}</b></span>
+                            <span class="st-stat"><Filter :size="15" /> فیلتر فعال <b>{{ faInt(activeFilters) }}</b></span>
+                        </div>
                     </div>
 
-                    <h1 class="st-hero__title">
-                        مدیریت <span>درخواست‌های خدمات</span>
-                    </h1>
-                    <p class="st-hero__lead">
-                        مجموعاً {{ faInt(requests.total || 0) }} درخواست در سیستم ثبت شده است
-                    </p>
-                </div>
-
-                <div>
-                    <Link :href="route('requests.create')" class="gs-btn-gold">
-                        <Plus :size="18" />
-                        <span>ثبت درخواست جدید</span>
-                    </Link>
+                    <div class="crm-hero__side">
+                        <CrmOrbit :icon="ClipboardList" :satellites="orbitSats" />
+                        <div class="crm-hero__actions">
+                            <Link :href="route('requests.create')" class="a3d-btn a3d-btn--gold">
+                                <Plus :size="15" /> ثبت درخواست جدید
+                            </Link>
+                        </div>
+                    </div>
                 </div>
             </header>
 
-            <!-- تب‌های وضعیت بالا -->
-            <div class="flex flex-wrap items-center gap-2" v-reveal="{ delay: 90 }">
-                <button
-                    @click="setStatus('')"
-                    :class="statusFilter === '' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-neutral-900/60 text-neutral-400 border-neutral-800 hover:text-neutral-200'"
-                    class="px-4 py-2 rounded-xl text-xs font-bold border transition-all"
-                >
-                    همه درخواست‌ها
-                </button>
-                <button
-                    @click="setStatus('pending')"
-                    :class="statusFilter === 'pending' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-neutral-900/60 text-neutral-400 border-neutral-800 hover:text-neutral-200'"
-                    class="px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5"
-                >
-                    <Clock :size="13" /> در انتظار
-                </button>
-                <button
-                    @click="setStatus('in_progress')"
-                    :class="statusFilter === 'in_progress' ? 'bg-blue-500/20 text-blue-300 border-blue-500/40' : 'bg-neutral-900/60 text-neutral-400 border-neutral-800 hover:text-neutral-200'"
-                    class="px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5"
-                >
-                    <Wrench :size="13" /> در جریان
-                </button>
-                <button
-                    @click="setStatus('completed')"
-                    :class="statusFilter === 'completed' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-neutral-900/60 text-neutral-400 border-neutral-800 hover:text-neutral-200'"
-                    class="px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5"
-                >
-                    <CheckCircle2 :size="13" /> تکمیل شده
-                </button>
-                <button
-                    @click="setStatus('canceled')"
-                    :class="statusFilter === 'canceled' ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' : 'bg-neutral-900/60 text-neutral-400 border-neutral-800 hover:text-neutral-200'"
-                    class="px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5"
-                >
-                    <XCircle :size="13" /> لغو شده
-                </button>
-            </div>
+            <!-- ================= بدنه ================= -->
+            <div class="st-shell crm-body crm-stack">
+                <!-- نوار ابزار -->
+                <section v-reveal="{ delay: 40 }" class="a3d-holo crm-toolbar">
+                    <div class="crm-toolbar__grow">
+                        <CrmSearchBar v-model="search" placeholder="جستجو در نام مشتری یا شرح درخواست…" :loading="busy" />
+                    </div>
 
-            <!-- جستجو -->
-            <div class="st-card p-4 rounded-2xl flex items-center gap-3" v-reveal="{ delay: 120 }">
-                <Search :size="16" class="text-neutral-400" />
-                <input
-                    v-model="searchFilter"
-                    type="search"
-                    class="w-full bg-transparent text-xs text-neutral-200 outline-none placeholder:text-neutral-500"
-                    placeholder="جستجو در نام مشتری، شرح مشکل دستگاه..."
-                    @input="debounceSearch"
-                />
-                <button v-if="hasFilters" @click="clearFilters" class="text-xs text-neutral-400 hover:text-amber-300">
-                    پاکسازی
-                </button>
-            </div>
+                    <CrmSegmented v-model="status" :options="STATUS_OPTIONS" />
 
-            <!-- جدول درخواست‌ها -->
-            <div class="st-card rounded-2xl overflow-hidden" v-reveal="{ delay: 150 }">
-                <table v-if="requests.data.length" class="w-full text-right text-xs">
-                    <thead>
-                        <tr class="text-neutral-400 border-b border-neutral-800 bg-white/[0.02]">
-                            <th class="py-3 px-4">کد</th>
-                            <th class="py-3 px-4">مشتری</th>
-                            <th class="py-3 px-4">شرح درخواست</th>
-                            <th class="py-3 px-4">دسته‌بندی</th>
-                            <th class="py-3 px-4">وضعیت</th>
-                            <th class="py-3 px-4 text-left">عملیات</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-neutral-800/50">
-                        <tr v-for="req in requests.data" :key="req.id" class="hover:bg-white/[0.02] transition-colors">
-                            <td class="py-3.5 px-4 font-mono font-bold text-amber-400">#{{ faInt(req.id) }}</td>
-                            <td class="py-3.5 px-4 font-bold text-neutral-200">
-                                <Link v-if="req.customer" :href="route('customers.show', req.customer.id)" class="hover:text-amber-300">
+                    <div class="crm-view" role="group" aria-label="نوع نمایش">
+                        <button type="button" :class="{ 'is-active': view === 'table' }" title="نمای جدولی" @click="view = 'table'">
+                            <List :size="16" />
+                        </button>
+                        <button type="button" :class="{ 'is-active': view === 'grid' }" title="نمای تیکتی" @click="view = 'grid'">
+                            <LayoutGrid :size="16" />
+                        </button>
+                    </div>
+
+                    <Transition name="crm-fade">
+                        <button v-if="activeFilters" type="button" class="a3d-btn a3d-btn--ghost a3d-btn--sm" @click="clearFilters">
+                            <X :size="14" /> پاک‌کردن
+                        </button>
+                    </Transition>
+                </section>
+
+                <!-- حالت خالی -->
+                <section v-if="!list.length" v-reveal="{ delay: 90 }" class="a3d-holo">
+                    <CrmEmptyState
+                        :icon="ClipboardList"
+                        :title="activeFilters ? 'درخواستی مطابق فیلترها پیدا نشد' : 'هنوز درخواستی ثبت نشده'"
+                        :desc="activeFilters ? 'عبارت جستجو یا وضعیت را تغییر دهید.' : 'اولین درخواست تعمیر یا سرویس را ثبت کنید.'"
+                    >
+                        <button v-if="activeFilters" type="button" class="a3d-btn a3d-btn--ghost" @click="clearFilters">
+                            <X :size="14" /> پاک‌کردن فیلترها
+                        </button>
+                        <Link :href="route('requests.create')" class="a3d-btn a3d-btn--gold">
+                            <Plus :size="15" /> ثبت درخواست
+                        </Link>
+                    </CrmEmptyState>
+                </section>
+
+                <!-- نمای جدولی -->
+                <section v-else-if="view === 'table'" v-reveal="{ delay: 80 }" class="a3d-holo">
+                    <div class="crm-table-wrap">
+                        <table class="crm-table">
+                            <thead>
+                                <tr>
+                                    <th>کد</th>
+                                    <th>مشتری</th>
+                                    <th>شرح درخواست</th>
+                                    <th>دسته‌بندی</th>
+                                    <th>تاریخ ثبت</th>
+                                    <th>وضعیت</th>
+                                    <th class="is-end">عملیات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(req, i) in list" :key="req.id" :style="{ '--i': i }">
+                                    <td><span class="crm-code">#{{ req.id }}</span></td>
+                                    <td>
+                                        <div class="crm-name">
+                                            <span class="crm-avatar crm-avatar--sm" :style="{ '--hue': avatarHue(req.customer_name) }">
+                                                {{ initials(req.customer_name) }}
+                                            </span>
+                                            <div style="min-width: 0">
+                                                <Link v-if="req.customer" :href="route('customers.show', req.customer.id)" class="crm-name__t">
+                                                    {{ req.customer_name }}
+                                                </Link>
+                                                <span v-else class="crm-name__t">{{ req.customer_name }}</span>
+                                                <p class="crm-name__s">{{ req.customer ? 'دارای پرونده' : 'مشتری موردی' }}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="crm-cell-clip" :title="req.description">{{ clip(req.description, 80) || '—' }}</td>
+                                    <td>
+                                        <div class="crm-tags">
+                                            <span v-for="cat in req.categories || []" :key="cat.id" class="crm-tag">{{ cat.name }}</span>
+                                            <span v-if="!req.categories?.length" class="is-muted">—</span>
+                                        </div>
+                                    </td>
+                                    <td class="is-muted">
+                                        <span style="display: inline-flex; align-items: center; gap: 0.35rem">
+                                            <CalendarDays :size="13" /> {{ dateFa(req.created_at) || '—' }}
+                                        </span>
+                                    </td>
+                                    <td><CrmStatusChip :status="req.status" /></td>
+                                    <td class="is-end">
+                                        <div class="crm-actions" style="justify-content: flex-end">
+                                            <Link :href="route('requests.show', req.id)" class="crm-iconbtn" title="مشاهده"><Eye :size="15" /></Link>
+                                            <Link :href="route('requests.edit', req.id)" class="crm-iconbtn" title="ویرایش"><Pencil :size="15" /></Link>
+                                            <button type="button" class="crm-iconbtn crm-iconbtn--danger" title="حذف" @click="deleteTarget = req">
+                                                <Trash2 :size="15" />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- نمای تیکتی -->
+                <section v-else class="crm-cards">
+                    <article
+                        v-for="(req, i) in list"
+                        :key="req.id"
+                        v-reveal="{ delay: 80 + (i % 9) * 45 }"
+                        v-tilt="{ max: 6, lift: 12, scale: 1.015 }"
+                        class="a3d-holo a3d-aura crm-person"
+                        :style="{ '--a3d-aura-color': toneVar(req.status), '--crm-accent': toneVar(req.status) }"
+                    >
+                        <div class="crm-person__head">
+                            <span class="crm-avatar" :style="{ '--hue': avatarHue(req.customer_name) }">{{ initials(req.customer_name) }}</span>
+                            <div style="min-width: 0; flex: 1">
+                                <Link v-if="req.customer" :href="route('customers.show', req.customer.id)" class="crm-person__name">
                                     {{ req.customer_name }}
                                 </Link>
-                                <span v-else>{{ req.customer_name }}</span>
-                            </td>
-                            <td class="py-3.5 px-4 text-neutral-300 max-w-[280px] truncate leading-relaxed">
-                                {{ req.description }}
-                            </td>
-                            <td class="py-3.5 px-4">
-                                <div class="flex flex-wrap gap-1">
-                                    <span
-                                        v-for="cat in req.categories"
-                                        :key="cat.id"
-                                        class="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/20 text-[10px]"
-                                    >
-                                        {{ cat.name }}
-                                    </span>
-                                    <span v-if="!req.categories?.length" class="text-neutral-500 text-[11px]">—</span>
-                                </div>
-                            </td>
-                            <td class="py-3.5 px-4">
-                                <span class="st-chip text-[11px]" :class="statusBadgeClass(req.status)">
-                                    {{ statusLabel(req.status) }}
-                                </span>
-                            </td>
-                            <td class="py-3.5 px-4 text-left">
-                                <div class="flex items-center justify-end gap-1.5">
-                                    <Link :href="route('requests.show', req.id)" class="p-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300" title="مشاهده">
-                                        <Eye :size="14" />
-                                    </Link>
-                                    <Link :href="route('requests.edit', req.id)" class="p-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300" title="ویرایش">
-                                        <Edit3 :size="14" />
-                                    </Link>
-                                    <button @click="confirmDelete(req)" class="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400" title="حذف">
-                                        <Trash2 :size="14" />
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                                <p v-else class="crm-person__name">{{ req.customer_name }}</p>
+                                <p class="crm-person__id">
+                                    <span class="crm-code">#{{ req.id }}</span>
+                                    <template v-if="req.created_at"> · {{ dateFa(req.created_at) }}</template>
+                                </p>
+                            </div>
+                            <CrmStatusChip :status="req.status" sm />
+                        </div>
 
-                <div v-else class="p-12 text-center">
-                    <p class="text-xs text-neutral-400">درخواستی یافت نشد</p>
-                </div>
+                        <div class="crm-person__lines">
+                            <p class="crm-preview__desc" style="margin-top: 0; min-height: 0">{{ clip(req.description, 140) || 'بدون شرح' }}</p>
+                            <div class="crm-tags">
+                                <span v-for="cat in req.categories || []" :key="cat.id" class="crm-tag"><Layers :size="11" /> {{ cat.name }}</span>
+                                <span v-if="!req.categories?.length" class="crm-person__id">بدون دسته‌بندی</span>
+                            </div>
+                        </div>
+
+                        <div class="crm-person__foot">
+                            <Link :href="route('requests.show', req.id)" class="a3d-btn a3d-btn--sm"><Eye :size="14" /> جزئیات</Link>
+                            <div class="crm-actions">
+                                <Link :href="route('requests.edit', req.id)" class="crm-iconbtn" title="ویرایش"><Pencil :size="15" /></Link>
+                                <button type="button" class="crm-iconbtn crm-iconbtn--danger" title="حذف" @click="deleteTarget = req">
+                                    <Trash2 :size="15" />
+                                </button>
+                            </div>
+                        </div>
+                    </article>
+                </section>
+
+                <CrmPagination :paginator="requests" label="درخواست" />
+
+                <footer class="crm-footer">
+                    <span><ClipboardList :size="14" /> گیم‌استور — پایپ‌لاین درخواست‌ها</span>
+                    <span><Layers :size="13" /> وضعیت‌ها توسط فاکتور/سرویس در بک‌اند به‌روز می‌شوند</span>
+                </footer>
             </div>
 
-            <!-- صفحه‌بندی -->
-            <div v-if="requests.last_page > 1" class="flex items-center justify-center gap-2 pt-4">
-                <Link
-                    v-if="requests.prev_page_url"
-                    :href="requests.prev_page_url"
-                    class="px-3 py-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-xs text-neutral-300 flex items-center gap-1"
-                >
-                    <ChevronRight :size="14" /> قبلی
-                </Link>
-                <span class="text-xs text-neutral-400 px-3">
-                    صفحه {{ faInt(requests.current_page) }} از {{ faInt(requests.last_page) }}
-                </span>
-                <Link
-                    v-if="requests.next_page_url"
-                    :href="requests.next_page_url"
-                    class="px-3 py-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-xs text-neutral-300 flex items-center gap-1"
-                >
-                    بعدی <ChevronLeft :size="14" />
-                </Link>
-            </div>
+            <CrmConfirmDialog
+                v-model="confirmOpen"
+                title="حذف درخواست"
+                message="درخواست به سطل بازیافت منتقل می‌شود و ارتباط دسته‌بندی‌ها حذف می‌شود. ادامه می‌دهید؟"
+                :highlight="deleteTarget ? `#${deleteTarget.id} — ${deleteTarget.customer_name}` : ''"
+                :loading="deleting"
+                @confirm="doDelete"
+            />
+
+            <ToastHost :toasts="toasts" @close="dismiss" />
         </div>
     </AppLayout>
 </template>
