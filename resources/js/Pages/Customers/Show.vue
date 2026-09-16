@@ -1,279 +1,210 @@
-<template>
-    <AppLayout>
-        <template #header>
-            <div style="display:flex;align-items:center;justify-content:space-between">
-                <div>
-                    <h1 class="gs-title">{{ customer.name }}</h1>
-                    <p class="gs-subtitle">پروفایل مشتری</p>
-                </div>
-                <div style="display:flex;gap:.75rem">
-                    <Link :href="route('customers.edit', customer.id)" class="gs-btn gs-btn-secondary">ویرایش</Link>
-                    <Link :href="route('customers.index')" class="gs-btn gs-btn-ghost">← بازگشت</Link>
-                </div>
-            </div>
-        </template>
-
-        <!-- Info Cards -->
-        <div class="gs-info-grid">
-            <div class="gs-card">
-                <p class="gs-label" style="margin-bottom:.75rem">اطلاعات تماس</p>
-                <div class="gs-info-row">
-                    <span class="gs-info-icon">📧</span>
-                    <span>{{ customer.email ?? '—' }}</span>
-                </div>
-                <div class="gs-info-row">
-                    <span class="gs-info-icon">📞</span>
-                    <span>{{ customer.phone ?? '—' }}</span>
-                </div>
-                <div class="gs-info-row" v-if="customer.address">
-                    <span class="gs-info-icon">📍</span>
-                    <span>{{ customer.address }}</span>
-                </div>
-                <div v-if="customer.notes" style="margin-top:.75rem">
-                    <p class="gs-label" style="margin-bottom:.3rem">یادداشت</p>
-                    <p style="font-size:.875rem;color:var(--gs-text-secondary)">{{ customer.notes }}</p>
-                </div>
-            </div>
-
-            <div class="gs-card">
-                <p class="gs-label" style="margin-bottom:.75rem">آمار</p>
-                <div class="gs-stat-row">
-                    <span class="gs-label">درخواست‌ها</span>
-                    <span class="gs-badge gs-badge-info">{{ customer.requests?.length ?? 0 }}</span>
-                </div>
-                <div class="gs-stat-row">
-                    <span class="gs-label">فاکتورها</span>
-                    <span class="gs-badge gs-badge-gold">{{ customer.invoices?.length ?? 0 }}</span>
-                </div>
-                <div class="gs-stat-row">
-                    <span class="gs-label">مجموع پرداخت</span>
-                    <span class="gs-gold-text" style="font-weight:700;font-size:.875rem">
-                        {{ totalPaid }}
-                    </span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Quick actions for this customer -->
-        <div style="display:flex;gap:.75rem;margin-bottom:1.5rem;flex-wrap:wrap">
-            <Link :href="route('requests.create') + '?customer_id=' + customer.id"
-                class="gs-btn gs-btn-secondary gs-btn-sm">
-                + درخواست جدید
-            </Link>
-            <Link :href="route('invoices.create') + '?customer_id=' + customer.id"
-                class="gs-btn gs-btn-secondary gs-btn-sm">
-                + فاکتور جدید
-            </Link>
-            <Link :href="route('service-jobs.create') + '?customer_id=' + customer.id"
-                class="gs-btn gs-btn-secondary gs-btn-sm">
-                + سرویس جدید
-            </Link>
-        </div>
-
-        <!-- Tabs -->
-        <div class="gs-tabs">
-            <button v-for="tab in tabs" :key="tab.key"
-                :class="['gs-tab', { 'active': activeTab === tab.key }]"
-                @click="activeTab = tab.key">
-                {{ tab.label }}
-                <span class="gs-badge gs-badge-gold" style="margin-right:.4rem;font-size:.7rem">
-                    {{ tab.count }}
-                </span>
-            </button>
-        </div>
-
-        <!-- Requests Tab -->
-        <div v-if="activeTab === 'requests'" class="gs-card" style="padding:0;overflow:hidden">
-            <table class="gs-table" v-if="customer.requests?.length">
-                <thead>
-                    <tr>
-                        <th>توضیحات</th>
-                        <th>دسته‌بندی‌ها</th>
-                        <th>وضعیت</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="req in customer.requests" :key="req.id">
-                        <td style="max-width:240px">
-                            <span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-                                {{ req.description }}
-                            </span>
-                        </td>
-                        <td>
-                            <span v-for="cat in req.categories" :key="cat.id"
-                                class="gs-badge gs-badge-gold" style="margin-left:.3rem;font-size:.7rem">
-                                {{ cat.name }}
-                            </span>
-                        </td>
-                        <td>
-                            <span :class="['gs-badge', statusBadge(req.status)]">
-                                {{ statusLabel(req.status) }}
-                            </span>
-                        </td>
-                        <td>
-                            <Link :href="route('requests.show', req.id)" class="gs-btn gs-btn-ghost gs-btn-sm">
-                                مشاهده
-                            </Link>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-            <div v-else class="gs-empty">
-                <p class="gs-subtitle">درخواستی ثبت نشده</p>
-            </div>
-        </div>
-
-        <!-- Invoices Tab -->
-        <div v-if="activeTab === 'invoices'" class="gs-card" style="padding:0;overflow:hidden">
-            <table class="gs-table" v-if="customer.invoices?.length">
-                <thead>
-                    <tr>
-                        <th>شماره فاکتور</th>
-                        <th>مبلغ کل</th>
-                        <th>وضعیت</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="inv in customer.invoices" :key="inv.id">
-                        <td class="gs-gold-text" style="font-family:monospace">{{ inv.invoice_number }}</td>
-                        <td>{{ formatPrice(inv.total_amount) }}</td>
-                        <td>
-                            <span :class="['gs-badge', invoiceBadge(inv.is_confirmed)]">
-                                {{ invoiceLabel(inv.is_confirmed) }}
-                            </span>
-                        </td>
-                        <td>
-                            <Link :href="route('invoices.show', inv.id)" class="gs-btn gs-btn-ghost gs-btn-sm">
-                                مشاهده
-                            </Link>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-            <div v-else class="gs-empty">
-                <p class="gs-subtitle">فاکتوری ثبت نشده</p>
-            </div>
-        </div>
-
-    </AppLayout>
-</template>
-
 <script setup>
+/**
+ * پرونده کامل مشتری — بازطراحی سه‌بعدی
+ * مسیر: resources/js/Pages/Customers/Show.vue
+ */
 import { ref, computed } from 'vue'
-import { Link } from '@inertiajs/vue3'
+import { Head, Link } from '@inertiajs/vue3'
+import {
+    Users,
+    Phone,
+    Mail,
+    MapPin,
+    FileText,
+    Receipt,
+    Plus,
+    Edit3,
+    ArrowRight,
+    CheckCircle2,
+    Clock,
+    DollarSign,
+    Shield,
+    Gamepad2,
+} from 'lucide-vue-next'
+
 import AppLayout from '@/Layouts/AppLayout.vue'
+import { vReveal, vTilt } from '@/Composables/useTilt'
+import { faInt } from '@/Utils/format'
 
 const props = defineProps({
-    customer: Object,
+    customer: {
+        type: Object,
+        required: true,
+    },
 })
 
-const activeTab = ref('requests')
+const activeTab = ref('requests') // 'requests' | 'invoices'
 
-const tabs = computed(() => [
-    { key: 'requests', label: 'درخواست‌ها', count: props.customer.requests?.length ?? 0 },
-    { key: 'invoices', label: 'فاکتورها', count: props.customer.invoices?.length ?? 0 },
-])
-
-const totalPaid = computed(() => {
-    const confirmed = (props.customer.invoices ?? []).filter(i => i.is_confirmed === 'confirmed')
-    const total = confirmed.reduce((s, i) => s + Number(i.total_amount ?? 0), 0)
-    return total > 0 ? Number(total).toLocaleString('fa-IR') + ' تومان' : '—'
-})
-
-function statusLabel(status) {
-    return { pending: 'در انتظار', in_progress: 'در جریان', completed: 'تکمیل', canceled: 'لغو' }[status] ?? status
-}
-function statusBadge(status) {
-    return { pending: 'gs-badge-warning', in_progress: 'gs-badge-info', completed: 'gs-badge-success', canceled: 'gs-badge-error' }[status] ?? 'gs-badge-gold'
-}
-function invoiceLabel(v) {
-    return v === 'confirmed' ? 'تأیید شده' : v === 'not_confirmed' ? 'رد شده' : 'در انتظار'
-}
-function invoiceBadge(v) {
-    return v === 'confirmed' ? 'gs-badge-success' : v === 'not_confirmed' ? 'gs-badge-error' : 'gs-badge-warning'
-}
 function formatPrice(amount) {
-    if (!amount) return '—'
+    if (!amount) return '۰ تومان'
     return Number(amount).toLocaleString('fa-IR') + ' تومان'
 }
+
+const totalInvoicesSum = computed(() => {
+    if (!props.customer.invoices) return 0
+    return props.customer.invoices.reduce((acc, curr) => acc + Number(curr.total_amount || 0), 0)
+})
 </script>
 
-<style scoped>
-.gs-info-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
+<template>
+    <AppLayout>
+        <Head :title="'پرونده ' + customer.name" />
 
-@media (max-width: 600px) {
-    .gs-info-grid {
-        grid-template-columns: 1fr;
-    }
-}
+        <div class="st-page relative z-10 space-y-6 pb-12">
+            <!-- سربرگ پرونده -->
+            <header class="st-hero" v-reveal="{ delay: 50 }">
+                <div class="flex items-center gap-4">
+                    <div class="w-16 h-16 rounded-3xl bg-gradient-to-tr from-amber-500/20 to-neutral-800 border-2 border-amber-500/40 flex items-center justify-center font-black text-amber-300 text-2xl shadow-xl shadow-amber-500/10">
+                        {{ customer.name.slice(0, 1) }}
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="st-chip st-chip--gold text-xs">پرونده مشتری</span>
+                            <span class="text-xs text-neutral-400">شناسه: #{{ faInt(customer.id) }}</span>
+                        </div>
+                        <h1 class="text-2xl lg:text-3xl font-black text-neutral-100 mt-1">{{ customer.name }}</h1>
+                    </div>
+                </div>
 
-.gs-info-row {
-    display: flex;
-    align-items: center;
-    gap: .6rem;
-    font-size: .875rem;
-    color: var(--gs-text-secondary);
-    margin-bottom: .5rem;
-}
+                <div class="flex items-center gap-2">
+                    <Link :href="route('customers.edit', customer.id)" class="gs-btn-ghost text-xs">
+                        <Edit3 :size="15" /> ویرایش
+                    </Link>
+                    <Link :href="route('customers.index')" class="px-3 py-2 rounded-xl bg-neutral-800 text-neutral-300 text-xs hover:bg-neutral-700 flex items-center gap-1">
+                        بازگشت <ArrowRight :size="14" />
+                    </Link>
+                </div>
+            </header>
 
-.gs-info-icon {
-    font-size: 1rem;
-    flex-shrink: 0;
-}
+            <!-- اطلاعات و کارت‌های خلاصه -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" v-reveal="{ delay: 100 }">
+                <!-- کارت مشخصات تماس -->
+                <div class="st-card p-5 rounded-2xl space-y-4">
+                    <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider">مشخصات تماس و آدرس</h3>
+                    
+                    <div class="space-y-3 text-xs">
+                        <div class="flex items-center gap-3 p-2.5 rounded-xl bg-neutral-900/60 border border-neutral-800">
+                            <Phone :size="16" class="text-amber-400" />
+                            <div>
+                                <p class="text-[10px] text-neutral-400">شماره تلفن همراه</p>
+                                <p class="font-mono text-neutral-200 mt-0.5" dir="ltr">{{ customer.phone || 'ثبت نشده' }}</p>
+                            </div>
+                        </div>
 
-.gs-stat-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: .5rem 0;
-    border-bottom: 1px solid var(--gs-border);
-}
+                        <div class="flex items-center gap-3 p-2.5 rounded-xl bg-neutral-900/60 border border-neutral-800">
+                            <Mail :size="16" class="text-blue-400" />
+                            <div>
+                                <p class="text-[10px] text-neutral-400">پست الکترونیک</p>
+                                <p class="text-neutral-200 mt-0.5 truncate max-w-[220px]">{{ customer.email || 'ثبت نشده' }}</p>
+                            </div>
+                        </div>
 
-.gs-stat-row:last-child {
-    border-bottom: none;
-}
+                        <div class="flex items-start gap-3 p-2.5 rounded-xl bg-neutral-900/60 border border-neutral-800">
+                            <MapPin :size="16" class="text-emerald-400 mt-0.5" />
+                            <div>
+                                <p class="text-[10px] text-neutral-400">آدرس پستی</p>
+                                <p class="text-neutral-200 mt-0.5 leading-relaxed">{{ customer.address || 'آدرسی ثبت نشده است' }}</p>
+                            </div>
+                        </div>
+                    </div>
 
-.gs-tabs {
-    display: flex;
-    gap: .25rem;
-    margin-bottom: 1rem;
-    border-bottom: 1px solid var(--gs-border);
-    padding-bottom: 0;
-}
+                    <div v-if="customer.notes" class="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 text-xs">
+                        <p class="text-[10px] text-amber-400 font-bold mb-1">یادداشت مدیر:</p>
+                        <p class="text-neutral-300 leading-relaxed">{{ customer.notes }}</p>
+                    </div>
+                </div>
 
-.gs-tab {
-    display: flex;
-    align-items: center;
-    padding: .6rem 1rem;
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
-    font-family: 'IRANYekan', Tahoma, Arial, sans-serif;
-    font-size: .875rem;
-    color: var(--gs-text-secondary);
-    transition: all var(--gs-transition);
-    margin-bottom: -1px;
-}
+                <!-- ۲ کارت آمار مالی و درخواست‌ها -->
+                <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div v-tilt="{ max: 8, scale: 1.02, lift: 12 }" class="st-card p-5 rounded-2xl flex flex-col justify-between">
+                        <div>
+                            <span class="st-chip st-chip--info text-xs">سابقه فنی</span>
+                            <h4 class="text-2xl font-black text-blue-400 mt-3">{{ faInt(customer.requests?.length || 0) }} درخواست</h4>
+                            <p class="text-xs text-neutral-400 mt-1">تعداد درخواست‌های سرویس و تعمیرات ثبت‌شده</p>
+                        </div>
+                        <div class="mt-6 pt-3 border-t border-neutral-800">
+                            <Link :href="route('requests.create') + '?customer_id=' + customer.id" class="gs-btn-gold text-xs w-full justify-center">
+                                <Plus :size="15" /> ثبت درخواست برای این مشتری
+                            </Link>
+                        </div>
+                    </div>
 
-.gs-tab:hover {
-    color: var(--gs-text-primary);
-}
+                    <div v-tilt="{ max: 8, scale: 1.02, lift: 12 }" class="st-card p-5 rounded-2xl flex flex-col justify-between">
+                        <div>
+                            <span class="st-chip st-chip--gold text-xs">خلاصه مالی</span>
+                            <h4 class="text-2xl font-black text-amber-300 mt-3">{{ formatPrice(totalInvoicesSum) }}</h4>
+                            <p class="text-xs text-neutral-400 mt-1">مجموع ارزش فاکتورهای صادر شده</p>
+                        </div>
+                        <div class="mt-6 pt-3 border-t border-neutral-800 flex items-center justify-between text-xs text-neutral-400">
+                            <span>تعداد فاکتورها:</span>
+                            <span class="font-bold text-neutral-200">{{ faInt(customer.invoices?.length || 0) }} عدد</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-.gs-tab.active {
-    color: var(--gs-gold);
-    border-bottom-color: var(--gs-gold);
-}
+            <!-- تب‌های سابقه درخواست‌ها و فاکتورها -->
+            <section class="st-card rounded-2xl overflow-hidden p-6 space-y-4" v-reveal="{ delay: 150 }">
+                <div class="flex items-center gap-2 border-b border-neutral-800 pb-3">
+                    <button
+                        @click="activeTab = 'requests'"
+                        :class="activeTab === 'requests' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'text-neutral-400 hover:text-neutral-200'"
+                        class="px-4 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-2"
+                    >
+                        <Gamepad2 :size="15" /> درخواست‌های تعمیر و سرویس ({{ faInt(customer.requests?.length || 0) }})
+                    </button>
+                    <button
+                        @click="activeTab = 'invoices'"
+                        :class="activeTab === 'invoices' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'text-neutral-400 hover:text-neutral-200'"
+                        class="px-4 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-2"
+                    >
+                        <Receipt :size="15" /> فاکتورهای فروش ({{ faInt(customer.invoices?.length || 0) }})
+                    </button>
+                </div>
 
-.gs-empty {
-    padding: 2.5rem;
-    text-align: center;
-}
-</style>
+                <!-- لیست درخواست‌ها -->
+                <div v-if="activeTab === 'requests'">
+                    <div v-if="customer.requests?.length" class="space-y-3">
+                        <div
+                            v-for="req in customer.requests"
+                            :key="req.id"
+                            class="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 flex items-center justify-between gap-4 hover:border-amber-500/30 transition-all"
+                        >
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="font-mono text-amber-400 text-xs font-bold">#{{ req.id }}</span>
+                                    <span class="st-chip st-chip--plain text-[10px]">{{ req.status }}</span>
+                                </div>
+                                <p class="text-xs text-neutral-200 mt-1 font-medium">{{ req.description }}</p>
+                            </div>
+                            <Link :href="route('requests.show', req.id)" class="px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-xs text-neutral-300">
+                                جزئیات
+                            </Link>
+                        </div>
+                    </div>
+                    <p v-else class="text-xs text-neutral-400 text-center py-6">درخواستی برای این مشتری ثبت نشده است</p>
+                </div>
+
+                <!-- لیست فاکتورها -->
+                <div v-else>
+                    <div v-if="customer.invoices?.length" class="space-y-3">
+                        <div
+                            v-for="inv in customer.invoices"
+                            :key="inv.id"
+                            class="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 flex items-center justify-between gap-4"
+                        >
+                            <div>
+                                <p class="font-mono text-amber-300 text-xs font-bold">{{ inv.invoice_number }}</p>
+                                <p class="text-xs text-neutral-200 mt-1 font-bold">{{ formatPrice(inv.total_amount) }}</p>
+                            </div>
+                            <span class="st-chip text-[11px]" :class="inv.is_confirmed === 1 ? 'st-chip--success' : 'st-chip--warning'">
+                                {{ inv.is_confirmed === 1 ? 'تأیید شده' : 'در انتظار' }}
+                            </span>
+                        </div>
+                    </div>
+                    <p v-else class="text-xs text-neutral-400 text-center py-6">فاکتوری برای این مشتری ثبت نشده است</p>
+                </div>
+            </section>
+        </div>
+    </AppLayout>
+</template>

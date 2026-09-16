@@ -1,102 +1,151 @@
+<script setup>
+/**
+ * نمایش کامل درخواست — اتاق فرمان ۳D
+ * مسیر: resources/js/Pages/Requests/Show.vue
+ */
+import { Head, Link } from '@inertiajs/vue3'
+import {
+    ClipboardList,
+    ArrowRight,
+    Edit3,
+    User,
+    Tag,
+    Receipt,
+    CheckCircle2,
+    Clock,
+    Wrench,
+    AlertCircle,
+    ChevronLeft,
+} from 'lucide-vue-next'
+
+import AppLayout from '@/Layouts/AppLayout.vue'
+import { vReveal, vTilt } from '@/Composables/useTilt'
+import { faInt } from '@/Utils/format'
+
+const props = defineProps({
+    request: {
+        type: Object,
+        required: true,
+    },
+})
+
+function formatPrice(amount) {
+    if (!amount) return '۰ تومان'
+    return Number(amount).toLocaleString('fa-IR') + ' تومان'
+}
+
+function statusBadgeClass(status) {
+    const map = {
+        pending: 'st-chip--warning',
+        in_progress: 'st-chip--info',
+        completed: 'st-chip--success',
+        canceled: 'st-chip--error',
+    }
+    return map[status] ?? 'st-chip--plain'
+}
+
+function statusLabel(status) {
+    const map = {
+        pending: 'در انتظار رسیدگی',
+        in_progress: 'در جریان تعمیر و بررسی',
+        completed: 'تکمیل و آماده تحویل',
+        canceled: 'لغو شده',
+    }
+    return map[status] ?? status
+}
+</script>
+
 <template>
     <AppLayout>
-        <template #header>
-            <div class="gs-page-header">
+        <Head :title="'درخواست #' + request.id" />
+
+        <div class="st-page relative z-10 space-y-6 pb-12">
+            <!-- سربرگ -->
+            <header class="st-hero" v-reveal="{ delay: 50 }">
                 <div>
-                    <h1 class="gs-title">درخواست #{{ request.id }}</h1>
-                    <p class="gs-subtitle">{{ request.customer_name }}</p>
-                </div>
-                <div style="display:flex;gap:.75rem">
-                    <Link :href="route('requests.edit', request.id)" class="gs-btn gs-btn-secondary">ویرایش</Link>
-                    <Link :href="route('requests.index')" class="gs-btn gs-btn-ghost">← بازگشت</Link>
-                </div>
-            </div>
-        </template>
-
-        <div class="gs-detail-grid">
-            <!-- Main Info -->
-            <div class="gs-card gs-card-elevated">
-                <p class="gs-label" style="margin-bottom:1rem">اطلاعات درخواست</p>
-
-                <div class="gs-detail-row">
-                    <span class="gs-label">وضعیت</span>
-                    <span :class="['gs-badge', statusBadge(request.status)]">{{ statusLabel(request.status) }}</span>
-                </div>
-                <div class="gs-detail-row">
-                    <span class="gs-label">مشتری</span>
-                    <Link v-if="request.customer" :href="route('customers.show', request.customer.id)"
-                        class="gs-gold-text" style="font-size:.875rem;text-decoration:none">
-                        {{ request.customer_name }}
-                    </Link>
-                    <span v-else style="font-size:.875rem;color:var(--gs-text-secondary)">{{ request.customer_name }}</span>
-                </div>
-                <div class="gs-detail-row">
-                    <span class="gs-label">دسته‌بندی‌ها</span>
-                    <div style="display:flex;gap:.3rem;flex-wrap:wrap">
-                        <span v-for="cat in request.categories" :key="cat.id" class="gs-badge gs-badge-gold gs-badge-sm">
-                            {{ cat.name }}
+                    <div class="flex items-center gap-2">
+                        <span class="st-chip text-xs" :class="statusBadgeClass(request.status)">
+                            {{ statusLabel(request.status) }}
                         </span>
-                        <span v-if="!request.categories?.length" class="gs-muted">—</span>
+                        <span class="text-xs text-neutral-400">کد رهگیری: #{{ faInt(request.id) }}</span>
                     </div>
-                </div>
-                <div class="gs-divider"></div>
-                <p class="gs-label" style="margin-bottom:.5rem">توضیحات</p>
-                <p style="font-size:.875rem;color:var(--gs-text-secondary);line-height:1.8">{{ request.description }}</p>
-            </div>
 
-            <!-- Related Invoice -->
-            <div class="gs-card">
-                <p class="gs-label" style="margin-bottom:1rem">فاکتور مرتبط</p>
-                <div v-if="request.invoice">
-                    <div class="gs-detail-row">
-                        <span class="gs-label">شماره</span>
-                        <span class="gs-gold-text" style="font-family:monospace">{{ request.invoice.invoice_number }}</span>
-                    </div>
-                    <div class="gs-detail-row">
-                        <span class="gs-label">مبلغ</span>
-                        <span style="font-weight:700;color:var(--gs-text-primary)">{{ formatPrice(request.invoice.total_amount) }}</span>
-                    </div>
-                    <div class="gs-detail-row">
-                        <span class="gs-label"> وضعیت کلی </span>
-                        <span :class="['gs-badge', invBadge(request.invoice.payment_status)]">
-                            {{ invLabel(request.invoice.payment_status) }}
-                        </span>
-                    </div>
-                    <Link :href="route('invoices.show', request.invoice.id)"
-                        class="gs-btn gs-btn-secondary gs-btn-sm" style="margin-top:1rem">
-                        مشاهده فاکتور
+                    <h1 class="st-hero__title">
+                        درخواست <span>{{ request.customer_name }}</span>
+                    </h1>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <Link :href="route('requests.edit', request.id)" class="gs-btn-ghost text-xs">
+                        <Edit3 :size="15" /> ویرایش درخواست
+                    </Link>
+                    <Link :href="route('requests.index')" class="px-3 py-2 rounded-xl bg-neutral-800 text-neutral-300 text-xs hover:bg-neutral-700 flex items-center gap-1">
+                        بازگشت <ArrowRight :size="14" />
                     </Link>
                 </div>
-                <div v-else>
-                    <p class="gs-muted" style="margin-bottom:1rem">فاکتوری صادر نشده</p>
-                    <Link :href="route('invoices.create') + '?request_id=' + request.id"
-                        class="gs-btn gs-btn-primary gs-btn-sm">
-                        + ایجاد فاکتور
-                    </Link>
+            </header>
+
+            <!-- شبکه دو ستونی جزئیات -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" v-reveal="{ delay: 100 }">
+                <!-- ستون اصلی توضیحات -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="st-card p-6 rounded-2xl space-y-4">
+                        <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider">شرح کامل درخواست مشتری</h3>
+                        <p class="text-sm text-neutral-200 leading-relaxed whitespace-pre-line bg-neutral-900/40 p-4 rounded-xl border border-neutral-800">
+                            {{ request.description }}
+                        </p>
+
+                        <div class="pt-3 border-t border-neutral-800 flex items-center gap-3">
+                            <span class="text-xs text-neutral-400">دسته‌بندی‌های تخصصی:</span>
+                            <div class="flex flex-wrap gap-1.5">
+                                <span
+                                    v-for="cat in request.categories"
+                                    :key="cat.id"
+                                    class="st-chip st-chip--gold text-[11px]"
+                                >
+                                    {{ cat.name }}
+                                </span>
+                                <span v-if="!request.categories?.length" class="text-neutral-500 text-xs">بدون دسته‌بندی</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ستون کناری: مشتری و فاکتور -->
+                <div class="space-y-6">
+                    <!-- مشخصات مشتری -->
+                    <div class="st-card p-5 rounded-2xl space-y-3">
+                        <h4 class="text-xs font-bold text-amber-400 uppercase">اطلاعات مشتری</h4>
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-300 flex items-center justify-center font-bold">
+                                <User :size="18" />
+                            </div>
+                            <div>
+                                <p class="font-bold text-neutral-200 text-xs">{{ request.customer_name }}</p>
+                                <Link v-if="request.customer" :href="route('customers.show', request.customer.id)" class="text-[11px] text-amber-400 hover:underline">
+                                    مشاهده پرونده کامل مشتری ←
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- فاکتور مرتبط -->
+                    <div class="st-card p-5 rounded-2xl space-y-3">
+                        <h4 class="text-xs font-bold text-emerald-400 uppercase">فاکتور مالی مرتبط</h4>
+                        <div v-if="request.invoice" class="space-y-2">
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="text-neutral-400">شماره:</span>
+                                <span class="font-mono font-bold text-amber-300">{{ request.invoice.invoice_number }}</span>
+                            </div>
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="text-neutral-400">مبلغ:</span>
+                                <span class="font-bold text-neutral-200">{{ formatPrice(request.invoice.total_amount) }}</span>
+                            </div>
+                        </div>
+                        <p v-else class="text-xs text-neutral-500">فاکتوری برای این درخواست صادر نشده است</p>
+                    </div>
                 </div>
             </div>
         </div>
     </AppLayout>
 </template>
-
-<script setup>
-import { Link } from '@inertiajs/vue3'
-import AppLayout from '@/Layouts/AppLayout.vue'
-
-defineProps({ request: Object })
-
-const statusLabel = s => ({ pending: 'در انتظار', in_progress: 'در جریان', completed: 'تکمیل', canceled: 'لغو' }[s] ?? s)
-const statusBadge = s => ({ pending: 'gs-badge-warning', in_progress: 'gs-badge-info', completed: 'gs-badge-success', canceled: 'gs-badge-error' }[s] ?? 'gs-badge-gold')
-const invLabel = v => v === 'paid' ? 'پرداخت شده' : 'پرداخت نشده'
-const invBadge = v => v === 'paid' ? 'gs-badge-success' : 'gs-badge-warning'
-const formatPrice = p => p ? Number(p).toLocaleString('fa-IR') + ' تومان' : '—'
-</script>
-
-<style scoped>
-.gs-page-header { display:flex;align-items:center;justify-content:space-between }
-.gs-detail-grid { display:grid;grid-template-columns:1fr 340px;gap:1.25rem;align-items:start }
-.gs-detail-row { display:flex;align-items:center;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid var(--gs-border) }
-.gs-detail-row:last-of-type { border-bottom:none }
-.gs-muted { color:var(--gs-text-muted);font-size:.875rem }
-@media(max-width:768px) { .gs-detail-grid { grid-template-columns:1fr } }
-</style>

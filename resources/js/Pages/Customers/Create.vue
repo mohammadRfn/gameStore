@@ -1,80 +1,12 @@
-<template>
-    <AppLayout>
-        <template #header>
-            <div style="display:flex;align-items:center;justify-content:space-between">
-                <div>
-                    <h1 class="gs-title">مشتری جدید</h1>
-                    <p class="gs-subtitle">افزودن مشتری به سیستم</p>
-                </div>
-                <Link :href="route('customers.index')" class="gs-btn gs-btn-secondary">
-                    ← بازگشت
-                </Link>
-            </div>
-        </template>
-
-        <div class="gs-card gs-card-elevated" style="max-width:680px">
-            <form @submit.prevent="submit">
-
-                <div class="gs-form-grid">
-                    <!-- Name -->
-                    <div class="gs-input-group">
-                        <label class="gs-input-label">نام مشتری <span style="color:var(--gs-error)">*</span></label>
-                        <input v-model="form.name" type="text" class="gs-input"
-                            :class="{ 'gs-input-error': form.errors.name }" placeholder="نام کامل مشتری" autofocus />
-                        <span v-if="form.errors.name" class="gs-error-msg">{{ form.errors.name }}</span>
-                    </div>
-
-                    <!-- Phone -->
-                    <div class="gs-input-group">
-                        <label class="gs-input-label">شماره تلفن</label>
-                        <input v-model="form.phone" type="tel" class="gs-input"
-                            :class="{ 'gs-input-error': form.errors.phone }" placeholder="09xxxxxxxxx" />
-                        <span v-if="form.errors.phone" class="gs-error-msg">{{ form.errors.phone }}</span>
-                    </div>
-
-                    <!-- Email -->
-                    <div class="gs-input-group">
-                        <label class="gs-input-label">ایمیل</label>
-                        <input v-model="form.email" type="email" class="gs-input"
-                            :class="{ 'gs-input-error': form.errors.email }" placeholder="example@email.com" />
-                        <span v-if="form.errors.email" class="gs-error-msg">{{ form.errors.email }}</span>
-                    </div>
-
-                    <!-- Address -->
-                    <div class="gs-input-group">
-                        <label class="gs-input-label">آدرس</label>
-                        <input v-model="form.address" type="text" class="gs-input"
-                            :class="{ 'gs-input-error': form.errors.address }" placeholder="آدرس مشتری (اختیاری)" />
-                        <span v-if="form.errors.address" class="gs-error-msg">{{ form.errors.address }}</span>
-                    </div>
-                </div>
-
-                <!-- Notes - full width -->
-                <div class="gs-input-group">
-                    <label class="gs-input-label">یادداشت</label>
-                    <textarea v-model="form.notes" class="gs-input" rows="3"
-                        placeholder="توضیحات اضافی..." style="resize:vertical"></textarea>
-                </div>
-
-                <div class="gs-divider"></div>
-
-                <div style="display:flex;gap:.75rem;justify-content:flex-end">
-                    <Link :href="route('customers.index')" class="gs-btn gs-btn-ghost">انصراف</Link>
-                    <button type="submit" class="gs-btn gs-btn-primary" :disabled="form.processing">
-                        <span v-if="form.processing" class="gs-spinner-sm"></span>
-                        {{ form.processing ? 'در حال ذخیره...' : 'ذخیره مشتری' }}
-                    </button>
-                </div>
-
-            </form>
-        </div>
-
-    </AppLayout>
-</template>
-
 <script setup>
-import { Link, useForm } from '@inertiajs/vue3'
+/**
+ * ثبت مشتری جدید — فرم مدرن ۳D
+ * مسیر: resources/js/Pages/Customers/Create.vue
+ */
+import { Head, Link, useForm } from '@inertiajs/vue3'
+import { UserPlus, ArrowRight, Save, User, Phone, Mail, MapPin, FileText } from 'lucide-vue-next'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import { vReveal } from '@/Composables/useTilt'
 
 const form = useForm({
     name: '',
@@ -89,33 +21,113 @@ function submit() {
 }
 </script>
 
-<style scoped>
-.gs-form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0 1.25rem;
-}
+<template>
+    <AppLayout>
+        <Head title="ثبت مشتری جدید" />
 
-@media (max-width: 560px) {
-    .gs-form-grid {
-        grid-template-columns: 1fr;
-    }
-}
+        <div class="st-page relative z-10 max-w-3xl mx-auto space-y-6 pb-12">
+            <header class="st-hero" v-reveal="{ delay: 50 }">
+                <div>
+                    <span class="st-chip st-chip--live text-xs">باشگاه مشتریان</span>
+                    <h1 class="st-hero__title">افزودن <span>مشتری جدید</span></h1>
+                    <p class="st-hero__lead">ثبت اطلاعات تماس و نشانی جهت صدور فاکتور و درخواست‌های تعمیرات</p>
+                </div>
+                <Link :href="route('customers.index')" class="px-3 py-2 rounded-xl bg-neutral-800 text-neutral-300 text-xs hover:bg-neutral-700 flex items-center gap-1">
+                    بازگشت <ArrowRight :size="14" />
+                </Link>
+            </header>
 
-.gs-spinner-sm {
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    border: 2px solid rgba(10, 10, 15, 0.3);
-    border-top-color: #0a0a0f;
-    border-radius: 50%;
-    animation: spin .7s linear infinite;
-    margin-left: .4rem;
-}
+            <form @submit.prevent="submit" class="st-card p-6 rounded-2xl space-y-5" v-reveal="{ delay: 100 }">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- نام -->
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-bold text-neutral-200 flex items-center gap-1.5">
+                            <User :size="14" class="text-amber-400" />
+                            نام و نام خانوادگی <span class="text-rose-500">*</span>
+                        </label>
+                        <input
+                            v-model="form.name"
+                            type="text"
+                            class="w-full bg-neutral-900/80 border rounded-xl py-2.5 px-3.5 text-xs text-neutral-200 outline-none transition-all placeholder:text-neutral-500"
+                            :class="form.errors.name ? 'border-rose-500/80 bg-rose-500/5' : 'border-neutral-700 focus:border-amber-400'"
+                            placeholder="مثال: آرشام صادقی"
+                        />
+                        <p v-if="form.errors.name" class="text-[11px] text-rose-400">{{ form.errors.name }}</p>
+                    </div>
 
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-</style>
+                    <!-- شماره تماس -->
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-bold text-neutral-200 flex items-center gap-1.5">
+                            <Phone :size="14" class="text-amber-400" />
+                            شماره تلفن همراه
+                        </label>
+                        <input
+                            v-model="form.phone"
+                            type="tel"
+                            dir="ltr"
+                            class="w-full bg-neutral-900/80 border rounded-xl py-2.5 px-3.5 text-xs text-neutral-200 outline-none transition-all placeholder:text-neutral-500 font-mono"
+                            :class="form.errors.phone ? 'border-rose-500/80 bg-rose-500/5' : 'border-neutral-700 focus:border-amber-400'"
+                            placeholder="09123456789"
+                        />
+                        <p v-if="form.errors.phone" class="text-[11px] text-rose-400">{{ form.errors.phone }}</p>
+                    </div>
+
+                    <!-- ایمیل -->
+                    <div class="space-y-1.5 md:col-span-2">
+                        <label class="text-xs font-bold text-neutral-200 flex items-center gap-1.5">
+                            <Mail :size="14" class="text-amber-400" />
+                            آدرس ایمیل
+                        </label>
+                        <input
+                            v-model="form.email"
+                            type="email"
+                            dir="ltr"
+                            class="w-full bg-neutral-900/80 border rounded-xl py-2.5 px-3.5 text-xs text-neutral-200 outline-none transition-all placeholder:text-neutral-500"
+                            :class="form.errors.email ? 'border-rose-500/80 bg-rose-500/5' : 'border-neutral-700 focus:border-amber-400'"
+                            placeholder="customer@example.com"
+                        />
+                        <p v-if="form.errors.email" class="text-[11px] text-rose-400">{{ form.errors.email }}</p>
+                    </div>
+
+                    <!-- آدرس -->
+                    <div class="space-y-1.5 md:col-span-2">
+                        <label class="text-xs font-bold text-neutral-200 flex items-center gap-1.5">
+                            <MapPin :size="14" class="text-amber-400" />
+                            آدرس پستی
+                        </label>
+                        <input
+                            v-model="form.address"
+                            type="text"
+                            class="w-full bg-neutral-900/80 border rounded-xl py-2.5 px-3.5 text-xs text-neutral-200 outline-none transition-all placeholder:text-neutral-500"
+                            :class="form.errors.address ? 'border-rose-500/80 bg-rose-500/5' : 'border-neutral-700 focus:border-amber-400'"
+                            placeholder="تهران، خیابان..."
+                        />
+                        <p v-if="form.errors.address" class="text-[11px] text-rose-400">{{ form.errors.address }}</p>
+                    </div>
+
+                    <!-- یادداشت -->
+                    <div class="space-y-1.5 md:col-span-2">
+                        <label class="text-xs font-bold text-neutral-200 flex items-center gap-1.5">
+                            <FileText :size="14" class="text-amber-400" />
+                            یادداشت و توضیحات تکمیلی
+                        </label>
+                        <textarea
+                            v-model="form.notes"
+                            rows="3"
+                            class="w-full bg-neutral-900/80 border border-neutral-700 focus:border-amber-400 rounded-xl py-2.5 px-3.5 text-xs text-neutral-200 outline-none transition-all placeholder:text-neutral-500"
+                            placeholder="توضیحات مربوط به ترجیحات مشتری یا کنسول..."
+                        ></textarea>
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-neutral-800 flex items-center justify-end gap-3">
+                    <Link :href="route('customers.index')" class="gs-btn-ghost text-xs">انصراف</Link>
+                    <button type="submit" :disabled="form.processing" class="gs-btn-gold text-xs">
+                        <Save :size="15" />
+                        <span>{{ form.processing ? 'در حال ثبت...' : 'ذخیره مشتری' }}</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </AppLayout>
+</template>
