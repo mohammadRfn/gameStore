@@ -19,13 +19,8 @@
  *   POST   /settings/reset-all             → resetAll
  *   GET    /settings/export                → export
  *   POST   /settings/import                → import          { settings: {...} }
- *   POST   /settings/test-printer          → testPrinter
- *   POST   /settings/trigger-backup        → triggerBackup
  *   POST   /settings/check-updates         → checkForUpdates
  *   POST   /settings/install-update        → installUpdate
- *   GET    /settings/restart-status        → restartStatus
- *   GET    /settings/system-printers       → systemPrinters
- *   POST   /settings/acknowledge-restart   → acknowledgeRestart
  *
  * همهٔ پاسخ‌ها ساختار { ok: boolean, ... } دارند و از axios سراسری لاراول
  * (که هدر X-CSRF و session را مدیریت می‌کند) استفاده می‌شود.
@@ -157,24 +152,6 @@ export function useSettingsApi() {
     /* عملیات دسکتاپ                                                       */
     /* ------------------------------------------------------------------ */
 
-    async function testPrinter() {
-        try {
-            const { data } = await axios.post(`${BASE}/test-printer`)
-            return data
-        } catch (e) {
-            throw normalizeError(e)
-        }
-    }
-
-    async function triggerBackup() {
-        try {
-            const { data } = await axios.post(`${BASE}/trigger-backup`)
-            return data
-        } catch (e) {
-            throw normalizeError(e)
-        }
-    }
-
     async function checkForUpdates() {
         try {
             const { data } = await axios.post(`${BASE}/check-updates`)
@@ -193,24 +170,6 @@ export function useSettingsApi() {
         }
     }
 
-    async function restartStatus() {
-        try {
-            const { data } = await axios.get(`${BASE}/restart-status`)
-            return data
-        } catch (e) {
-            throw normalizeError(e)
-        }
-    }
-
-    async function systemPrinters() {
-        try {
-            const { data } = await axios.get(`${BASE}/system-printers`)
-            return data // { ok, printers }
-        } catch (e) {
-            throw normalizeError(e)
-        }
-    }
-
     return {
         fetchAll,
         fetchMeta,
@@ -221,12 +180,8 @@ export function useSettingsApi() {
         resetAll,
         exportSettings,
         importSettings,
-        testPrinter,
-        triggerBackup,
         checkForUpdates,
         installUpdate,
-        restartStatus,
-        systemPrinters,
     }
 }
 

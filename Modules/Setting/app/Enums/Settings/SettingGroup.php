@@ -12,7 +12,6 @@ namespace Modules\Setting\Enums\Settings;
 enum SettingGroup: string
 {
     case General = 'general';
-    case Invoice = 'invoice';
     case Desktop = 'desktop';
 
     /**
@@ -22,7 +21,6 @@ enum SettingGroup: string
     {
         return match ($this) {
             self::General => 'عمومی و محلی‌سازی',
-            self::Invoice => 'مالیات و فاکتور',
             self::Desktop => 'دسکتاپ (Native/Electron)',
         };
     }
@@ -34,7 +32,6 @@ enum SettingGroup: string
     {
         return match ($this) {
             self::General => 'settings',
-            self::Invoice => 'receipt_long',
             self::Desktop => 'desktop_windows',
         };
     }

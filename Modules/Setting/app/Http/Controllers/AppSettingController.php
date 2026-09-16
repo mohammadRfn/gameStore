@@ -11,8 +11,6 @@ use Modules\Setting\Http\Requests\UpdateSettingRequest;
 use Modules\Setting\Services\Setting\SettingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -32,10 +30,7 @@ use Illuminate\Validation\ValidationException;
  *   GET    /api/settings/meta           -> meta
  *   GET    /api/settings/export         -> export
  *   POST   /api/settings/import         -> import
- *   POST   /api/settings/test-printer   -> testPrinter
- *   POST   /api/settings/trigger-backup -> triggerBackup
  *   POST   /api/settings/check-updates  -> checkForUpdates
- *   GET    /api/settings/restart-status -> restartStatus
  */
 class AppSettingController extends Controller
 {
@@ -166,7 +161,7 @@ class AppSettingController extends Controller
      * به‌روزرسانی تنظیمات.
      * payload: آرایه‌ای از key=>value (مختلط از گروه‌های مختلف مجاز است).
      *
-     * @example PUT /api/settings { "general.calendar": "jalali", "invoice.tax_rate": 10 }
+     * @example PUT /api/settings { "general.calendar": "jalali", "general.theme": "dark" }
      *
      * @throws ValidationException
      */
@@ -313,120 +308,6 @@ class AppSettingController extends Controller
     */
 
     /**
-     * تست چاپگر پیش‌فرض.
-     * این endpoint یک صفحه‌ی تست به چاپگر ارسال می‌کند.
-     * در محیط Electron باید از NativePHP/Electron چاپ استفاده شود.
-     *
-     * @example POST /api/settings/test-printer
-     */
-    public function testPrinter(): JsonResponse
-    {
-        // در محیط دسکتاپ واقعی، این endpoint به ماژول چاپ متصل می‌شود.
-        // در محیط وب (برای توسعه)، فقط وضعیت را برمی‌گرداند.
-        $printerName = $this->settings->getString('desktop.default_printer_name', '');
-        $printerType = $this->settings->defaultPrinterType();
-
-        $isDesktop = $this->isDesktopEnvironment();
-
-        $result = [
-            'ok' => true,
-            'printer_name' => $printerName ?: '(system default)',
-            'printer_type' => $printerType->value,
-            'is_desktop' => $isDesktop,
-        ];
-
-        if ($isDesktop && class_exists(\Native\Laravel\Facades\Printer::class)) {
-            try {
-                // اگر NativePHP در دسترس بود، تست واقعی
-                \Native\Laravel\Facades\Printer::test($printerName);
-                $result['test_sent'] = true;
-                $result['message'] = 'Test page sent to printer.';
-            } catch (\Throwable $e) {
-                $result['test_sent'] = false;
-                $result['message'] = 'Printer test failed: ' . $e->getMessage();
-            }
-        } else {
-            $result['test_sent'] = false;
-            $result['message'] = 'Printer test is only available in desktop environment.';
-        }
-
-        return response()->json($result);
-    }
-
-    /**
-     * اجرای دستی بکاپ.
-     *
-     * @example POST /api/settings/trigger-backup
-     */
-    public function triggerBackup(): JsonResponse
-    {
-        $dbPath = $this->settings->getString('desktop.database_path', '');
-        $backupPath = $this->settings->getString('desktop.backup_path', '');
-
-        if (empty($dbPath)) {
-            return response()->json([
-                'ok' => false,
-                'message' => 'Database path is not configured.',
-            ], 422);
-        }
-
-        if (empty($backupPath)) {
-            return response()->json([
-                'ok' => false,
-                'message' => 'Backup path is not configured.',
-            ], 422);
-        }
-
-        // بررسی وجود فایل دیتابیس
-        if (! file_exists($dbPath)) {
-            return response()->json([
-                'ok' => false,
-                'message' => 'Database file does not exist at configured path.',
-                'path' => $dbPath,
-            ], 422);
-        }
-
-        // ساخت پوشه بکاپ در صورت نیاز
-        if (! is_dir($backupPath)) {
-            try {
-                mkdir($backupPath, 0755, true);
-            } catch (\Throwable $e) {
-                return response()->json([
-                    'ok' => false,
-                    'message' => 'Could not create backup directory: ' . $e->getMessage(),
-                ], 500);
-            }
-        }
-
-        // ایجاد فایل بکاپ
-        $timestamp = now()->format('Ymd_His');
-        $backupFile = rtrim($backupPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR
-            . 'backup_' . $timestamp . '.db';
-
-        try {
-            if (! copy($dbPath, $backupFile)) {
-                throw new \RuntimeException('copy() failed');
-            }
-
-            // حذف بکاپ‌های قدیمی
-            $this->cleanupOldBackups($backupPath);
-
-            return response()->json([
-                'ok' => true,
-                'message' => 'Backup created successfully.',
-                'backup_file' => $backupFile,
-                'size_bytes' => filesize($backupFile),
-            ]);
-        } catch (\Throwable $e) {
-            Log::error('Backup failed', ['error' => $e->getMessage()]);
-            return response()->json([
-                'ok' => false,
-                'message' => 'Backup failed: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
      * بررسی بروزرسانی.
      * این endpoint در Electron به auto-updater وصل می‌شود.
      *
@@ -516,76 +397,6 @@ class AppSettingController extends Controller
         }
     }
 
-    /**
-     * وضعیت restart مورد نیاز (مثلاً پس از تغییر مسیر دیتابیس).
-     *
-     * @example GET /api/settings/restart-status
-     */
-    public function restartStatus(): JsonResponse
-    {
-        $required = Cache::get('desktop.restart_required', false);
-
-        return response()->json([
-            'ok' => true,
-            'restart_required' => (bool) $required,
-        ]);
-    }
-
-    /**
-     * تأیید restart (پس از این‌که کاربر اپ را restart کرد).
-     *
-     * @example POST /api/settings/acknowledge-restart
-     */
-    public function acknowledgeRestart(): JsonResponse
-    {
-        Cache::forget('desktop.restart_required');
-
-        return response()->json([
-            'ok' => true,
-            'message' => 'Restart acknowledged.',
-        ]);
-    }
-
-    /**
-     * گرفتن لیست چاپگرهای سیستم.
-     *
-     * @example GET /api/settings/system-printers
-     */
-    public function systemPrinters(): JsonResponse
-    {
-        $isDesktop = $this->isDesktopEnvironment();
-
-        if (! $isDesktop) {
-            return response()->json([
-                'ok' => true,
-                'printers' => [],
-                'message' => 'System printers are only available in desktop environment.',
-            ]);
-        }
-
-        if (! class_exists(\Native\Laravel\Facades\Printer::class)) {
-            return response()->json([
-                'ok' => true,
-                'printers' => [],
-                'message' => 'Printer API is not available.',
-            ]);
-        }
-
-        try {
-            $printers = \Native\Laravel\Facades\Printer::all();
-            return response()->json([
-                'ok' => true,
-                'printers' => $printers,
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'ok' => true,
-                'printers' => [],
-                'error' => $e->getMessage(),
-            ]);
-        }
-    }
-
     /*
     |--------------------------------------------------------------------------
     | Helpers
@@ -670,25 +481,5 @@ class AppSettingController extends Controller
         // همچنین می‌توانیم از متغیر محیطی استفاده کنیم
         return env('NATIVEPHP_RUNNING', false) === true
             || env('IS_DESKTOP', false) === true;
-    }
-
-    /**
-     * حذف بکاپ‌های قدیمی بر اساس retention تنظیم‌شده.
-     */
-    private function cleanupOldBackups(string $backupPath): void
-    {
-        $retentionDays = $this->settings->getInt('desktop.backup_retention', 30);
-        $cutoffTime = now()->subDays($retentionDays)->getTimestamp();
-
-        $files = glob(rtrim($backupPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'backup_*.db');
-        if ($files === false) {
-            return;
-        }
-
-        foreach ($files as $file) {
-            if (filemtime($file) < $cutoffTime) {
-                @unlink($file);
-            }
-        }
     }
 }

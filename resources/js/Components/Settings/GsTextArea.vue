@@ -3,10 +3,10 @@
  * GsTextArea — ورودی چندخطی هم‌خانواده با کنترل‌های st-*
  * مسیر: resources/js/Components/Settings/GsTextArea.vue
  *
- * برای فیلدهای طولانی مثل invoice.footer_text و invoice.warranty_terms.
+ * برای تنظیمات متنیِ طولانی (string با rule «max» بزرگ‌تر یا مساوی ۵۰۰).
  *
  * استفاده:
- *   <GsTextArea v-model="form['invoice.footer_text']" :rows="3" :maxlength="1000" />
+ *   <GsTextArea v-model="form['some.long_text_setting']" :rows="3" :maxlength="1000" />
  */
 import { computed } from 'vue'
 

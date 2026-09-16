@@ -24,17 +24,13 @@ import {
     AlertTriangle,
     Check,
     Clock,
-    DatabaseBackup,
     Download,
     Gamepad2,
     Globe,
-    HardDrive,
     Info,
     Layers,
     MonitorSmartphone,
     Palette,
-    Printer,
-    ReceiptText,
     RefreshCw,
     RotateCcw,
     Save,
@@ -66,20 +62,14 @@ const api = useSettingsApi()
  * ========================================================================= */
 const GROUP_UI = {
     general: { label: 'عمومی و محلی‌سازی', icon: Globe },
-    invoice: { label: 'مالیات و فاکتور', icon: ReceiptText },
     desktop: { label: 'دسکتاپ', icon: MonitorSmartphone },
 }
 
 const SECTION_UI = {
     locale: { label: 'محلی‌سازی', icon: Globe, desc: 'تقویم، ارز، جداکننده‌ها و زبان' },
     appearance: { label: 'ظاهر', icon: Palette, desc: 'تم روشن/تیره رابط کاربری' },
-    tax: { label: 'مالیات', icon: ReceiptText, desc: 'نرخ و نحوهٔ محاسبهٔ مالیات بر ارزش افزوده' },
-    invoice: { label: 'فاکتور', icon: Layers, desc: 'شماره‌گذاری، اطلاعات قانونی و متن‌های فاکتور' },
-    print: { label: 'چاپ', icon: Printer, desc: 'نوع چاپگر و اندازهٔ کاغذ' },
     startup: { label: 'راه‌اندازی', icon: MonitorSmartphone, desc: 'رفتار برنامه هنگام روشن‌شدن سیستم' },
-    paths: { label: 'مسیرها', icon: HardDrive, desc: 'محل ذخیرهٔ دیتابیس و بکاپ‌ها روی دیسک' },
     updates: { label: 'بروزرسانی', icon: RefreshCw, desc: 'بررسی و نصب بروزرسانی خودکار' },
-    backup: { label: 'پشتیبان‌گیری', icon: DatabaseBackup, desc: 'زمان‌بندی و نگهداری بکاپ‌ها' },
 }
 
 /** توضیح کمکی برای هر کلید (UX بهتر — بک‌اند فقط label دارد) */
@@ -93,28 +83,10 @@ const KEY_DESC = {
     'general.price_display': 'قالب نمایش قیمت‌ها در فاکتور و لیست‌ها',
     'general.theme': 'ظاهر کلی برنامه',
     'general.locale': 'زبان پیش‌فرض رابط کاربری',
-    'invoice.tax_rate': 'درصد مالیات بر ارزش افزوده',
-    'invoice.tax_mode': 'مالیات جدا از قیمت باشد یا شامل آن',
-    'invoice.tax_enabled': 'محاسبهٔ خودکار مالیات روی فاکتورها',
-    'invoice.prefix': 'پیشوندی که ابتدای شمارهٔ فاکتور می‌آید',
-    'invoice.counter': 'آخرین شمارهٔ صادرشدهٔ فاکتور',
-    'invoice.counter_padding': 'طول عددی شمارهٔ فاکتور با صفرِ ابتدایی',
-    'invoice.business_registration': 'شمارهٔ ثبت رسمی کسب‌وکار',
-    'invoice.economic_code': 'کد اقتصادی مالیاتی',
-    'invoice.footer_text': 'متنی که در پاورقی همهٔ فاکتورها چاپ می‌شود',
-    'invoice.warranty_terms': 'شرایط گارانتی پیش‌فرض روی فاکتور',
-    'invoice.logo_path': 'مسیر فایل لوگو برای چاپ روی فاکتور',
-    'invoice.printer_type': 'چاپگر پیش‌فرض برای رسید و فاکتور',
-    'invoice.paper_size': 'اندازهٔ کاغذ چاپگر',
     'desktop.auto_launch': 'اجرای برنامه هم‌زمان با روشن‌شدن سیستم',
     'desktop.minimize_to_tray': 'کوچک‌شدن به Tray به‌جای بستن کامل',
-    'desktop.database_path': 'محل فایل دیتابیس روی دیسک',
-    'desktop.backup_path': 'پوشهٔ ذخیرهٔ بکاپ‌ها',
     'desktop.auto_update_url': 'آدرس سرور بروزرسانی خودکار',
     'desktop.auto_update_check': 'بررسی بروزرسانی هنگام اجرای برنامه',
-    'desktop.default_printer_name': 'نام چاپگر پیش‌فرض سیستم‌عامل',
-    'desktop.backup_schedule': 'دورهٔ زمانی اجرای بکاپ خودکار',
-    'desktop.backup_retention': 'چند روز بکاپ‌ها نگهداری شوند',
 }
 
 /* =========================================================================
@@ -359,8 +331,6 @@ async function runOp(name, fn, okKind = 'success') {
         busyOp.value = ''
     }
 }
-const testPrinter = () => runOp('printer', api.testPrinter)
-const triggerBackup = () => runOp('backup', api.triggerBackup)
 const checkUpdates = () => runOp('updates', api.checkForUpdates, 'info')
 
 /* =========================================================================
@@ -441,8 +411,8 @@ onBeforeUnmount(() => {
                         </h1>
 
                         <p class="st-hero__lead">
-                            پیکربندی مرکزی فروشگاه — محلی‌سازی، مالیات و فاکتور، و رفتار
-                            نسخهٔ دسکتاپ. همهٔ مقادیر از دیتابیس خوانده و در همان‌جا ذخیره می‌شوند.
+                            پیکربندی مرکزی فروشگاه — محلی‌سازی و رفتار نسخهٔ دسکتاپ.
+                            همهٔ مقادیر از دیتابیس خوانده و در همان‌جا ذخیره می‌شوند.
                         </p>
 
                         <div class="st-hero__stats">
@@ -666,36 +636,6 @@ onBeforeUnmount(() => {
                                     </GsRow>
 
                                     <!-- عملیات ویژهٔ هر بخش -->
-                                    <div v-if="sec.key === 'print'" class="st-sec-ops">
-                                        <button
-                                            type="button"
-                                            class="a3d-btn a3d-btn--sm"
-                                            :disabled="busyOp === 'printer'"
-                                            @click="testPrinter"
-                                        >
-                                            <Printer
-                                                :size="14"
-                                                :class="{ 'st-spinner': busyOp === 'printer' }"
-                                            />
-                                            تست چاپگر
-                                        </button>
-                                    </div>
-
-                                    <div v-if="sec.key === 'backup'" class="st-sec-ops">
-                                        <button
-                                            type="button"
-                                            class="a3d-btn a3d-btn--sm"
-                                            :disabled="busyOp === 'backup'"
-                                            @click="triggerBackup"
-                                        >
-                                            <DatabaseBackup
-                                                :size="14"
-                                                :class="{ 'st-spinner': busyOp === 'backup' }"
-                                            />
-                                            اجرای بکاپ دستی
-                                        </button>
-                                    </div>
-
                                     <div v-if="sec.key === 'updates'" class="st-sec-ops">
                                         <button
                                             type="button"

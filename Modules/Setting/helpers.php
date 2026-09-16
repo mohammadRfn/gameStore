@@ -2,13 +2,9 @@
 
 declare(strict_types=1);
 
-use Modules\Setting\Enums\Settings\BackupSchedule;
 use Modules\Setting\Enums\Settings\CalendarType;
-use Modules\Setting\Enums\Settings\PaperSize;
 use Modules\Setting\Enums\Settings\PriceDisplayMode;
-use Modules\Setting\Enums\Settings\PrinterType;
 use Modules\Setting\Enums\Settings\SettingGroup;
-use Modules\Setting\Enums\Settings\TaxMode;
 use Modules\Setting\Enums\Settings\ThemeMode;
 use Modules\Setting\Enums\Settings\TimeFormat;
 use Modules\Setting\Services\Setting\SettingService;
@@ -174,68 +170,6 @@ if (! function_exists('format_price')) {
     }
 }
 
-if (! function_exists('app_tax_rate')) {
-    /**
-     * نرخ مالیات فعلی (درصد).
-     */
-    function app_tax_rate(): float
-    {
-        return app(SettingService::class)->taxRate();
-    }
-}
-
-if (! function_exists('app_tax_mode')) {
-    /**
-     * نحوه‌ی محاسبه‌ی مالیات (inclusive/exclusive).
-     */
-    function app_tax_mode(): TaxMode
-    {
-        return app(SettingService::class)->taxMode();
-    }
-}
-
-if (! function_exists('app_tax_enabled')) {
-    /**
-     * آیا مالیات فعال است؟
-     */
-    function app_tax_enabled(): bool
-    {
-        return app(SettingService::class)->taxEnabled();
-    }
-}
-
-if (! function_exists('calculate_tax')) {
-    /**
-     * محاسبه‌ی مبلغ مالیات برای یک قیمت.
-     */
-    function calculate_tax(int|float $amount): float
-    {
-        return app(SettingService::class)->calculateTax($amount);
-    }
-}
-
-if (! function_exists('price_with_tax')) {
-    /**
-     * مبلغ نهایی شامل مالیات.
-     */
-    function price_with_tax(int|float $amount): float
-    {
-        return app(SettingService::class)->priceWithTax($amount);
-    }
-}
-
-if (! function_exists('next_invoice_number')) {
-    /**
-     * تولید شماره فاکتور بعدی با پیشوند و padding مطابق تنظیمات.
-     *
-     * @param bool $increment افزایش شمارنده؟ (پیش‌فرض: بله)
-     */
-    function next_invoice_number(bool $increment = true): string
-    {
-        return app(SettingService::class)->nextInvoiceNumber($increment);
-    }
-}
-
 if (! function_exists('format_date_app')) {
     /**
      * فرمت تاریخ با توجه به تقویم فعال.
@@ -254,43 +188,6 @@ if (! function_exists('format_time_app')) {
     function format_time_app(\DateTimeInterface|string $date, ?string $format = null): string
     {
         return app(SettingService::class)->formatTime($date, $format);
-    }
-}
-
-/*
-|--------------------------------------------------------------------------
-| توابع چاپگر
-|--------------------------------------------------------------------------
-*/
-
-if (! function_exists('default_printer_type')) {
-    /**
-     * نوع چاپگر پیش‌فرض (حرارتی/A4/لیبل).
-     */
-    function default_printer_type(): PrinterType
-    {
-        return app(SettingService::class)->defaultPrinterType();
-    }
-}
-
-if (! function_exists('default_paper_size')) {
-    /**
-     * اندازه‌ی کاغذ پیش‌فرض.
-     */
-    function default_paper_size(): PaperSize
-    {
-        return app(SettingService::class)->defaultPaperSize();
-    }
-}
-
-if (! function_exists('default_printer_name')) {
-    /**
-     * نام چاپگر پیش‌فرض سیستم (برای اپ دسکتاپ).
-     */
-    function default_printer_name(): ?string
-    {
-        $name = setting('desktop.default_printer_name');
-        return is_string($name) && $name !== '' ? $name : null;
     }
 }
 
@@ -334,38 +231,6 @@ if (! function_exists('minimize_to_tray_enabled')) {
     }
 }
 
-if (! function_exists('backup_schedule')) {
-    /**
-     * زمان‌بندی بکاپ خودکار.
-     */
-    function backup_schedule(): BackupSchedule
-    {
-        return app(SettingService::class)->backupSchedule();
-    }
-}
-
-if (! function_exists('database_path_desktop')) {
-    /**
-     * مسیر فایل دیتابیس دسکتاپ (یا null برای مسیر پیش‌فرض).
-     */
-    function database_path_desktop(): ?string
-    {
-        $path = setting('desktop.database_path');
-        return is_string($path) && $path !== '' ? $path : null;
-    }
-}
-
-if (! function_exists('backup_path_desktop')) {
-    /**
-     * مسیر ذخیره‌ی بکاپ‌ها (یا null برای مسیر پیش‌فرض).
-     */
-    function backup_path_desktop(): ?string
-    {
-        $path = setting('desktop.backup_path');
-        return is_string($path) && $path !== '' ? $path : null;
-    }
-}
-
 if (! function_exists('update_server_url')) {
     /**
      * آدرس سرور آپدیت خودکار.
@@ -374,63 +239,5 @@ if (! function_exists('update_server_url')) {
     {
         $url = setting('desktop.auto_update_url');
         return is_string($url) && $url !== '' ? $url : null;
-    }
-}
-
-/*
-|--------------------------------------------------------------------------
-| توابع متفرقه
-|--------------------------------------------------------------------------
-*/
-
-if (! function_exists('invoice_footer_text')) {
-    /**
-     * متن پاورقی پیش‌فرض فاکتور.
-     */
-    function invoice_footer_text(): string
-    {
-        return setting('invoice.footer_text', '');
-    }
-}
-
-if (! function_exists('warranty_terms')) {
-    /**
-     * شرایط گارانتی پیش‌فرض.
-     */
-    function warranty_terms(): string
-    {
-        return setting('invoice.warranty_terms', '');
-    }
-}
-
-if (! function_exists('business_registration_number')) {
-    /**
-     * شماره ثبت رسمی کسب‌وکار.
-     */
-    function business_registration_number(): ?string
-    {
-        $val = setting('invoice.business_registration');
-        return is_string($val) && $val !== '' ? $val : null;
-    }
-}
-
-if (! function_exists('economic_code')) {
-    /**
-     * کد اقتصادی.
-     */
-    function economic_code(): ?string
-    {
-        $val = setting('invoice.economic_code');
-        return is_string($val) && $val !== '' ? $val : null;
-    }
-}
-
-if (! function_exists('restart_required')) {
-    /**
-     * آیا اپ نیاز به restart دارد؟
-     */
-    function restart_required(): bool
-    {
-        return (bool) \Illuminate\Support\Facades\Cache::get('desktop.restart_required', false);
     }
 }

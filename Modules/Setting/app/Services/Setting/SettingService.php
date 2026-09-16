@@ -4,13 +4,9 @@ declare(strict_types=1);
 
 namespace Modules\Setting\Services\Setting;
 
-use Modules\Setting\Enums\Settings\BackupSchedule;
 use Modules\Setting\Enums\Settings\CalendarType;
-use Modules\Setting\Enums\Settings\PaperSize;
 use Modules\Setting\Enums\Settings\PriceDisplayMode;
-use Modules\Setting\Enums\Settings\PrinterType;
 use Modules\Setting\Enums\Settings\SettingGroup;
-use Modules\Setting\Enums\Settings\TaxMode;
 use Modules\Setting\Enums\Settings\ThemeMode;
 use Modules\Setting\Enums\Settings\TimeFormat;
 use Modules\Setting\Events\SettingsChanged;
@@ -34,7 +30,7 @@ use RuntimeException;
  *  3) اعتبارسنجی پیش از ذخیره بر اساس rules تعریف‌شده در config.
  *  4) انتشار رویداد SettingsChanged پس از هر تغییر (برای invalidate کش و audit).
  *  5) API‌های typed (getString / getInt / getEnum / ...) برای جلوگیری از خطای برنامه‌نویس.
- *  6) محاسبات مشتق‌شده (مالیات، فرمت قیمت، فرمت تاریخ، فرمت شماره فاکتور).
+ *  6) محاسبات مشتق‌شده (فرمت قیمت، فرمت تاریخ).
  *
  * نکته: هیچ‌یک از مقادیر تنظیمات به‌صورت مستقیم در این کلاس نگه‌داری نمی‌شوند؛
  * همه از repository گرفته می‌شوند و در cache قرار می‌گیرند.
@@ -376,36 +372,6 @@ final class SettingService
         return $this->getEnum('general.price_display', PriceDisplayMode::class) ?? PriceDisplayMode::WithUnit;
     }
 
-    public function taxRate(): float
-    {
-        return $this->getFloat('invoice.tax_rate', 9.0);
-    }
-
-    public function taxMode(): TaxMode
-    {
-        return $this->getEnum('invoice.tax_mode', TaxMode::class) ?? TaxMode::Exclusive;
-    }
-
-    public function taxEnabled(): bool
-    {
-        return $this->getBool('invoice.tax_enabled', true);
-    }
-
-    public function defaultPrinterType(): PrinterType
-    {
-        return $this->getEnum('invoice.printer_type', PrinterType::class) ?? PrinterType::Thermal;
-    }
-
-    public function defaultPaperSize(): PaperSize
-    {
-        return $this->getEnum('invoice.paper_size', PaperSize::class) ?? PaperSize::Roll80;
-    }
-
-    public function backupSchedule(): BackupSchedule
-    {
-        return $this->getEnum('desktop.backup_schedule', BackupSchedule::class) ?? BackupSchedule::Daily;
-    }
-
     public function autoLaunch(): bool
     {
         return $this->getBool('desktop.auto_launch', false);
@@ -448,58 +414,6 @@ final class SettingService
             PriceDisplayMode::WithoutUnit => $formatted,
             PriceDisplayMode::WithCurrencyCode => $formatted . ' ' . $this->currencyCode(),
         };
-    }
-
-    /**
-     * محاسبه‌ی مبلغ مالیات برای یک مبلغ معین.
-     */
-    public function calculateTax(int|float $amount): float
-    {
-        if (! $this->taxEnabled()) {
-            return 0.0;
-        }
-        $rate = $this->taxRate() / 100;
-        return match ($this->taxMode()) {
-            // مالیات از قیمت محاسبه می‌شود و به آن اضافه می‌گردد.
-            TaxMode::Exclusive => (float) $amount * $rate,
-            // مالیات درون قیمت هست؛ برای استخراج: price - price/(1+rate)
-            TaxMode::Inclusive => (float) $amount - ((float) $amount / (1 + $rate)),
-        };
-    }
-
-    /**
-     * مبلغ نهایی شامل مالیات.
-     */
-    public function priceWithTax(int|float $amount): float
-    {
-        if (! $this->taxEnabled()) {
-            return (float) $amount;
-        }
-        return match ($this->taxMode()) {
-            TaxMode::Exclusive => (float) $amount + $this->calculateTax($amount),
-            TaxMode::Inclusive => (float) $amount, // مالیات درون خود قیمت است
-        };
-    }
-
-    /**
-     * تولید شماره فاکتور بعدی.
-     * این متد هم خواندنی و هم با increment عمل می‌کند (atomic).
-     *
-     * @param bool $increment اگر false باشد، فقط شماره فعلی را می‌دهد بدون افزایش شمارنده.
-     */
-    public function nextInvoiceNumber(bool $increment = true): string
-    {
-        $prefix = $this->getString('invoice.prefix', 'INV-');
-        $counter = $this->getInt('invoice.counter', 1);
-        $padding = $this->getInt('invoice.counter_padding', 6);
-
-        $number = $prefix . str_pad((string) $counter, max(1, $padding), '0', STR_PAD_LEFT);
-
-        if ($increment) {
-            $this->set('invoice.counter', $counter + 1);
-        }
-
-        return $number;
     }
 
     /**

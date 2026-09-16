@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Modules\Setting\Providers;
 
-use Modules\Setting\Enums\Settings\BackupSchedule;
 use Modules\Setting\Events\SettingsChanged;
 use Modules\Setting\Listeners\InvalidateSettingCache;
 use Modules\Setting\Services\Setting\Contracts\SettingRepositoryContract;
@@ -13,14 +12,11 @@ use Modules\Setting\Services\Setting\SettingDefaults;
 use Modules\Setting\Services\Setting\SettingService;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 
 /**
  * SettingServiceProvider
  * ============================================================================
  * ثبت سرویس‌های ماژول تنظیمات و شنونده‌های مربوطه.
- *
- * همچنین scheduler بکاپ خودکار را بر اساس تنظیمات زمان‌بندی می‌کند.
  */
 class SettingServiceProvider extends ServiceProvider
 {
@@ -78,9 +74,6 @@ class SettingServiceProvider extends ServiceProvider
 
         // ثبت channel لاگ اختصاصی
         $this->registerLogChannel();
-
-        // زمان‌بندی بکاپ خودکار
-        $this->scheduleAutoBackup();
     }
 
     /**
@@ -100,65 +93,4 @@ class SettingServiceProvider extends ServiceProvider
         }
     }
 
-    /**
-     * زمان‌بندی بکاپ خودکار بر اساس تنظیم desktop.backup_schedule.
-     */
-    private function scheduleAutoBackup(): void
-    {
-        if (! $this->app->runningInConsole()) {
-            return;
-        }
-
-        try {
-            $settings = $this->app->make(SettingService::class);
-            $schedule = $settings->backupSchedule();
-
-            if ($schedule === BackupSchedule::Disabled) {
-                return;
-            }
-
-            $cron = $schedule->cronExpression();
-            if ($cron === null) {
-                return;
-            }
-
-            $this->app->booted(function () use ($schedule, $cron) {
-                /** @var \Illuminate\Console\Scheduling\Schedule $scheduler */
-                $scheduler = app(\Illuminate\Console\Scheduling\Schedule::class);
-
-                $scheduler->call(function () {
-                    try {
-                        $settings = app(SettingService::class);
-                        $dbPath = $settings->getString('desktop.database_path', '');
-                        $backupPath = $settings->getString('desktop.backup_path', '');
-
-                        if (empty($dbPath) || empty($backupPath) || ! file_exists($dbPath)) {
-                            Log::channel('settings')->warning('Auto-backup skipped: paths not configured or DB missing.');
-                            return;
-                        }
-
-                        if (! is_dir($backupPath)) {
-                            @mkdir($backupPath, 0755, true);
-                        }
-
-                        $timestamp = now()->format('Ymd_His');
-                        $dest = rtrim($backupPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR
-                            . 'auto_backup_' . $timestamp . '.db';
-
-                        if (! copy($dbPath, $dest)) {
-                            throw new \RuntimeException('copy() failed.');
-                        }
-
-                        Log::channel('settings')->info('Auto-backup created: ' . $dest);
-                    } catch (\Throwable $e) {
-                        Log::channel('settings')->error('Auto-backup failed: ' . $e->getMessage());
-                    }
-                })->cron($cron)->name('settings.auto-backup')->withoutOverlapping();
-            });
-        } catch (\Throwable $e) {
-            // در زمان boot، ممکن است تنظیمات هنوز در دسترس نباشند.
-            // لاگ می‌کنیم اما فرآیند را متوقف نمی‌کنیم.
-            Log::warning('SettingServiceProvider: could not schedule auto-backup: ' . $e->getMessage());
-        }
-    }
 }

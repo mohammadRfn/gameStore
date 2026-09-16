@@ -13,14 +13,14 @@ use Illuminate\Foundation\Http\FormRequest;
  * {
  *   "settings": {
  *     "general.calendar": "jalali",
- *     "invoice.tax_rate": 10
+ *     "general.theme": "dark"
  *   }
  * }
  *
  * یا به‌صورت flat:
  * {
  *   "general.calendar": "jalali",
- *   "invoice.tax_rate": 10
+ *   "general.theme": "dark"
  * }
  */
 class UpdateSettingRequest extends FormRequest

@@ -2,13 +2,9 @@
 
 declare(strict_types=1);
 
-use Modules\Setting\Enums\Settings\BackupSchedule;
 use Modules\Setting\Enums\Settings\CalendarType;
-use Modules\Setting\Enums\Settings\PaperSize;
 use Modules\Setting\Enums\Settings\PriceDisplayMode;
-use Modules\Setting\Enums\Settings\PrinterType;
 use Modules\Setting\Enums\Settings\SettingGroup;
-use Modules\Setting\Enums\Settings\TaxMode;
 use Modules\Setting\Enums\Settings\ThemeMode;
 use Modules\Setting\Enums\Settings\TimeFormat;
 
@@ -163,131 +159,6 @@ return [
 
         /*
         |--------------------------------------------------------------
-        | گروه مالیات / فاکتور
-        |--------------------------------------------------------------
-        */
-        'invoice.tax_rate' => [
-            'group'   => SettingGroup::Invoice,
-            'type'    => 'float',
-            'rules'   => ['sometimes', 'numeric', 'min:0', 'max:100'],
-            'default' => 9.0,
-            'label'   => 'نرخ مالیات بر ارزش افزوده (%)',
-            'section' => 'tax',
-        ],
-
-        'invoice.tax_mode' => [
-            'group'   => SettingGroup::Invoice,
-            'type'    => 'enum',
-            'enum'    => TaxMode::class,
-            'rules'   => ['sometimes', 'string'],
-            'default' => TaxMode::Exclusive,
-            'label'   => 'نحوه‌ی محاسبه‌ی مالیات',
-            'section' => 'tax',
-        ],
-
-        'invoice.tax_enabled' => [
-            'group'   => SettingGroup::Invoice,
-            'type'    => 'bool',
-            'rules'   => ['sometimes', 'boolean'],
-            'default' => true,
-            'label'   => 'فعال‌سازی مالیات در فاکتورها',
-            'section' => 'tax',
-        ],
-
-        'invoice.prefix' => [
-            'group'   => SettingGroup::Invoice,
-            'type'    => 'string',
-            'rules'   => ['sometimes', 'string', 'max:10', 'regex:/^[A-Za-z0-9\-]*$/'],
-            'default' => 'INV-',
-            'label'   => 'پیشوند شماره فاکتور',
-            'section' => 'invoice',
-        ],
-
-        'invoice.counter' => [
-            'group'   => SettingGroup::Invoice,
-            'type'    => 'int',
-            'rules'   => ['sometimes', 'integer', 'min:0'],
-            'default' => 1,
-            'label'   => 'شمارنده‌ی فعلی شماره فاکتور',
-            'section' => 'invoice',
-        ],
-
-        'invoice.counter_padding' => [
-            'group'   => SettingGroup::Invoice,
-            'type'    => 'int',
-            'rules'   => ['sometimes', 'integer', 'min:3', 'max:10'],
-            'default' => 6,
-            'label'   => 'طول شماره فاکتور (padding با صفر)',
-            'section' => 'invoice',
-        ],
-
-        'invoice.business_registration' => [
-            'group'   => SettingGroup::Invoice,
-            'type'    => 'string',
-            'rules'   => ['sometimes', 'nullable', 'string', 'max:50'],
-            'default' => null,
-            'label'   => 'شماره ثبت رسمی کسب‌وکار',
-            'section' => 'invoice',
-        ],
-
-        'invoice.economic_code' => [
-            'group'   => SettingGroup::Invoice,
-            'type'    => 'string',
-            'rules'   => ['sometimes', 'nullable', 'string', 'max:50'],
-            'default' => null,
-            'label'   => 'کد اقتصادی',
-            'section' => 'invoice',
-        ],
-
-        'invoice.footer_text' => [
-            'group'   => SettingGroup::Invoice,
-            'type'    => 'string',
-            'rules'   => ['sometimes', 'nullable', 'string', 'max:1000'],
-            'default' => "از خرید شما متشکریم.\nشرایط گارانتی و مرجوعی در انتهای فاکتور درج می‌شود.",
-            'label'   => 'متن پیش‌فرض پاورقی فاکتور',
-            'section' => 'invoice',
-        ],
-
-        'invoice.warranty_terms' => [
-            'group'   => SettingGroup::Invoice,
-            'type'    => 'string',
-            'rules'   => ['sometimes', 'nullable', 'string', 'max:2000'],
-            'default' => "کالاهای تعمیرشده دارای ۷ روز گارانتی تعویض هستند.\nدر صورت عدم رضایت، کالا بدون قید و شرط قابل مرجوع است.",
-            'label'   => 'شرایط گارانتی پیش‌فرض',
-            'section' => 'invoice',
-        ],
-
-        'invoice.printer_type' => [
-            'group'   => SettingGroup::Invoice,
-            'type'    => 'enum',
-            'enum'    => PrinterType::class,
-            'rules'   => ['sometimes', 'string'],
-            'default' => PrinterType::Thermal,
-            'label'   => 'نوع چاپگر پیش‌فرض',
-            'section' => 'print',
-        ],
-
-        'invoice.paper_size' => [
-            'group'   => SettingGroup::Invoice,
-            'type'    => 'enum',
-            'enum'    => PaperSize::class,
-            'rules'   => ['sometimes', 'string'],
-            'default' => PaperSize::Roll80,
-            'label'   => 'اندازه‌ی کاغذ چاپگر',
-            'section' => 'print',
-        ],
-
-        'invoice.logo_path' => [
-            'group'   => SettingGroup::Invoice,
-            'type'    => 'string',
-            'rules'   => ['sometimes', 'nullable', 'string', 'max:500'],
-            'default' => null,
-            'label'   => 'مسیر لوگوی چاپ‌شونده روی فاکتور',
-            'section' => 'invoice',
-        ],
-
-        /*
-        |--------------------------------------------------------------
         | گروه دسکتاپ (NativePHP / Electron)
         |--------------------------------------------------------------
         */
@@ -309,24 +180,6 @@ return [
             'section' => 'startup',
         ],
 
-        'desktop.database_path' => [
-            'group'   => SettingGroup::Desktop,
-            'type'    => 'string',
-            'rules'   => ['sometimes', 'string', 'max:1000'],
-            'default' => null, // null یعنی مسیر پیش‌فرض NativePHP
-            'label'   => 'مسیر فایل دیتابیس روی دیسک',
-            'section' => 'paths',
-        ],
-
-        'desktop.backup_path' => [
-            'group'   => SettingGroup::Desktop,
-            'type'    => 'string',
-            'rules'   => ['sometimes', 'string', 'max:1000'],
-            'default' => null, // null یعنی مسیر پیش‌فرض
-            'label'   => 'مسیر ذخیره‌ی بکاپ‌ها',
-            'section' => 'paths',
-        ],
-
         'desktop.auto_update_url' => [
             'group'   => SettingGroup::Desktop,
             'type'    => 'string',
@@ -345,33 +198,6 @@ return [
             'section' => 'updates',
         ],
 
-        'desktop.default_printer_name' => [
-            'group'   => SettingGroup::Desktop,
-            'type'    => 'string',
-            'rules'   => ['sometimes', 'nullable', 'string', 'max:200'],
-            'default' => null, // نام چاپگر پیش‌فرض سیستم‌عامل
-            'label'   => 'نام چاپگر پیش‌فرض سیستم',
-            'section' => 'print',
-        ],
-
-        'desktop.backup_schedule' => [
-            'group'   => SettingGroup::Desktop,
-            'type'    => 'enum',
-            'enum'    => BackupSchedule::class,
-            'rules'   => ['sometimes', 'string'],
-            'default' => BackupSchedule::Daily,
-            'label'   => 'زمان‌بندی بکاپ خودکار',
-            'section' => 'backup',
-        ],
-
-        'desktop.backup_retention' => [
-            'group'   => SettingGroup::Desktop,
-            'type'    => 'int',
-            'rules'   => ['sometimes', 'integer', 'min:1', 'max:365'],
-            'default' => 30,
-            'label'   => 'تعداد روز نگهداری بکاپ‌ها',
-            'section' => 'backup',
-        ],
     ],
 
     /*

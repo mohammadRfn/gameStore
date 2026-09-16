@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * لیسنری که با انتشار SettingsChanged، کش تنظیمات را باطل می‌کند.
- * همچنین تغییرات حساس (مثل مسیر دیتابیس) را لاگ می‌کند.
+ * همچنین تغییرات حساس (مثل آدرس سرور بروزرسانی) را لاگ می‌کند.
  */
 class InvalidateSettingCache
 {
@@ -36,7 +36,7 @@ class InvalidateSettingCache
         }
 
         // 3) لاگ تغییرات حساس (audit trail ساده)
-        $sensitiveKeys = ['desktop.database_path', 'desktop.auto_update_url'];
+        $sensitiveKeys = ['desktop.auto_update_url'];
         foreach ($event->changedKeys() as $key) {
             if (in_array($key, $sensitiveKeys, true)) {
                 Log::channel('settings')->info('Setting changed: ' . $key, [
@@ -45,12 +45,6 @@ class InvalidateSettingCache
                     'user' => $event->userId,
                 ]);
             }
-        }
-
-        // 4) در صورت تغییر مسیر دیتابیس، نیاز به restart اپ دسکتاپ داریم.
-        //    در این حالت یک flag در cache می‌گذاریم که UI آن را نشان دهد.
-        if (in_array('desktop.database_path', $event->changedKeys(), true)) {
-            $this->cache->put('desktop.restart_required', true, now()->addHours(2));
         }
     }
 }

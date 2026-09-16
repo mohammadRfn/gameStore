@@ -2,7 +2,7 @@
 
 use App\Models\AppSetting;
 use App\Models\SettingGroup;
-use App\Models\StoreProfile;
+use Modules\Profile\Models\StoreProfile;
 use App\Models\User;
 use Modules\Archive\Models\ArchiveAction;
 use Modules\Archive\Models\ArchivedRecord;
