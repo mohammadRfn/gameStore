@@ -438,9 +438,13 @@ final class SettingService
             return;
         }
 
-        $validator = Validator::make([$key => $value], [$key => $rules]);
+        // اسم فیلد 'value' عمداً بدون نقطه است — چون $key (مثل general.theme)
+        // خودش نقطه دارد و با dot-notation ولیدیتور لاراول تداخل می‌کند.
+        $validator = Validator::make(['value' => $value], ['value' => $rules]);
         if ($validator->fails()) {
-            throw new ValidationException($validator);
+            throw ValidationException::withMessages([
+                $key => $validator->errors()->get('value'),
+            ]);
         }
     }
 
@@ -452,23 +456,27 @@ final class SettingService
      */
     private function validateBulk(array $values): void
     {
-        $rules = [];
-        foreach (array_keys($values) as $key) {
-            if ($this->defaults->exists($key)) {
-                $keyRules = $this->defaults->rulesFor($key);
-                if (! empty($keyRules)) {
-                    $rules[$key] = $keyRules;
-                }
+        $messages = [];
+
+        foreach ($values as $key => $value) {
+            if (! $this->defaults->exists($key)) {
+                continue;
+            }
+
+            $rules = $this->defaults->rulesFor($key);
+            if (empty($rules)) {
+                continue;
+            }
+
+            // همون دلیل validateSingle: اسم فیلد بدون نقطه.
+            $validator = Validator::make(['value' => $value], ['value' => $rules]);
+            if ($validator->fails()) {
+                $messages[$key] = $validator->errors()->get('value');
             }
         }
 
-        if (empty($rules)) {
-            return;
-        }
-
-        $validator = Validator::make($values, $rules);
-        if ($validator->fails()) {
-            throw new ValidationException($validator);
+        if (! empty($messages)) {
+            throw ValidationException::withMessages($messages);
         }
     }
 

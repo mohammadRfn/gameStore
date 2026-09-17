@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Setting\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * Request اعتبارسنجی به‌روزرسانی تنظیمات.
@@ -22,6 +23,12 @@ use Illuminate\Foundation\Http\FormRequest;
  *   "general.theme": "dark",
  *   "desktop.auto_launch": true
  * }
+ *
+ * نکتهٔ مهم: چون کلیدهای تنظیمات خودشان نقطه دارند (general.theme)،
+ * نمی‌شود آن‌ها را مستقیماً اسم rule در لاراول قرار داد — لاراول نقطه را
+ * همیشه جداکنندهٔ آرایهٔ تودرتو می‌خواند، نه بخشی از نام کلید. به همین
+ * دلیل اعتبارسنجی هر کلید را دستی و با یک اسم فیلد امن (بدون نقطه)
+ * انجام می‌دهیم (متد withValidator پایین‌تر).
  */
 class UpdateSettingRequest extends FormRequest
 {
@@ -33,35 +40,62 @@ class UpdateSettingRequest extends FormRequest
     }
 
     /**
-     * @return array<string,\Illuminate\Contracts\Validation\ValidationRule|array|string>
+     * پیش از اعتبارسنجی، payload فلت (بدون کلید settings) را به همان
+     * ساختار settings:{...} نرمال می‌کنیم تا بقیهٔ کد یک ورودی یکنواخت ببیند.
+     */
+    protected function prepareForValidation(): void
+    {
+        $settings = $this->input('settings');
+        if (! is_array($settings) || empty($settings)) {
+            $flat = $this->except(['settings', '_token', '_method']);
+            if (! empty($flat)) {
+                $this->merge(['settings' => $flat]);
+            }
+        }
+    }
+
+    /**
+     * فقط شکل کلی payload را اینجا چک می‌کنیم؛ اعتبارسنجی تک‌تک مقادیر
+     * در withValidator انجام می‌شود تا مشکل dot-notation پیش نیاید.
      */
     public function rules(): array
     {
-        // اجازه می‌دهیم هم با کلید settings و هم flat payload ارسال شود.
-        $settings = $this->input('settings', []);
-        if (! is_array($settings) || empty($settings)) {
-            // کلیدهای سطح root را به‌عنوان settings در نظر می‌گیریم.
-            $settings = $this->except(['settings', '_token', '_method']);
-        }
+        return [
+            'settings' => ['required', 'array', 'min:1'],
+        ];
+    }
 
-        // برای هر کلید، rules مخصوص خودش را از config می‌گیریم.
-        $rules = [];
-        $meta = config('setting.meta', []);
-
-        foreach (array_keys($settings) as $key) {
-            if (isset($meta[$key]) && ! empty($meta[$key]['rules'])) {
-                $rules["settings.{$key}"] = $meta[$key]['rules'];
-            } else {
-                // کلید نامعتبر را reject می‌کنیم تا جلوی injection گرفته شود.
-                $rules["settings.{$key}"] = ['prohibited'];
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $settings = $this->input('settings', []);
+            if (! is_array($settings)) {
+                return;
             }
-        }
 
-        if (empty($rules)) {
-            $rules['settings'] = ['required', 'array', 'min:1'];
-        }
+            $meta = config('setting.meta', []);
 
-        return $rules;
+            foreach ($settings as $key => $value) {
+                if (! isset($meta[$key])) {
+                    $validator->errors()->add("settings.{$key}", 'کلید تنظیم نامعتبر است.');
+                    continue;
+                }
+
+                $rules = $meta[$key]['rules'] ?? [];
+                if (empty($rules)) {
+                    continue;
+                }
+
+                // اسم فیلد 'value' عمداً بدون نقطه است تا با Arr::get
+                // (که نقطه را جداکنندهٔ تودرتو می‌خواند) تداخل نکند.
+                $inner = Validator::make(['value' => $value], ['value' => $rules]);
+                if ($inner->fails()) {
+                    foreach ($inner->errors()->get('value') as $msg) {
+                        $validator->errors()->add("settings.{$key}", $msg);
+                    }
+                }
+            }
+        });
     }
 
     /**
