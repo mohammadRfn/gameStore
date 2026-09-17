@@ -25,7 +25,6 @@ import {
     AlertTriangle,
     Check,
     Clock,
-    Download,
     Gamepad2,
     Globe,
     Info,
@@ -36,7 +35,6 @@ import {
     RotateCcw,
     Save,
     Settings as SettingsIcon,
-    Upload,
 } from 'lucide-vue-next'
 
 import AppLayout from '@/Layouts/AppLayout.vue'
@@ -271,47 +269,7 @@ async function resetGroup(gKey) {
     }
 }
 
-/* =========================================================================
- * ۸) Import / Export
- * ========================================================================= */
-async function doExport() {
-    try {
-        const res = await api.exportSettings()
-        const blob = new Blob([JSON.stringify(res, null, 2)], {
-            type: 'application/json',
-        })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `gamestore-settings-${new Date().toISOString().slice(0, 10)}.json`
-        a.click()
-        URL.revokeObjectURL(url)
-        pushToast('success', 'خروجی تنظیمات دانلود شد')
-    } catch (e) {
-        pushToast('danger', e.message)
-    }
-}
 
-const importInput = ref(null)
-function triggerImport() {
-    importInput.value?.click()
-}
-async function onImportFile(event) {
-    const file = event.target.files?.[0]
-    if (!file) return
-    try {
-        const text = await file.text()
-        const parsed = JSON.parse(text)
-        const payload = parsed.settings ?? parsed
-        const res = await api.importSettings(payload)
-        await load()
-        pushToast('success', res.message || 'تنظیمات وارد شد')
-    } catch (e) {
-        pushToast('danger', e.message || 'فایل نامعتبر است')
-    } finally {
-        event.target.value = ''
-    }
-}
 
 /* =========================================================================
  * ۹) عملیات دسکتاپ / چاپ
@@ -431,30 +389,6 @@ onBeforeUnmount(() => {
                         </div>
                     </div>
                                 <GearsCluster />
-
-                    <div class="st-hero__actions">
-                        <button
-                            type="button"
-                            class="a3d-btn a3d-btn--ghost a3d-btn--sm"
-                            @click="doExport"
-                        >
-                            <Download :size="14" /> خروجی
-                        </button>
-                        <button
-                            type="button"
-                            class="a3d-btn a3d-btn--ghost a3d-btn--sm"
-                            @click="triggerImport"
-                        >
-                            <Upload :size="14" /> ورودی
-                        </button>
-                        <input
-                            ref="importInput"
-                            type="file"
-                            accept="application/json"
-                            hidden
-                            @change="onImportFile"
-                        />
-                    </div>
                 </div>
             </header>
 
