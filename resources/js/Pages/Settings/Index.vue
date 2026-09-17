@@ -57,11 +57,6 @@ import ToastHost from '@/Components/Settings/ToastHost.vue'
 import GearsCluster from '@/Components/Settings/GearsCluster.vue'
 
 const api = useSettingsApi()
-const { set: applyTheme } = useTheme()
-watch(
-    () => form['general.theme'],
-    (val) => { if (val) applyTheme(val) },
-)
 /* =========================================================================
  * ۱) پیکربندی نمایشی گروه‌ها/بخش‌ها (مطابق SettingGroup و section بک‌اند)
  * ========================================================================= */
@@ -97,6 +92,12 @@ const meta = reactive({})
 const groupsMap = reactive({})
 
 const form = reactive({})
+
+const { set: applyTheme } = useTheme()
+watch(
+    () => form['general.theme'],
+    (val) => { if (val) applyTheme(val) },
+)
 const baseline = ref({})
 
 const dirtyKeys = computed(() =>
