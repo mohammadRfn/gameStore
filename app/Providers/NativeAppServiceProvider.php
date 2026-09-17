@@ -14,6 +14,14 @@ class NativeAppServiceProvider implements ProvidesPhpIni
     public function boot(): void
     {
         Window::open();
+
+        if (class_exists(\Native\Laravel\Facades\App::class)) {
+            try {
+                \Native\Laravel\Facades\App::openAtLogin(app('settings')->autoLaunch());
+            } catch (\Throwable $e) {
+                //
+            }
+        }
     }
 
     /**
@@ -21,7 +29,6 @@ class NativeAppServiceProvider implements ProvidesPhpIni
      */
     public function phpIni(): array
     {
-        return [
-        ];
+        return [];
     }
 }

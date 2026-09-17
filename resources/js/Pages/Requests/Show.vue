@@ -1,151 +1,295 @@
 <script setup>
 /**
- * نمایش کامل درخواست — اتاق فرمان ۳D
+ * پروندهٔ درخواست
  * مسیر: resources/js/Pages/Requests/Show.vue
+ * ---------------------------------------------------------------------------
+ * RequestController@show → props.request:
+ *   { id, customer_id, customer_name, description, status, created_at, updated_at,
+ *     categories[], customer{ id, name, phone, email, address, ... } | null,
+ *     invoice{ id, invoice_number, total_amount, payment_status, is_confirmed, created_at } | null }
+ * روت‌ها: requests.edit / requests.destroy / requests.index / customers.show /
+ *         invoices.show / invoices.create (با کوئری request_id برای صدور فاکتور جدید)
  */
-import { Head, Link } from '@inertiajs/vue3'
+import { computed, ref } from 'vue'
+import { Head, Link, router } from '@inertiajs/vue3'
 import {
-    ClipboardList,
     ArrowRight,
-    Edit3,
-    User,
-    Tag,
+    CalendarDays,
+    ClipboardList,
+    FileText,
+    Layers,
+    Mail,
+    Pencil,
+    Phone,
+    Plus,
     Receipt,
-    CheckCircle2,
-    Clock,
+    ShieldAlert,
+    Trash2,
+    UserRound,
     Wrench,
-    AlertCircle,
-    ChevronLeft,
 } from 'lucide-vue-next'
 
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { vReveal, vTilt } from '@/Composables/useTilt'
+import { useToasts } from '@/Composables/useToasts'
 import { faInt } from '@/Utils/format'
+import { avatarHue, dateFa, initials, money, statusMeta } from '@/Utils/crm'
+
+import CrmScene from '@/Components/Crm/CrmScene.vue'
+import CrmPanel from '@/Components/Crm/CrmPanel.vue'
+import CrmStatusChip from '@/Components/Crm/CrmStatusChip.vue'
+import CrmStatusSteps from '@/Components/Crm/CrmStatusSteps.vue'
+import CrmEmptyState from '@/Components/Crm/CrmEmptyState.vue'
+import CrmConfirmDialog from '@/Components/Crm/CrmConfirmDialog.vue'
+import ToastHost from '@/Components/Settings/ToastHost.vue'
 
 const props = defineProps({
-    request: {
-        type: Object,
-        required: true,
-    },
+    request: { type: Object, required: true },
 })
 
-function formatPrice(amount) {
-    if (!amount) return '۰ تومان'
-    return Number(amount).toLocaleString('fa-IR') + ' تومان'
-}
+const { toasts, dismiss } = useToasts({ flash: true })
 
-function statusBadgeClass(status) {
-    const map = {
-        pending: 'st-chip--warning',
-        in_progress: 'st-chip--info',
-        completed: 'st-chip--success',
-        canceled: 'st-chip--error',
-    }
-    return map[status] ?? 'st-chip--plain'
-}
+/* ------------------------------------------------------------------ */
+/* فاکتور مرتبط                                                          */
+/* ------------------------------------------------------------------ */
+const invoice = computed(() => props.request.invoice || null)
+const createInvoiceHref = computed(() => `${route('invoices.create')}?request_id=${props.request.id}`)
 
-function statusLabel(status) {
-    const map = {
-        pending: 'در انتظار رسیدگی',
-        in_progress: 'در جریان تعمیر و بررسی',
-        completed: 'تکمیل و آماده تحویل',
-        canceled: 'لغو شده',
-    }
-    return map[status] ?? status
+const PAYMENT_META = {
+    unpaid: { label: 'پرداخت‌نشده', tone: 'warning' },
+    paid: { label: 'پرداخت‌شده', tone: 'success' },
+    returned: { label: 'مرجوع‌شده', tone: 'error' },
+}
+const paymentMeta = computed(() => PAYMENT_META[invoice.value?.payment_status] || null)
+
+/* ------------------------------------------------------------------ */
+/* حذف                                                                   */
+/* ------------------------------------------------------------------ */
+const confirmOpen = ref(false)
+const deleting = ref(false)
+function doDelete() {
+    deleting.value = true
+    router.delete(route('requests.destroy', props.request.id), {
+        onFinish: () => {
+            deleting.value = false
+            confirmOpen.value = false
+        },
+    })
 }
 </script>
 
 <template>
-    <AppLayout>
-        <Head :title="'درخواست #' + request.id" />
+    <Head :title="`درخواست #${request.id} — ${request.customer_name}`" />
 
-        <div class="st-page relative z-10 space-y-6 pb-12">
-            <!-- سربرگ -->
-            <header class="st-hero" v-reveal="{ delay: 50 }">
-                <div>
-                    <div class="flex items-center gap-2">
-                        <span class="st-chip text-xs" :class="statusBadgeClass(request.status)">
-                            {{ statusLabel(request.status) }}
+    <AppLayout>
+        <div class="crm-page">
+            <CrmScene tone="gold" />
+
+            <!-- ================= سربرگ ================= -->
+            <header class="st-shell">
+                <div class="st-hero">
+                    <div style="display: flex; align-items: center; gap: 1.25rem; min-width: 0">
+                        <span
+                            v-reveal="{ delay: 0 }"
+                            class="crm-avatar crm-avatar--lg crm-avatar--ring"
+                            :style="{ '--hue': avatarHue(request.customer_name) }"
+                        >
+                            {{ initials(request.customer_name) }}
                         </span>
-                        <span class="text-xs text-neutral-400">کد رهگیری: #{{ faInt(request.id) }}</span>
+
+                        <div style="min-width: 0">
+                            <div class="crm-hero__chips">
+                                <span class="st-chip"><ClipboardList :size="12" /> پروندهٔ درخواست</span>
+                                <span class="st-chip st-chip--plain">کد #{{ faInt(request.id) }}</span>
+                                <span v-if="request.created_at" class="st-chip st-chip--plain">
+                                    <CalendarDays :size="12" /> ثبت {{ dateFa(request.created_at) }}
+                                </span>
+                            </div>
+
+                            <h1 class="st-hero__title" style="font-size: clamp(1.9rem, 5vw, 3.1rem); margin-top: 0.5rem">
+                                <span>{{ request.customer_name }}</span>
+                                <svg class="st-underline" viewBox="0 0 220 14" aria-hidden="true">
+                                    <path d="M4 10 C 60 2, 150 2, 216 8" fill="none" stroke="var(--gs-gold)" stroke-width="3.5" stroke-linecap="round" />
+                                </svg>
+                            </h1>
+
+                            <div class="crm-hero__stats" style="margin-top: 0.9rem">
+                                <CrmStatusChip :status="request.status" long />
+                                <span v-if="request.categories?.length" class="st-stat">
+                                    <Layers :size="15" /> دسته‌بندی <b>{{ faInt(request.categories.length) }}</b>
+                                </span>
+                            </div>
+                        </div>
                     </div>
 
-                    <h1 class="st-hero__title">
-                        درخواست <span>{{ request.customer_name }}</span>
-                    </h1>
-                </div>
-
-                <div class="flex items-center gap-2">
-                    <Link :href="route('requests.edit', request.id)" class="gs-btn-ghost text-xs">
-                        <Edit3 :size="15" /> ویرایش درخواست
-                    </Link>
-                    <Link :href="route('requests.index')" class="px-3 py-2 rounded-xl bg-neutral-800 text-neutral-300 text-xs hover:bg-neutral-700 flex items-center gap-1">
-                        بازگشت <ArrowRight :size="14" />
-                    </Link>
+                    <div class="crm-hero__actions">
+                        <Link :href="route('requests.edit', request.id)" class="a3d-btn a3d-btn--sm">
+                            <Pencil :size="14" /> ویرایش
+                        </Link>
+                        <Link :href="route('requests.index')" class="a3d-btn a3d-btn--ghost a3d-btn--sm">
+                            <ArrowRight :size="14" /> فهرست
+                        </Link>
+                    </div>
                 </div>
             </header>
 
-            <!-- شبکه دو ستونی جزئیات -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" v-reveal="{ delay: 100 }">
-                <!-- ستون اصلی توضیحات -->
-                <div class="lg:col-span-2 space-y-6">
-                    <div class="st-card p-6 rounded-2xl space-y-4">
-                        <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider">شرح کامل درخواست مشتری</h3>
-                        <p class="text-sm text-neutral-200 leading-relaxed whitespace-pre-line bg-neutral-900/40 p-4 rounded-xl border border-neutral-800">
-                            {{ request.description }}
-                        </p>
-
-                        <div class="pt-3 border-t border-neutral-800 flex items-center gap-3">
-                            <span class="text-xs text-neutral-400">دسته‌بندی‌های تخصصی:</span>
-                            <div class="flex flex-wrap gap-1.5">
-                                <span
-                                    v-for="cat in request.categories"
-                                    :key="cat.id"
-                                    class="st-chip st-chip--gold text-[11px]"
-                                >
-                                    {{ cat.name }}
+            <!-- ================= بدنه ================= -->
+            <div class="st-shell crm-body">
+                <div class="crm-grid-side">
+                    <!-- ---------- ستون اصلی ---------- -->
+                    <div class="crm-stack">
+                        <!-- شاخص‌ها -->
+                        <div class="crm-grid-kpi">
+                            <article v-reveal="{ delay: 60 }" v-tilt="{ max: 6, lift: 10 }" class="a3d-holo crm-metric" style="--crm-accent: var(--gs-info)">
+                                <span class="crm-metric__k"><Wrench :size="15" /> وضعیت فعلی</span>
+                                <span class="crm-metric__v" style="font-size: 1.05rem">{{ statusMeta(request.status).long }}</span>
+                                <span v-if="request.updated_at" class="crm-metric__s">آخرین به‌روزرسانی: {{ dateFa(request.updated_at) }}</span>
+                            </article>
+                            <article v-reveal="{ delay: 120 }" v-tilt="{ max: 6, lift: 10 }" class="a3d-holo crm-metric" style="--crm-accent: var(--gs-success)">
+                                <span class="crm-metric__k"><Receipt :size="15" /> فاکتور مرتبط</span>
+                                <span class="crm-metric__v">{{ invoice ? money(invoice.total_amount) : '—' }}</span>
+                                <span class="crm-metric__s">
+                                    {{ invoice ? invoice.invoice_number : 'هنوز فاکتوری صادر نشده' }}
                                 </span>
-                                <span v-if="!request.categories?.length" class="text-neutral-500 text-xs">بدون دسته‌بندی</span>
-                            </div>
+                            </article>
                         </div>
-                    </div>
-                </div>
 
-                <!-- ستون کناری: مشتری و فاکتور -->
-                <div class="space-y-6">
-                    <!-- مشخصات مشتری -->
-                    <div class="st-card p-5 rounded-2xl space-y-3">
-                        <h4 class="text-xs font-bold text-amber-400 uppercase">اطلاعات مشتری</h4>
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-300 flex items-center justify-center font-bold">
-                                <User :size="18" />
+                        <!-- شرح درخواست -->
+                        <CrmPanel title="شرح کامل درخواست" desc="متن ثبت‌شده توسط مشتری یا ثبت‌کننده" :icon="ClipboardList" accent="var(--gs-gold)" :delay="160" still>
+                            <p style="font-size: 0.85rem; line-height: 1.9; color: var(--gs-text-primary); white-space: pre-line; background: rgba(0,0,0,0.18); padding: 1rem; border-radius: 0.9rem; border: 1px solid var(--gs-border)">
+                                {{ request.description || 'بدون شرح' }}
+                            </p>
+
+                            <div style="margin-top: 0.9rem; padding-top: 0.9rem; border-top: 1px solid var(--gs-border); display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap">
+                                <span style="font-size: 0.75rem; color: var(--gs-text-secondary)">دسته‌بندی‌های تخصصی:</span>
+                                <div class="crm-tags">
+                                    <span v-for="cat in request.categories || []" :key="cat.id" class="crm-tag"><Layers :size="11" /> {{ cat.name }}</span>
+                                    <span v-if="!request.categories?.length" class="crm-row__sub">بدون دسته‌بندی</span>
+                                </div>
                             </div>
-                            <div>
-                                <p class="font-bold text-neutral-200 text-xs">{{ request.customer_name }}</p>
-                                <Link v-if="request.customer" :href="route('customers.show', request.customer.id)" class="text-[11px] text-amber-400 hover:underline">
-                                    مشاهده پرونده کامل مشتری ←
+                        </CrmPanel>
+
+                        <!-- روند رسیدگی -->
+                        <CrmPanel title="روند رسیدگی" desc="این مراحل به‌صورت خودکار توسط فاکتور و سرویس به‌روز می‌شوند" :icon="Wrench" accent="var(--gs-gold)" :delay="200" still>
+                            <CrmStatusSteps :status="request.status" />
+                        </CrmPanel>
+                    </div>
+
+                    <!-- ---------- ستون کناری ---------- -->
+                    <div class="crm-stack">
+                        <!-- اطلاعات مشتری -->
+                        <CrmPanel title="اطلاعات مشتری" desc="مشخصات ثبت‌شدهٔ درخواست‌دهنده" :icon="UserRound" accent="var(--gs-info)" :delay="140" still>
+                            <div class="crm-details">
+                                <div class="crm-detail" style="--crm-accent: var(--gs-gold)">
+                                    <span class="crm-detail__icon"><UserRound :size="16" /></span>
+                                    <div style="min-width: 0">
+                                        <p class="crm-detail__k">نام مشتری</p>
+                                        <p class="crm-detail__v">
+                                            <Link v-if="request.customer" :href="route('customers.show', request.customer.id)">
+                                                {{ request.customer_name }}
+                                            </Link>
+                                            <template v-else>{{ request.customer_name }}</template>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="crm-detail" style="--crm-accent: var(--gs-info)">
+                                    <span class="crm-detail__icon"><Phone :size="16" /></span>
+                                    <div style="min-width: 0">
+                                        <p class="crm-detail__k">شمارهٔ تماس</p>
+                                        <p class="crm-detail__v" :class="{ 'is-empty': !request.customer?.phone }">
+                                            <a v-if="request.customer?.phone" :href="`tel:${request.customer.phone}`" dir="ltr">{{ request.customer.phone }}</a>
+                                            <template v-else>ثبت نشده</template>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="crm-detail" style="--crm-accent: var(--gs-accent-2)">
+                                    <span class="crm-detail__icon"><Mail :size="16" /></span>
+                                    <div style="min-width: 0">
+                                        <p class="crm-detail__k">ایمیل</p>
+                                        <p class="crm-detail__v" :class="{ 'is-empty': !request.customer?.email }">
+                                            <a v-if="request.customer?.email" :href="`mailto:${request.customer.email}`" dir="ltr">{{ request.customer.email }}</a>
+                                            <template v-else>ثبت نشده</template>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <Link v-if="request.customer" :href="route('customers.show', request.customer.id)" class="a3d-btn a3d-btn--ghost a3d-btn--sm" style="margin-top: 0.9rem; width: 100%; justify-content: center">
+                                مشاهده پروندهٔ کامل مشتری
+                            </Link>
+                            <p v-else style="margin-top: 0.9rem; font-size: 0.75rem; color: var(--gs-text-secondary)">
+                                این درخواست بدون پروندهٔ مشتری ثبت شده است.
+                            </p>
+                        </CrmPanel>
+
+                        <!-- فاکتور مالی مرتبط -->
+                        <CrmPanel title="فاکتور مالی مرتبط" desc="وضعیت صدور و پرداخت فاکتور این درخواست" :icon="Receipt" accent="var(--gs-success)" :delay="180" still>
+                            <div v-if="invoice" class="crm-details">
+                                <div class="crm-detail" style="--crm-accent: var(--gs-success)">
+                                    <span class="crm-detail__icon"><Receipt :size="16" /></span>
+                                    <div style="min-width: 0">
+                                        <p class="crm-detail__k">شماره فاکتور</p>
+                                        <p class="crm-detail__v"><span class="crm-code">{{ invoice.invoice_number }}</span></p>
+                                    </div>
+                                </div>
+
+                                <div class="crm-detail" style="--crm-accent: var(--gs-gold)">
+                                    <span class="crm-detail__icon"><FileText :size="16" /></span>
+                                    <div style="min-width: 0">
+                                        <p class="crm-detail__k">مبلغ کل</p>
+                                        <p class="crm-detail__v">{{ money(invoice.total_amount) }}</p>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.2rem">
+                                    <CrmStatusChip :invoice="invoice" sm />
+                                    <span v-if="paymentMeta" class="st-chip" :class="`st-chip--${paymentMeta.tone}`" style="font-size: 11px">
+                                        {{ paymentMeta.label }}
+                                    </span>
+                                </div>
+
+                                <Link :href="route('invoices.show', invoice.id)" class="a3d-btn a3d-btn--gold a3d-btn--sm" style="margin-top: 0.4rem; width: 100%; justify-content: center">
+                                    <Receipt :size="14" /> مشاهدهٔ فاکتور کامل
                                 </Link>
                             </div>
-                        </div>
-                    </div>
 
-                    <!-- فاکتور مرتبط -->
-                    <div class="st-card p-5 rounded-2xl space-y-3">
-                        <h4 class="text-xs font-bold text-emerald-400 uppercase">فاکتور مالی مرتبط</h4>
-                        <div v-if="request.invoice" class="space-y-2">
-                            <div class="flex items-center justify-between text-xs">
-                                <span class="text-neutral-400">شماره:</span>
-                                <span class="font-mono font-bold text-amber-300">{{ request.invoice.invoice_number }}</span>
-                            </div>
-                            <div class="flex items-center justify-between text-xs">
-                                <span class="text-neutral-400">مبلغ:</span>
-                                <span class="font-bold text-neutral-200">{{ formatPrice(request.invoice.total_amount) }}</span>
-                            </div>
-                        </div>
-                        <p v-else class="text-xs text-neutral-500">فاکتوری برای این درخواست صادر نشده است</p>
+                            <CrmEmptyState
+                                v-else
+                                :icon="Receipt"
+                                title="فاکتوری برای این درخواست صادر نشده"
+                                desc="با صدور فاکتور، این درخواست به‌صورت خودکار به «در جریان» تغییر وضعیت می‌دهد."
+                            >
+                                <Link :href="createInvoiceHref" class="a3d-btn a3d-btn--gold a3d-btn--sm">
+                                    <Plus :size="14" /> صدور فاکتور جدید
+                                </Link>
+                            </CrmEmptyState>
+                        </CrmPanel>
+
+                        <!-- ناحیهٔ خطر -->
+                        <CrmPanel title="ناحیهٔ خطر" desc="حذف درخواست (قابل بازیابی از سطل بازیافت)" :icon="ShieldAlert" accent="var(--gs-error)" :delay="220" still>
+                            <p style="font-size: 0.78rem; line-height: 1.9; color: var(--gs-text-secondary); margin-bottom: 0.9rem">
+                                با حذف درخواست، پرونده به‌صورت نرم (soft delete) حذف می‌شود و ارتباط دسته‌بندی‌ها پاک می‌گردد.
+                            </p>
+                            <button type="button" class="a3d-btn a3d-btn--danger a3d-btn--sm" @click="confirmOpen = true">
+                                <Trash2 :size="14" /> حذف درخواست
+                            </button>
+                        </CrmPanel>
                     </div>
                 </div>
             </div>
+
+            <CrmConfirmDialog
+                v-model="confirmOpen"
+                title="حذف درخواست"
+                message="درخواست به سطل بازیافت منتقل می‌شود و ارتباط دسته‌بندی‌ها حذف می‌شود. ادامه می‌دهید؟"
+                :highlight="`#${request.id} — ${request.customer_name}`"
+                :loading="deleting"
+                @confirm="doDelete"
+            />
+
+            <ToastHost :toasts="toasts" @close="dismiss" />
         </div>
     </AppLayout>
 </template>

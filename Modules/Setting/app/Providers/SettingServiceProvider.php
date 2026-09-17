@@ -12,6 +12,7 @@ use Modules\Setting\Services\Setting\SettingDefaults;
 use Modules\Setting\Services\Setting\SettingService;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Cache;
+use Modules\Setting\Listeners\SyncDesktopAutoLaunch;
 
 /**
  * SettingServiceProvider
@@ -28,6 +29,7 @@ class SettingServiceProvider extends ServiceProvider
     protected $listen = [
         SettingsChanged::class => [
             InvalidateSettingCache::class,
+            SyncDesktopAutoLaunch::class,
         ],
     ];
 

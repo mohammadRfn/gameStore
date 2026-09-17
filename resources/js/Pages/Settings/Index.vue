@@ -18,7 +18,8 @@
  *   • @/Utils/format               → faInt
  *   • lucide-vue-next              → آیکون‌ها
  */
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { useTheme } from '@/Composables/useTheme'
 import { Head } from '@inertiajs/vue3'
 import {
     AlertTriangle,
@@ -56,7 +57,11 @@ import ToastHost from '@/Components/Settings/ToastHost.vue'
 import GearsCluster from '@/Components/Settings/GearsCluster.vue'
 
 const api = useSettingsApi()
-
+const { set: applyTheme } = useTheme()
+watch(
+    () => form['general.theme'],
+    (val) => { if (val) applyTheme(val) },
+)
 /* =========================================================================
  * ۱) پیکربندی نمایشی گروه‌ها/بخش‌ها (مطابق SettingGroup و section بک‌اند)
  * ========================================================================= */

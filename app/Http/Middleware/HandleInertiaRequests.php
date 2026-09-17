@@ -48,6 +48,10 @@ class HandleInertiaRequests extends Middleware
                 'success' => session('success'),
                 'error'   => session('error'),
             ],
+
+            // مقدار واقعی general.theme از ماژول Setting، برای اینکه فرانت
+            // بدون نیاز به فراخوانی جدا از "منبع حقیقت" واقعی باخبر باشه
+            'theme' => fn () => app('settings')->getString('general.theme', 'light'),
         ]);
     }
 }

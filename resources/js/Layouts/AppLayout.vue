@@ -108,16 +108,19 @@ import { ref, computed } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import { Sun, Moon, icons } from 'lucide-vue-next'
 import { useTheme } from '@/Composables/useTheme'
+import { useSettingsApi } from '@/Composables/useSettingsApi'
 import { label } from 'three/tsl'
 
 const page = usePage()
 
 // Theme — حالت اشتراکی روی <html> اعمال می‌شود (بدون فلش هنگام لود)
 const { isDark, toggle } = useTheme()
+const settingsApi = useSettingsApi()
 const themeClass = computed(() => isDark.value ? '' : 'light')
 
 function toggleTheme() {
     toggle()
+    settingsApi.update({ 'general.theme': isDark.value ? 'dark' : 'light' }).catch(() => {})
 }
 
 // Sidebar
