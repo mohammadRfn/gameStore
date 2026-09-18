@@ -1,115 +1,202 @@
 <template>
     <AppLayout>
-        <template #header>
-            <div style="display:flex;align-items:center;justify-content:space-between">
-                <div>
-                    <h1 class="gs-title">انبار محصولات</h1>
-                    <p class="gs-subtitle">{{ items.length }} قلم ثبت شده</p>
-                </div>
-                <Link :href="route('items.create')" class="gs-btn gs-btn-primary">+ محصول جدید</Link>
-            </div>
-        </template>
+        <div class="gx-page">
+            <LuxScene accent="gold" />
 
-        <!-- Search -->
-        <div class="gs-card" style="margin-bottom:1.25rem">
-            <input v-model="search" type="search" class="gs-input" placeholder="جستجو نام محصول..." />
-        </div>
+            <!-- ================= هیرو ================= -->
+            <LuxHero
+                chip="ماژول انبار"
+                chip-two="Items"
+                title="انبار «محصولات»"
+                lead="مدیریت اقلام فروشگاه — قیمت‌گذاری، موجودی، شماره سریال و گارانتی، همه در یک نما."
+                cube="📦"
+                satellite="🎮"
+                :stats="[
+                    { label: 'کل اقلام', value: faInt(items.length) },
+                    { label: 'موجود در انبار', value: faInt(inStockCount) },
+                    { label: 'دسته‌بندی‌ها', value: faInt(categoryChips.length) },
+                ]"
+            >
+                <template #chip-icon>
+                    <Package :size="13" />
+                </template>
+                <template #actions>
+                    <Link :href="route('items.create')" class="a3d-btn a3d-btn--gold">
+                        <Plus :size="15" />
+                        محصول جدید
+                    </Link>
+                </template>
+            </LuxHero>
 
-        <!-- Grid -->
-        <div class="gs-items-grid" v-if="filteredItems.length">
-            <div v-for="item in filteredItems" :key="item.id" class="gs-item-card gs-card">
-                <!-- Image -->
-                <div class="gs-item-img">
-                    <img v-if="item.image_path" :src="'/storage/' + item.image_path" :alt="item.name" />
-                    <span v-else class="gs-item-img-placeholder">📦</span>
+            <!-- ================= نوار جستجو و فیلتر ================= -->
+            <div class="gx-toolbar">
+                <div class="gx-search">
+                    <Search :size="15" class="gx-search__icon" />
+                    <input v-model="search" type="search" placeholder="جستجو نام محصول..." />
                 </div>
-                <!-- Info -->
-                <div class="gs-item-info">
-                    <p class="gs-item-name">{{ item.name }}</p>
-                    <p class="gs-item-desc" v-if="item.description">{{ item.description }}</p>
-                    <span v-if="item.category" class="gs-badge" style="margin-top:.3rem">{{ item.category.name }}</span>
-                              <div v-if="item.has_serial_number || item.has_warranty || item.missing_serial_count > 0"
-                        style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.35rem">
-                        <span v-if="item.has_serial_number" class="gs-badge gs-badge-gold gs-badge-sm">شماره سریال دارد</span>
-                        <span v-if="item.has_warranty" class="gs-badge gs-badge-gold gs-badge-sm">گارانتی دارد</span>
-                        <span v-if="item.missing_serial_count > 0" class="gs-badge gs-badge-warning gs-badge-sm"
-                            style="cursor:pointer" @click="openSerialFix(item)">
-                            {{ item.missing_serial_count }} عدد بدون شماره سریال
-                        </span>
-                    </div>
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.75rem">
-                        <span class="gs-gold-text" style="font-weight:700;font-size:.95rem">
-                            {{ formatPrice(item.sale_price) }}
-                        </span>
-                        <span v-if="item.tracks_stock" class="gs-badge"
-                            :class="item.current_stock > 0 ? 'gs-badge-success' : 'gs-badge-error'">
-                            موجودی: {{ item.current_stock ?? 0 }}
-                        </span>
-                    </div>
-                </div>
-                <!-- Actions -->
-                <div class="gs-item-actions">
-                    <Link :href="route('items.edit', item.id)" class="gs-btn gs-btn-secondary gs-btn-sm">ویرایش</Link>
-                    <button @click="confirmDelete(item)" class="gs-btn gs-btn-danger gs-btn-sm">حذف</button>
-                </div>
-            </div>
-        </div>
-
-        <div v-else class="gs-card" style="text-align:center;padding:3rem">
-            <p style="font-size:2rem;margin-bottom:.5rem">📦</p>
-            <p class="gs-subtitle">محصولی یافت نشد</p>
-            <Link :href="route('items.create')" class="gs-btn gs-btn-primary gs-btn-sm" style="margin-top:.75rem">
-                اولین محصول را اضافه کنید
-            </Link>
-        </div>
-
-        <!-- Delete modal -->
-        <Transition name="gs-fade">
-            <div v-if="deleteTarget" class="gs-modal-overlay" @click.self="deleteTarget = null">
-                <div class="gs-modal">
-                    <h3 class="gs-subtitle" style="margin-bottom:.5rem">حذف محصول</h3>
-                    <p class="gs-label" style="margin-bottom:1.25rem">
-                        «{{ deleteTarget.name }}» حذف شود؟
-                    </p>
-                    <div style="display:flex;gap:.75rem;justify-content:flex-end">
-                        <button @click="deleteTarget = null" class="gs-btn gs-btn-ghost">انصراف</button>
-                        <button @click="doDelete" class="gs-btn gs-btn-danger" :disabled="deleting">
-                            {{ deleting ? '...' : 'حذف' }}
-                        </button>
-                    </div>
+                <div v-if="categoryChips.length" class="gx-seg">
+                    <button
+                        type="button"
+                        class="gx-seg__btn"
+                        :class="{ 'is-active': !categoryFilter }"
+                        @click="categoryFilter = ''"
+                    >
+                        همه
+                    </button>
+                    <button
+                        v-for="c in categoryChips"
+                        :key="c"
+                        type="button"
+                        class="gx-seg__btn"
+                        :class="{ 'is-active': categoryFilter === c }"
+                        @click="categoryFilter = categoryFilter === c ? '' : c"
+                    >
+                        {{ c }}
+                    </button>
                 </div>
             </div>
-        </Transition>
 
-        <!-- Serial fix modal -->
-        <Transition name="gs-fade">
-            <div v-if="serialFixTarget" class="gs-modal-overlay" @click.self="serialFixTarget = null">
-                <div class="gs-modal">
-                    <h3 class="gs-subtitle" style="margin-bottom:.5rem">تکمیل شماره سریال — {{ serialFixTarget.name }}</h3>
-                    <p class="gs-label" style="margin-bottom:1rem">
-                        این واحدها در انبار موجودند ولی شماره سریال ندارند. برای هرکدام که می‌خوای، شماره سریال رو
-                        وارد و ثبت کن.
-                    </p>
+            <!-- ================= گرید محصولات ================= -->
+            <div class="gx-prodgrid" v-if="filteredItems.length">
+                <article
+                    v-for="(item, idx) in filteredItems"
+                    :key="item.id"
+                    v-tilt="{ max: 7, scale: 1.015, lift: 12 }"
+                    class="gx-prod a3d-aura"
+                    :style="{ '--gx-i': Math.min(idx, 9) }"
+                >
+                    <!-- تصویر -->
+                    <div class="gx-prod__img">
+                        <img v-if="item.image_path" :src="'/storage/' + item.image_path" :alt="item.name" />
+                        <span v-else class="gx-prod__ph">📦</span>
+                    </div>
 
-                    <p v-if="loadingSlots" class="gs-label">در حال بارگذاری...</p>
-                    <p v-else-if="!serialSlots.length" class="gs-label">همه‌ی واحدها شماره سریال دارند 🎉</p>
+                    <!-- اطلاعات -->
+                    <div class="gx-prod__body">
+                        <p class="gx-prod__name">{{ item.name }}</p>
+                        <p class="gx-prod__desc" v-if="item.description">{{ item.description }}</p>
 
-                    <div v-else style="display:flex;flex-direction:column;gap:.5rem;max-height:300px;overflow-y:auto">
-                        <div v-for="slot in serialSlots" :key="slot.id" style="display:flex;gap:.5rem">
-                            <input v-model="slotInputs[slot.id]" type="text" class="gs-input"
-                                placeholder="شماره سریال..." @keydown.enter.prevent="submitSlotSerial(slot)" />
-                            <button type="button" class="gs-btn gs-btn-primary gs-btn-sm"
-                                @click="submitSlotSerial(slot)">ثبت</button>
+                        <div class="gx-prod__tags">
+                            <span v-if="item.category" class="gx-tag gx-tag--plain">{{ item.category.name }}</span>
+                            <span v-if="item.has_serial_number" class="gx-tag">
+                                <Barcode :size="11" /> سریال
+                            </span>
+                            <span v-if="item.has_warranty" class="gx-tag">
+                                <ShieldCheck :size="11" /> گارانتی
+                            </span>
+                            <span
+                                v-if="item.missing_serial_count > 0"
+                                class="gx-tag gx-tag--warn"
+                                @click="openSerialFix(item)"
+                            >
+                                <AlertTriangle :size="11" />
+                                {{ faInt(item.missing_serial_count) }} بدون سریال
+                            </span>
+                        </div>
+
+                        <div class="gx-prod__meta">
+                            <span class="gx-price">{{ formatPrice(item.sale_price) }}</span>
+                            <span
+                                v-if="item.tracks_stock"
+                                class="gx-status"
+                                :class="item.current_stock > 0 ? 'gx-status--green' : 'gx-status--red'"
+                            >
+                                <i />
+                                موجودی: {{ faInt(item.current_stock ?? 0) }}
+                            </span>
                         </div>
                     </div>
 
-                    <div style="display:flex;justify-content:flex-end;margin-top:1.25rem">
-                        <button @click="serialFixTarget = null" class="gs-btn gs-btn-ghost">بستن</button>
+                    <!-- اقدامات -->
+                    <div class="gx-prod__actions">
+                        <Link :href="route('items.edit', item.id)" class="a3d-btn a3d-btn--sm" style="flex: 1">
+                            <Pencil :size="13" />
+                            ویرایش
+                        </Link>
+                        <button @click="confirmDelete(item)" class="a3d-btn a3d-btn--sm a3d-btn--danger">
+                            <Trash2 :size="13" />
+                            حذف
+                        </button>
                     </div>
+                </article>
+            </div>
+
+            <!-- حالت خالی -->
+            <div v-else class="gx-panel">
+                <div class="gx-empty">
+                    <span class="gx-empty__icon">📦</span>
+                    <p class="gx-empty__title">محصولی یافت نشد</p>
+                    <p class="gx-empty__desc">اولین قلم انبار را ثبت کن تا فروشگاهت جان بگیرد.</p>
+                    <Link :href="route('items.create')" class="a3d-btn a3d-btn--gold a3d-btn--sm" style="margin-top: 0.5rem">
+                        <Plus :size="14" />
+                        اولین محصول را اضافه کنید
+                    </Link>
                 </div>
             </div>
-        </Transition>
 
+            <!-- ================= مودال حذف ================= -->
+            <Transition name="gs-fade">
+                <div v-if="deleteTarget" class="gs-modal-overlay" @click.self="deleteTarget = null">
+                    <div class="gs-modal">
+                        <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.7rem">
+                            <span class="gx-empty__icon" style="width: 40px; height: 40px; font-size: 1rem; border-radius: 12px; animation: none">🗑️</span>
+                            <h3 style="font-weight: 800; color: var(--gs-text-primary)">حذف محصول</h3>
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--gs-text-secondary); margin-bottom: 1.25rem; line-height: 1.9">
+                            «{{ deleteTarget.name }}» برای همیشه حذف شود؟ این عملیات قابل بازگشت نیست.
+                        </p>
+                        <div style="display: flex; gap: 0.75rem; justify-content: flex-end">
+                            <button @click="deleteTarget = null" class="a3d-btn a3d-btn--ghost">انصراف</button>
+                            <button @click="doDelete" class="a3d-btn a3d-btn--danger" :disabled="deleting">
+                                {{ deleting ? 'در حال حذف...' : 'حذف' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+
+            <!-- ================= مودال تکمیل شماره سریال ================= -->
+            <Transition name="gs-fade">
+                <div v-if="serialFixTarget" class="gs-modal-overlay" @click.self="serialFixTarget = null">
+                    <div class="gs-modal">
+                        <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.7rem">
+                            <span class="gx-empty__icon" style="width: 40px; height: 40px; font-size: 1rem; border-radius: 12px; animation: none">🔢</span>
+                            <h3 style="font-weight: 800; color: var(--gs-text-primary)">
+                                تکمیل شماره سریال — {{ serialFixTarget.name }}
+                            </h3>
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--gs-text-muted); margin-bottom: 1rem; line-height: 1.9">
+                            این واحدها در انبار موجودند ولی شماره سریال ندارند. برای هرکدام که می‌خوای، شماره سریال رو
+                            وارد و ثبت کن.
+                        </p>
+
+                        <p v-if="loadingSlots" style="font-size: 0.8rem; color: var(--gs-text-muted)">در حال بارگذاری...</p>
+                        <p v-else-if="!serialSlots.length" style="font-size: 0.8rem; color: var(--gs-success)">
+                            همه‌ی واحدها شماره سریال دارند 🎉
+                        </p>
+
+                        <div v-else style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 300px; overflow-y: auto">
+                            <div v-for="slot in serialSlots" :key="slot.id" style="display: flex; gap: 0.5rem">
+                                <input
+                                    v-model="slotInputs[slot.id]"
+                                    type="text"
+                                    class="gs-input"
+                                    placeholder="شماره سریال..."
+                                    @keydown.enter.prevent="submitSlotSerial(slot)"
+                                />
+                                <button type="button" class="a3d-btn a3d-btn--gold a3d-btn--sm" @click="submitSlotSerial(slot)">
+                                    ثبت
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; justify-content: flex-end; margin-top: 1.25rem">
+                            <button @click="serialFixTarget = null" class="a3d-btn a3d-btn--ghost">بستن</button>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+        </div>
     </AppLayout>
 </template>
 
@@ -118,12 +205,38 @@ import { ref, computed } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import axios from 'axios'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import LuxScene from '@/Components/Lux/LuxScene.vue'
+import LuxHero from '@/Components/Lux/LuxHero.vue'
+import { vTilt } from '@/Composables/useTilt'
+import {
+    AlertTriangle,
+    Barcode,
+    Package,
+    Pencil,
+    Plus,
+    Search,
+    ShieldCheck,
+    Trash2,
+} from 'lucide-vue-next'
 
 const props = defineProps({ items: Array })
 
 const search = ref('')
+const categoryFilter = ref('')
+
+const categoryChips = computed(() =>
+    [...new Set(props.items.map(i => i.category?.name).filter(Boolean))]
+)
+
+const inStockCount = computed(() =>
+    props.items.filter(i => !i.tracks_stock || (i.current_stock ?? 0) > 0).length
+)
+
 const filteredItems = computed(() =>
-    props.items.filter(i => i.name.toLowerCase().includes(search.value.toLowerCase()))
+    props.items.filter(i =>
+        i.name.toLowerCase().includes(search.value.toLowerCase()) &&
+        (!categoryFilter.value || i.category?.name === categoryFilter.value)
+    )
 )
 
 const deleteTarget = ref(null)
@@ -172,79 +285,17 @@ async function submitSlotSerial(slot) {
     }
 }
 
+const faInt = n => Number(n ?? 0).toLocaleString('fa-IR')
+
 function formatPrice(p) {
     return Number(p).toLocaleString('fa-IR') + ' تومان'
 }
 </script>
 
 <style scoped>
-.gs-items-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 1rem;
-}
-
-.gs-item-card {
-    display: flex;
-    flex-direction: column;
-    padding: 0;
-    overflow: hidden;
-}
-
-.gs-item-img {
-    height: 130px;
-    background: var(--gs-bg-elevated);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-bottom: 1px solid var(--gs-border);
-    overflow: hidden;
-}
-
-.gs-item-img img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.gs-item-img-placeholder {
-    font-size: 2.5rem;
-    opacity: .5;
-}
-
-.gs-item-info {
-    padding: 1rem;
-    flex: 1;
-}
-
-.gs-item-name {
-    font-weight: 700;
-    color: var(--gs-text-primary);
-    font-size: .95rem;
-    margin-bottom: .2rem;
-}
-
-.gs-item-desc {
-    font-size: .8rem;
-    color: var(--gs-text-muted);
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.gs-item-actions {
-    padding: .75rem 1rem;
-    border-top: 1px solid var(--gs-border);
-    display: flex;
-    gap: .5rem;
-}
-
 .gs-modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.65);
-    backdrop-filter: blur(3px);
     z-index: 500;
     display: flex;
     align-items: center;
@@ -253,11 +304,8 @@ function formatPrice(p) {
 }
 
 .gs-modal {
-    background: var(--gs-bg-card);
-    border: 1px solid var(--gs-border-strong);
-    border-radius: 16px;
     padding: 1.75rem;
-    max-width: 380px;
+    max-width: 420px;
     width: 100%;
 }
 </style>

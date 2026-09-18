@@ -1,14 +1,26 @@
 <template>
     <AppLayout>
-        <template #header>
-            <div class="gs-page-header">
-                <div>
-                    <h1 class="gs-title">سرویس جدید</h1>
-                    <p class="gs-subtitle">ثبت سرویس یا تعمیر دستگاه</p>
-                </div>
-                <Link :href="route('service-jobs.index')" class="gs-btn gs-btn-secondary">← بازگشت</Link>
-            </div>
-        </template>
+        <div class="gx-page">
+            <LuxScene accent="blue" />
+
+            <LuxHero
+                chip="ماژول سرویس"
+                chip-two="Service Jobs / Create"
+                title="سرویس «جدید»"
+                lead="ثبت سرویس یا تعمیر دستگاه — مشتری، دستگاه، نوع خدمات و قطعات مصرفی."
+                cube="🔧"
+                satellite="🧰"
+                :stats="[
+                    { label: 'جمع خدمات', value: formatPrice(servicesTotal) },
+                    { label: 'جمع قطعات', value: formatPrice(itemsTotal) },
+                    { label: 'قیمت نهایی', value: formatPrice(finalPriceComputed) },
+                ]"
+            >
+                <template #chip-icon>🔧</template>
+                <template #actions>
+                    <Link :href="route('service-jobs.index')" class="a3d-btn a3d-btn--ghost">← بازگشت</Link>
+                </template>
+            </LuxHero>
 
         <form @submit.prevent="submit">
             <div class="gs-sj-grid">
@@ -283,12 +295,15 @@
                 </div>
             </div>
         </form>
+        </div>
     </AppLayout>
 </template>
 
 <script setup>
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import LuxScene from '@/Components/Lux/LuxScene.vue'
+import LuxHero from '@/Components/Lux/LuxHero.vue'
 import JalaliDateInput from '@/Components/JalaliDateInput.vue'
 import { computed, ref, watch } from 'vue'
 import axios from 'axios'

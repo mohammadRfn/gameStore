@@ -15,7 +15,7 @@
                 <!-- Brand -->
                 <Link :href="route('dashboard')" class="gs-brand">
                     <span class="gs-brand-icon">♟</span>
-                    <span class="gs-brand-name">Game<span class="gs-gold-text">Shop</span></span>
+                    <span class="gs-brand-name gs-gold-text">{{ page.props.shopName }}</span>
                 </Link>
             </div>
 
@@ -82,7 +82,7 @@
 
                 <div class="gs-sidebar-footer">
                     <div class="gs-divider-gold"></div>
-                    <p class="gs-label" style="text-align:center">GameShop v1.0</p>
+                    <p class="gs-label" style="text-align:center">{{ page.props.shopName }} v1.0</p>
                 </div>
             </aside>
         </Transition>

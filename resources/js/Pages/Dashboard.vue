@@ -156,7 +156,7 @@ const orbitSats = [
                             </span>
                             <span class="st-chip">
                                 <Gamepad2 :size="13" />
-                                مرکز فرمان گیم‌استور
+                                مرکز فرمان {{ page.props.shopName }}
                             </span>
                             <span class="st-chip st-chip--plain">
                                 <Clock :size="13" />

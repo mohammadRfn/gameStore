@@ -64,7 +64,7 @@
             </form>
 
             <div class="gs-divider-gold" style="margin-top:1.5rem"></div>
-            <p class="gs-label" style="text-align:center">GameShop CRM v1.0</p>
+            <p class="gs-label" style="text-align:center">{{ $page.props.shopName }} CRM v1.0</p>
         </div>
 
     </div>

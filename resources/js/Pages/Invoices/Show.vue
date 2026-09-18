@@ -1,30 +1,36 @@
 <template>
     <AppLayout>
-        <template #header>
-            <div class="gs-page-header">
-                <div>
-                    <h1 class="gs-title">فاکتور {{ invoice.invoice_number }}</h1>
-                    <p class="gs-subtitle">{{ invoice.customer?.name ?? 'بدون مشتری' }}</p>
-                </div>
-                <div style="display:flex;gap:.75rem">
-                    <Link v-if="!isLocked" :href="route('invoices.edit', invoice.id)" class="gs-btn gs-btn-secondary">
+        <div class="gx-page">
+            <LuxScene accent="violet" />
+
+            <LuxHero
+                chip="ماژول فروش"
+                chip-two="Invoices / Show"
+                :title="'فاکتور «' + invoice.invoice_number + '»'"
+                :lead="'مشتری: ' + (invoice.customer?.name ?? 'بدون مشتری')"
+                cube="🧾"
+                satellite="💳"
+            >
+                <template #chip-icon>🧾</template>
+                <template #actions>
+                    <Link v-if="!isLocked" :href="route('invoices.edit', invoice.id)" class="a3d-btn">
                         ویرایش</Link>
                     <a v-if="isLocked" :href="route('invoices.pdf', invoice.id)" target="_blank"
-                        class="gs-btn gs-btn-secondary">
+                        class="a3d-btn">
                         📄 دریافت PDF
                     </a>
-                    <span v-if="invoice.is_returned" class="gs-badge gs-badge-error" style="align-self:center">
+                    <span v-if="invoice.is_returned" class="gx-status gx-status--red" style="align-self:center">
+                        <i />
                         مرجوع شده
-                        <button v-if="!hasRestockedItems" @click="unmarkReturned" class="gs-btn gs-btn-ghost gs-btn-sm"
+                        <button v-if="!hasRestockedItems" @click="unmarkReturned" class="a3d-btn a3d-btn--ghost a3d-btn--sm"
                             style="margin-right:.4rem" :disabled="unreturning">
                             {{ unreturning ? '...' : 'لغو' }}
                         </button>
                     </span>
-                    <button @click="confirmDelete" class="gs-btn gs-btn-danger">حذف</button>
-                    <Link :href="route('invoices.index')" class="gs-btn gs-btn-ghost">← بازگشت</Link>
-                </div>
-            </div>
-        </template>
+                    <button @click="confirmDelete" class="a3d-btn a3d-btn--danger">حذف</button>
+                    <Link :href="route('invoices.index')" class="a3d-btn a3d-btn--ghost">← بازگشت</Link>
+                </template>
+            </LuxHero>
 
 
 
@@ -326,6 +332,7 @@
                 </div>
             </div>
         </Transition>
+        </div>
     </AppLayout>
 </template>
 
@@ -333,6 +340,8 @@
 import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import LuxScene from '@/Components/Lux/LuxScene.vue'
+import LuxHero from '@/Components/Lux/LuxHero.vue'
 const removingAdjustmentId = ref(null)
 import InvoiceRestockPanel from '@/Components/InvoiceRestockPanel.vue'
 import ManageWarrantyModal from '@/Components/WarrantyManagerModal.vue'

@@ -52,6 +52,12 @@ class HandleInertiaRequests extends Middleware
             // مقدار واقعی general.theme از ماژول Setting، برای اینکه فرانت
             // بدون نیاز به فراخوانی جدا از "منبع حقیقت" واقعی باخبر باشه
             'theme' => fn () => app('settings')->getString('general.theme', 'light'),
+
+            // نام تجاری پرفایل اصلیِ فروشگاه؛ تا وقتی هیچ پرفایلی ثبت نشده
+            // (یا پرفایل اصلی نام تجاری خالی داره)، مقدار پیش‌فرض GameShop می‌مونه.
+            'shopName' => fn () => app(\Modules\Profile\Services\StoreProfileService::class)
+                ->findPrimary()
+                ?->brand_name ?: 'GameShop',
         ]);
     }
 }

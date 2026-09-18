@@ -5,6 +5,7 @@
 @import "./profile-3d.css";
 @import "./cache-maintenance-3d.css";
 @import "./crm-3d.css"; 
+@import "./lux-3d.css";
 /* ============================================================
    فونت وزیرمتن (Vazirmatn) — آفلاین — همهٔ وزن‌ها
    مسیر نسبی است؛ Vite از resources/fonts/Vazirmatn فایل‌ها را می‌سازد

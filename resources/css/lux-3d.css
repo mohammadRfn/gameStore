@@ -1,0 +1,1034 @@
+/* ==========================================================================
+   GameStore · LUX 3D Layer — انبار / سرویس / فروش / گردش انبار
+   --------------------------------------------------------------------------
+   مسیر فایل: resources/css/lux-3d.css
+
+   فعال‌سازی — در resources/css/app.css کنار بقیهٔ ایمپورت‌ها (بالای فایل):
+       @import "tailwindcss";
+       @import "./archive-3d.css";
+       @import "./settings-3d.css";
+       @import "./lux-3d.css";        <-- این خط
+
+   این فایل هیچ توکنی را بازنویسی نمی‌کند و کاملاً روی --gs-* سوار است،
+   پس با تم روشن/تاریک ۱۰۰٪ سازگار می‌ماند. کلاس‌های a3d-* از archive-3d.css
+   دوباره تعریف نشده‌اند و مستقیم استفاده می‌شوند.
+
+   دو بخش دارد:
+     ۱) کلاس‌های gx-*  → هیرو، چیپ، آمار، تایم‌لاین، گرید محصولات و…
+     ۲) بازپوست‌سازی gs-* داخل .gx-page → کارت‌ها، جدول‌ها، دکمه‌ها، فرم‌ها
+        (بدون نیاز به تغییر منطق صفحات؛ فقط wrapper لازم است)
+   ========================================================================== */
+
+:root {
+    --gx-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --gx-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* --------------------------------------------------------------------------
+   1) پوستهٔ صفحه + ورود سینمایی
+   -------------------------------------------------------------------------- */
+.gx-page {
+    position: relative;
+    z-index: 1;
+    animation: gx-page-in 0.6s var(--gx-ease) both;
+}
+
+@keyframes gx-page-in {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes gx-rise {
+    from { opacity: 0; transform: perspective(1100px) translateY(26px) rotateX(-8deg) scale(0.985); }
+    to   { opacity: 1; transform: perspective(1100px) translateY(0) rotateX(0) scale(1); }
+}
+
+/* --------------------------------------------------------------------------
+   2) هیرو (سربرگ صفحه) — هم‌خانوادهٔ st-hero تنظیمات
+   -------------------------------------------------------------------------- */
+.gx-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    padding: 1.9rem 0 1.7rem;
+    margin-bottom: 1.6rem;
+    border-bottom: 1px solid var(--gs-border);
+    overflow: visible;
+}
+
+.gx-hero__chips {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.gx-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.34rem 0.8rem;
+    border-radius: 999px;
+    border: 1px solid var(--gs-border);
+    background: var(--gs-gold-muted);
+    color: var(--gs-gold);
+    font-size: 0.72rem;
+    font-weight: 700;
+    animation: gx-rise 0.55s var(--gx-ease) both;
+}
+
+.gx-chip--plain {
+    background: var(--gs-glass);
+    color: var(--gs-text-secondary);
+    animation-delay: 90ms;
+}
+
+.gx-hero__title {
+    font-size: clamp(1.9rem, 4.6vw, 3rem);
+    font-weight: 900;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--gs-text-primary);
+    margin: 0.7rem 0 0;
+    animation: gx-rise 0.6s 60ms var(--gx-ease) both;
+}
+
+.gx-hero__title em {
+    font-style: normal;
+    background: var(--gs-gold-grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.gx-underline {
+    display: block;
+    width: min(210px, 55vw);
+    height: 11px;
+    margin-top: 0.3rem;
+}
+
+.gx-underline path {
+    stroke-dasharray: 260;
+    stroke-dashoffset: 260;
+    animation: gx-draw 1.1s 0.3s var(--gx-ease) forwards;
+}
+
+@keyframes gx-draw { to { stroke-dashoffset: 0; } }
+
+.gx-hero__lead {
+    max-width: 470px;
+    margin-top: 0.7rem;
+    font-size: 0.88rem;
+    line-height: 1.95;
+    color: var(--gs-text-secondary);
+    animation: gx-rise 0.6s 130ms var(--gx-ease) both;
+}
+
+.gx-hero__stats {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+    margin-top: 1.05rem;
+    animation: gx-rise 0.6s 200ms var(--gx-ease) both;
+}
+
+.gx-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.42rem 0.85rem;
+    border-radius: 12px;
+    border: 1px solid var(--gs-border);
+    background: var(--gs-glass);
+    color: var(--gs-text-secondary);
+    font-size: 0.76rem;
+    backdrop-filter: blur(10px);
+    transition: transform 0.3s var(--gx-spring), border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.gx-stat:hover {
+    transform: translateY(-3px);
+    border-color: var(--gs-border-hover);
+    box-shadow: var(--gs-shadow-gold);
+}
+
+.gx-stat b {
+    color: var(--gs-gold);
+    font-size: 0.92rem;
+    font-weight: 800;
+}
+
+.gx-hero__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-top: 1.1rem;
+    animation: gx-rise 0.6s 260ms var(--gx-ease) both;
+}
+
+/* آرایهٔ سه‌بعدی سمت چپ هیرو (مکعب + هاله) */
+.gx-hero__ornament {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 168px;
+    height: 150px;
+    flex-shrink: 0;
+    perspective: 900px;
+    animation: gx-rise 0.7s 200ms var(--gx-ease) both;
+}
+
+.gx-hero__ornament::before {
+    content: '';
+    position: absolute;
+    inset: 12%;
+    border-radius: 50%;
+    background: var(--gs-gold-glow);
+    filter: blur(44px);
+    opacity: 0.55;
+    animation: gx-pulse 4.5s ease-in-out infinite;
+}
+
+@keyframes gx-pulse {
+    0%, 100% { opacity: 0.35; transform: scale(0.94); }
+    50%      { opacity: 0.65; transform: scale(1.06); }
+}
+
+.gx-hero__ring {
+    position: absolute;
+    inset: 6px;
+    border-radius: 50%;
+    border: 1px dashed var(--gs-border-hover);
+    animation: gx-ring-spin 26s linear infinite;
+}
+
+@keyframes gx-ring-spin { to { transform: rotate(360deg); } }
+
+.gx-hero__satellite {
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    width: 30px;
+    height: 30px;
+    margin-left: -15px;
+    display: grid;
+    place-items: center;
+    font-size: 0.85rem;
+    border-radius: 50%;
+    border: 1px solid var(--gs-border);
+    background: var(--gs-bg-elevated);
+    box-shadow: var(--gs-shadow-sm);
+}
+
+@media (max-width: 860px) {
+    .gx-hero__ornament { display: none; }
+}
+
+/* --------------------------------------------------------------------------
+   3) کارت‌های KPI بالای لیست‌ها
+   -------------------------------------------------------------------------- */
+.gx-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.9rem;
+    margin-bottom: 1.4rem;
+}
+
+.gx-kpi {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.95rem 1.05rem;
+    border-radius: var(--gs-radius-lg);
+    border: 1px solid var(--gs-border);
+    background: var(--a3d-glass, var(--gs-bg-card));
+    backdrop-filter: blur(14px);
+    overflow: hidden;
+    animation: gx-rise 0.6s var(--gx-ease) both;
+    transition: transform 0.35s var(--gx-spring), border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.gx-kpi:nth-child(2) { animation-delay: 80ms; }
+.gx-kpi:nth-child(3) { animation-delay: 160ms; }
+.gx-kpi:nth-child(4) { animation-delay: 240ms; }
+
+.gx-kpi:hover {
+    transform: translateY(-4px);
+    border-color: var(--gs-border-hover);
+    box-shadow: var(--gs-shadow-gold);
+}
+
+.gx-kpi__icon {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+    flex-shrink: 0;
+    color: var(--gs-gold);
+    background: var(--gs-gold-muted);
+    border: 1px solid var(--gs-border);
+    transition: transform 0.4s var(--gx-spring);
+}
+
+.gx-kpi:hover .gx-kpi__icon { transform: translateZ(20px) rotate(-8deg) scale(1.08); }
+
+.gx-kpi__icon--blue   { color: var(--gs-info);    background: var(--gs-info-soft); }
+.gx-kpi__icon--green  { color: var(--gs-success); background: var(--gs-success-soft); }
+.gx-kpi__icon--red    { color: var(--gs-error);   background: var(--gs-error-soft); }
+.gx-kpi__icon--amber  { color: var(--gs-warning); background: var(--gs-warning-soft); }
+
+.gx-kpi__label { font-size: 0.72rem; color: var(--gs-text-muted); margin-bottom: 0.15rem; }
+.gx-kpi__value { font-size: 1.12rem; font-weight: 800; color: var(--gs-text-primary); }
+.gx-kpi__value small { font-size: 0.68rem; font-weight: 500; color: var(--gs-text-muted); margin-inline-start: 0.25rem; }
+
+/* --------------------------------------------------------------------------
+   4) نوار ابزار (جستجو / فیلتر)
+   -------------------------------------------------------------------------- */
+.gx-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+    padding: 0.8rem 0.9rem;
+    margin-bottom: 1.3rem;
+    border-radius: var(--gs-radius-lg);
+    border: 1px solid var(--gs-border);
+    background: var(--a3d-glass, var(--gs-bg-card));
+    backdrop-filter: blur(14px);
+    animation: gx-rise 0.55s 80ms var(--gx-ease) both;
+}
+
+.gx-search {
+    position: relative;
+    flex: 1;
+    min-width: 220px;
+}
+
+.gx-search svg,
+.gx-search__icon {
+    position: absolute;
+    inset-inline-start: 0.8rem;
+    top: 50%;
+    translate: 0 -50%;
+    color: var(--gs-text-muted);
+    pointer-events: none;
+    transition: color 0.25s ease;
+}
+
+.gx-search:focus-within svg,
+.gx-search:focus-within .gx-search__icon { color: var(--gs-gold); }
+
+.gx-search input {
+    width: 100%;
+    padding: 0.62rem 2.5rem 0.62rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--gs-border);
+    background: var(--gs-bg-elevated);
+    color: var(--gs-text-primary);
+    font-family: inherit;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.gx-search input:focus {
+    border-color: var(--gs-border-strong);
+    box-shadow: 0 0 0 4px var(--gs-gold-muted);
+}
+
+/* فیلتر سگمنتی (چیپ‌های وضعیت) */
+.gx-seg {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    border-radius: 12px;
+    border: 1px solid var(--gs-border);
+    background: var(--gs-bg-elevated);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.gx-seg::-webkit-scrollbar { display: none; }
+
+.gx-seg__btn {
+    appearance: none;
+    border: none;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.42rem 0.8rem;
+    border-radius: 9px;
+    color: var(--gs-text-secondary);
+    font-family: inherit;
+    font-size: 0.76rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 0.25s ease, background 0.25s ease, transform 0.25s var(--gx-spring);
+}
+
+.gx-seg__btn:hover { color: var(--gs-text-primary); transform: translateY(-1px); }
+
+.gx-seg__btn.is-active {
+    background: var(--gs-gold-grad);
+    color: #14100a;
+    box-shadow: 0 4px 14px var(--gs-gold-glow);
+}
+
+/* --------------------------------------------------------------------------
+   5) چیپ وضعیت با نقطهٔ نبض‌دار
+   -------------------------------------------------------------------------- */
+.gx-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.28rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.gx-status i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: gx-blink 2.4s ease-in-out infinite;
+}
+
+@keyframes gx-blink {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 45%, transparent); }
+    50%      { opacity: 0.55; box-shadow: 0 0 0 4px transparent; }
+}
+
+.gx-status--gold  { color: var(--gs-gold);    background: var(--gs-gold-muted);   border-color: color-mix(in srgb, var(--gs-gold) 30%, transparent); }
+.gx-status--green { color: var(--gs-success); background: var(--gs-success-soft); border-color: color-mix(in srgb, var(--gs-success) 30%, transparent); }
+.gx-status--red   { color: var(--gs-error);   background: var(--gs-error-soft);   border-color: color-mix(in srgb, var(--gs-error) 30%, transparent); }
+.gx-status--amber { color: var(--gs-warning); background: var(--gs-warning-soft); border-color: color-mix(in srgb, var(--gs-warning) 30%, transparent); }
+.gx-status--blue  { color: var(--gs-info);    background: var(--gs-info-soft);    border-color: color-mix(in srgb, var(--gs-info) 30%, transparent); }
+
+/* --------------------------------------------------------------------------
+   6) گرید محصولات انبار
+   -------------------------------------------------------------------------- */
+.gx-prodgrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(235px, 1fr));
+    gap: 1.1rem;
+}
+
+.gx-prod {
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--gs-radius-lg);
+    border: 1px solid var(--gs-border);
+    background: var(--a3d-glass, var(--gs-bg-card));
+    backdrop-filter: blur(14px);
+    overflow: hidden;
+    animation: gx-rise 0.6s var(--gx-ease) both;
+    animation-delay: calc(var(--gx-i, 0) * 55ms);
+    transition: border-color 0.3s ease, box-shadow 0.35s ease;
+}
+
+.gx-prod:hover {
+    border-color: var(--gs-border-hover);
+    box-shadow: var(--gs-shadow-gold), var(--gs-shadow-md);
+}
+
+.gx-prod__img {
+    position: relative;
+    height: 138px;
+    display: grid;
+    place-items: center;
+    background:
+        radial-gradient(60% 90% at 50% 0%, var(--gs-gold-muted), transparent 70%),
+        var(--gs-bg-elevated);
+    border-bottom: 1px solid var(--gs-border);
+    overflow: hidden;
+}
+
+.gx-prod__img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.7s var(--gx-ease), filter 0.4s ease;
+}
+
+.gx-prod:hover .gx-prod__img img { transform: scale(1.07) rotate(0.4deg); }
+
+.gx-prod__img .gx-prod__ph {
+    font-size: 2.4rem;
+    opacity: 0.55;
+    filter: drop-shadow(0 8px 18px var(--gs-gold-glow));
+    transition: transform 0.5s var(--gx-spring);
+}
+
+.gx-prod:hover .gx-prod__ph { transform: translateY(-4px) scale(1.12); }
+
+/* جاروی نور هنگام هاور */
+.gx-prod__img::after {
+    content: '';
+    position: absolute;
+    inset: -40% -80%;
+    background: linear-gradient(100deg, transparent 42%, color-mix(in srgb, var(--gs-gold-light) 22%, transparent) 50%, transparent 58%);
+    transform: translateX(140%);
+    transition: transform 0.9s var(--gx-ease);
+    pointer-events: none;
+}
+
+.gx-prod:hover .gx-prod__img::after { transform: translateX(-140%); }
+
+.gx-prod__body { padding: 0.95rem 1rem; flex: 1; }
+.gx-prod__name { font-weight: 800; font-size: 0.92rem; color: var(--gs-text-primary); }
+
+.gx-prod__desc {
+    margin-top: 0.25rem;
+    font-size: 0.76rem;
+    color: var(--gs-text-muted);
+    line-height: 1.8;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.gx-prod__tags { display: flex; flex-wrap: wrap; gap: 0.32rem; margin-top: 0.5rem; }
+
+.gx-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.16rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: var(--gs-gold);
+    background: var(--gs-gold-muted);
+    border: 1px solid color-mix(in srgb, var(--gs-gold) 26%, transparent);
+}
+
+.gx-tag--plain { color: var(--gs-text-secondary); background: var(--gs-glass); border-color: var(--gs-border); }
+.gx-tag--warn  { color: var(--gs-warning); background: var(--gs-warning-soft); border-color: color-mix(in srgb, var(--gs-warning) 30%, transparent); cursor: pointer; }
+.gx-tag--warn:hover { filter: brightness(1.15); }
+
+.gx-prod__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.8rem;
+}
+
+.gx-price {
+    font-weight: 800;
+    font-size: 0.95rem;
+    background: var(--gs-gold-grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.gx-prod__actions {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.7rem 1rem;
+    border-top: 1px solid var(--gs-border);
+    background: var(--gs-glass);
+}
+
+/* --------------------------------------------------------------------------
+   7) پنل شیشه‌ای عمومی + سرصفحهٔ بخش (مثل st-sechead)
+   -------------------------------------------------------------------------- */
+.gx-panel {
+    position: relative;
+    border-radius: var(--gs-radius-lg);
+    border: 1px solid var(--gs-border);
+    background: var(--a3d-glass, var(--gs-bg-card));
+    backdrop-filter: blur(16px) saturate(1.25);
+    box-shadow: var(--gs-shadow-sm);
+    overflow: hidden;
+    animation: gx-rise 0.6s var(--gx-ease) both;
+    animation-delay: calc(var(--gx-i, 0) * 90ms);
+    transition: border-color 0.3s ease, box-shadow 0.35s ease;
+}
+
+.gx-panel:hover { border-color: var(--gs-border-hover); }
+
+.gx-panel__head {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.95rem 1.2rem;
+    border-bottom: 1px solid var(--gs-border);
+    background: linear-gradient(to left, var(--gs-gold-muted), transparent 55%);
+}
+
+.gx-panel__icon {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
+    color: var(--gs-gold);
+    background: var(--gs-gold-muted);
+    border: 1px solid var(--gs-border);
+    flex-shrink: 0;
+    transition: transform 0.4s var(--gx-spring);
+}
+
+.gx-panel:hover .gx-panel__icon { transform: rotate(-8deg) scale(1.08); }
+
+.gx-panel__title { font-size: 0.9rem; font-weight: 800; color: var(--gs-text-primary); }
+.gx-panel__desc  { font-size: 0.7rem; color: var(--gs-text-muted); margin-top: 0.1rem; }
+.gx-panel__spacer { margin-inline-start: auto; display: flex; align-items: center; gap: 0.5rem; }
+.gx-panel__body { padding: 1.15rem 1.2rem; }
+.gx-panel__body--flush { padding: 0; }
+
+/* ردیف جزئیات */
+.gx-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px dashed var(--gs-border);
+    font-size: 0.85rem;
+}
+
+.gx-row:last-child { border-bottom: none; }
+.gx-row__k { color: var(--gs-text-muted); font-size: 0.78rem; }
+.gx-row__v { color: var(--gs-text-primary); font-weight: 600; }
+
+/* --------------------------------------------------------------------------
+   8) تایم‌لاین وضعیت سرویس
+   -------------------------------------------------------------------------- */
+.gx-steps {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    padding: 1.4rem 1.2rem 1.1rem;
+    overflow-x: auto;
+}
+
+.gx-step {
+    position: relative;
+    flex: 1;
+    min-width: 76px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.gx-step__dot {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--gs-text-muted);
+    background: var(--gs-bg-elevated);
+    border: 2px solid var(--gs-border);
+    transition: all 0.4s var(--gx-spring);
+}
+
+.gx-step__bar {
+    position: absolute;
+    top: 17px;
+    inset-inline-start: calc(50% + 17px);
+    width: calc(100% - 34px);
+    height: 2px;
+    background: var(--gs-border);
+    overflow: hidden;
+}
+
+.gx-step__bar i {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: var(--gs-gold-grad);
+    transition: width 0.8s var(--gx-ease);
+}
+
+.gx-step.is-done .gx-step__bar i { width: 100%; }
+
+.gx-step__label {
+    font-size: 0.7rem;
+    color: var(--gs-text-muted);
+    white-space: nowrap;
+    transition: color 0.3s ease;
+}
+
+.gx-step.is-done .gx-step__dot {
+    color: var(--gs-gold);
+    border-color: var(--gs-gold);
+    background: var(--gs-gold-muted);
+}
+
+.gx-step.is-active .gx-step__dot {
+    color: #14100a;
+    background: var(--gs-gold-grad);
+    border-color: var(--gs-gold);
+    box-shadow: 0 0 0 5px var(--gs-gold-muted), 0 6px 18px var(--gs-gold-glow);
+    animation: gx-step-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes gx-step-pulse {
+    0%, 100% { box-shadow: 0 0 0 4px var(--gs-gold-muted), 0 6px 18px var(--gs-gold-glow); }
+    50%      { box-shadow: 0 0 0 8px transparent, 0 6px 22px var(--gs-gold-glow); }
+}
+
+.gx-step.is-active .gx-step__label { color: var(--gs-gold); font-weight: 800; }
+.gx-step.is-done .gx-step__label   { color: var(--gs-text-secondary); }
+
+/* --------------------------------------------------------------------------
+   9) کارت جمع/فاکتور (خلاصهٔ مالی طلایی)
+   -------------------------------------------------------------------------- */
+.gx-total {
+    position: relative;
+    border-radius: var(--gs-radius-lg);
+    border: 1px solid color-mix(in srgb, var(--gs-gold) 35%, transparent);
+    background:
+        radial-gradient(120% 140% at 85% -20%, var(--gs-gold-muted), transparent 60%),
+        var(--a3d-glass, var(--gs-bg-card));
+    padding: 1rem 1.2rem;
+    overflow: hidden;
+    animation: gx-rise 0.6s var(--gx-ease) both;
+}
+
+.gx-total::after {
+    content: '';
+    position: absolute;
+    inset: -60% -120%;
+    background: linear-gradient(100deg, transparent 45%, color-mix(in srgb, var(--gs-gold-light) 14%, transparent) 50%, transparent 55%);
+    transform: translateX(150%);
+    animation: gx-sheen 5.5s var(--gx-ease) infinite;
+    pointer-events: none;
+}
+
+@keyframes gx-sheen {
+    0%, 55% { transform: translateX(150%); }
+    85%, 100% { transform: translateX(-150%); }
+}
+
+.gx-total__label { font-size: 0.75rem; color: var(--gs-text-muted); }
+.gx-total__value {
+    font-size: 1.35rem;
+    font-weight: 900;
+    background: var(--gs-gold-grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+/* --------------------------------------------------------------------------
+   10) پجینیشن
+   -------------------------------------------------------------------------- */
+.gx-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.9rem;
+    margin-top: 1.4rem;
+}
+
+.gx-pagination__num {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.95rem;
+    border-radius: 999px;
+    border: 1px solid var(--gs-border);
+    background: var(--gs-glass);
+    color: var(--gs-text-secondary);
+    font-size: 0.78rem;
+}
+
+.gx-pagination__num b { color: var(--gs-gold); }
+
+/* --------------------------------------------------------------------------
+   11) حالت خالی
+   -------------------------------------------------------------------------- */
+.gx-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 3.2rem 1.5rem;
+    text-align: center;
+    animation: gx-rise 0.6s var(--gx-ease) both;
+}
+
+.gx-empty__icon {
+    display: grid;
+    place-items: center;
+    width: 66px;
+    height: 66px;
+    border-radius: 22px;
+    font-size: 1.7rem;
+    color: var(--gs-gold);
+    background: var(--gs-gold-muted);
+    border: 1px dashed var(--gs-border-hover);
+    animation: gx-bob 3.4s ease-in-out infinite;
+}
+
+@keyframes gx-bob {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50%      { transform: translateY(-7px) rotate(-4deg); }
+}
+
+.gx-empty__title { font-size: 0.95rem; font-weight: 800; color: var(--gs-text-primary); }
+.gx-empty__desc  { font-size: 0.78rem; color: var(--gs-text-muted); max-width: 340px; line-height: 1.9; }
+
+/* ==========================================================================
+   بخش دوم — بازپوست‌سازی کلاس‌های gs-* داخل .gx-page
+   (برای صفحاتی که مارکاپ داخلی‌شان حفظ شده؛ فقط wrapper اضافه می‌شود)
+   ========================================================================== */
+
+/* کارت‌ها → شیشهٔ سه‌بعدی با ورود پلکانی */
+.gx-page .gs-card {
+    background: var(--a3d-glass, var(--gs-bg-card)) !important;
+    border: 1px solid var(--gs-border);
+    border-radius: var(--gs-radius-lg);
+    backdrop-filter: blur(16px) saturate(1.25);
+    box-shadow: var(--gs-shadow-sm);
+    animation: gx-rise 0.6s var(--gx-ease) both;
+    transition: border-color 0.3s ease, box-shadow 0.35s ease, transform 0.35s var(--gx-spring);
+}
+
+.gx-page > .gs-card:nth-of-type(2),
+.gx-page form .gs-card:nth-of-type(2) { animation-delay: 90ms; }
+.gx-page > .gs-card:nth-of-type(3),
+.gx-page form .gs-card:nth-of-type(3) { animation-delay: 180ms; }
+.gx-page > .gs-card:nth-of-type(4) { animation-delay: 270ms; }
+
+.gx-page .gs-card:hover {
+    border-color: var(--gs-border-hover);
+    box-shadow: var(--gs-shadow-gold), var(--gs-shadow-sm);
+}
+
+/* جدول‌ها */
+.gx-page .gs-table thead th {
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+    color: var(--gs-gold);
+    background: linear-gradient(to bottom, var(--gs-gold-muted), transparent);
+    border-bottom: 1px solid var(--gs-border);
+    padding: 0.85rem 1.1rem;
+}
+
+.gx-page .gs-table tbody td {
+    padding: 0.8rem 1.1rem;
+    border-bottom: 1px solid var(--gs-border-soft, var(--gs-border));
+    transition: background 0.25s ease;
+}
+
+.gx-page .gs-table tbody tr {
+    transition: background 0.25s ease, box-shadow 0.25s ease;
+    animation: gx-row-in 0.5s var(--gx-ease) both;
+}
+
+.gx-page .gs-table tbody tr:nth-child(1)  { animation-delay: 40ms; }
+.gx-page .gs-table tbody tr:nth-child(2)  { animation-delay: 80ms; }
+.gx-page .gs-table tbody tr:nth-child(3)  { animation-delay: 120ms; }
+.gx-page .gs-table tbody tr:nth-child(4)  { animation-delay: 160ms; }
+.gx-page .gs-table tbody tr:nth-child(5)  { animation-delay: 200ms; }
+.gx-page .gs-table tbody tr:nth-child(6)  { animation-delay: 240ms; }
+.gx-page .gs-table tbody tr:nth-child(7)  { animation-delay: 280ms; }
+.gx-page .gs-table tbody tr:nth-child(8)  { animation-delay: 320ms; }
+.gx-page .gs-table tbody tr:nth-child(9)  { animation-delay: 360ms; }
+.gx-page .gs-table tbody tr:nth-child(10) { animation-delay: 400ms; }
+
+@keyframes gx-row-in {
+    from { opacity: 0; transform: translateX(10px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+.gx-page .gs-table tbody tr:hover {
+    background: var(--gs-gold-muted);
+    box-shadow: inset 3px 0 0 var(--gs-gold);
+}
+
+/* دکمه‌ها → عمق فیزیکی مثل a3d-btn */
+.gx-page .gs-btn {
+    border-radius: 12px;
+    font-weight: 700;
+    transform-style: preserve-3d;
+    transition: transform 0.22s var(--gx-spring), box-shadow 0.22s ease,
+                background 0.22s ease, border-color 0.22s ease, color 0.22s ease;
+}
+
+.gx-page .gs-btn:hover:not(:disabled) {
+    transform: translateY(-2px) translateZ(8px);
+    box-shadow: 0 6px 0 -1px color-mix(in srgb, var(--gs-gold-dark) 40%, transparent),
+                0 14px 30px rgba(0, 0, 0, 0.4);
+}
+
+.gx-page .gs-btn:active:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow: 0 2px 0 -1px color-mix(in srgb, var(--gs-gold-dark) 40%, transparent);
+}
+
+.gx-page .gs-btn-primary {
+    background: var(--gs-gold-grad);
+    color: #14100a;
+    border-color: transparent;
+    box-shadow: 0 4px 0 -1px color-mix(in srgb, var(--gs-gold-dark) 55%, transparent),
+                0 10px 26px var(--gs-gold-glow);
+}
+
+.gx-page .gs-btn-danger:hover:not(:disabled) {
+    box-shadow: 0 6px 0 -1px color-mix(in srgb, var(--gs-error) 35%, transparent),
+                0 14px 30px rgba(0, 0, 0, 0.35);
+}
+
+.gx-page .gs-btn-ghost:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: none;
+    background: var(--gs-gold-muted);
+    color: var(--gs-gold);
+}
+
+/* فرم‌ها */
+.gx-page .gs-input {
+    border-radius: 12px;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+
+.gx-page .gs-input:focus {
+    border-color: var(--gs-border-strong) !important;
+    box-shadow: 0 0 0 4px var(--gs-gold-muted);
+}
+
+.gx-page .gs-input-error { box-shadow: 0 0 0 4px var(--gs-error-soft); }
+
+/* بج‌ها */
+.gx-page .gs-badge {
+    border-radius: 999px;
+    font-weight: 700;
+    border: 1px solid color-mix(in srgb, currentColor 28%, transparent);
+}
+
+/* مودال‌ها — با !important تا بر استایل‌های scoped صفحات غلبه کند */
+.gx-page .gs-modal-overlay {
+    background: color-mix(in srgb, var(--gs-bg) 55%, transparent) !important;
+    backdrop-filter: blur(8px) !important;
+    animation: gx-fade 0.3s ease both;
+}
+
+@keyframes gx-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.gx-page .gs-modal {
+    background: var(--gs-bg-card-strong) !important;
+    border: 1px solid var(--gs-border-strong) !important;
+    border-radius: var(--gs-radius-lg) !important;
+    box-shadow: var(--gs-shadow-md), 0 0 60px var(--gs-gold-glow) !important;
+    animation: gx-pop 0.45s var(--gx-spring) both;
+}
+
+@keyframes gx-pop {
+    from { opacity: 0; transform: perspective(900px) translateY(26px) rotateX(-10deg) scale(0.94); }
+    to   { opacity: 1; transform: perspective(900px) translateY(0) rotateX(0) scale(1); }
+}
+
+/* انتخاب سریال / کارت درخواست / آیتم‌پیکر */
+.gx-page .gs-serial-pick,
+.gx-page .gs-request-card,
+.gx-page .gs-service-pick {
+    border-radius: 12px !important;
+    transition: border-color 0.25s ease, background 0.25s ease, transform 0.25s var(--gx-spring), box-shadow 0.25s ease !important;
+}
+
+.gx-page .gs-serial-pick:hover,
+.gx-page .gs-request-card:hover,
+.gx-page .gs-service-pick:hover { transform: translateY(-2px); }
+
+.gx-page .gs-serial-pick.active,
+.gx-page .gs-request-card.active,
+.gx-page .gs-service-pick.active {
+    border-color: var(--gs-gold) !important;
+    background: var(--gs-gold-muted) !important;
+    box-shadow: 0 4px 16px var(--gs-gold-glow);
+}
+
+.gx-page .gs-serial-chip {
+    border-radius: 999px !important;
+    background: var(--gs-gold-muted) !important;
+    border: 1px solid color-mix(in srgb, var(--gs-gold) 30%, transparent) !important;
+    color: var(--gs-gold);
+    animation: gx-pop 0.35s var(--gx-spring) both;
+}
+
+.gx-page .gs-picker-item { transition: background 0.2s ease, padding-inline-start 0.25s var(--gx-ease); }
+.gx-page .gs-picker-item:hover { background: var(--gs-gold-muted); padding-inline-start: 0.7rem; }
+
+/* سوییچ چک‌باکس‌ها (شبیه GsToggle تنظیمات) */
+.gx-page .gs-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 40px !important;
+    height: 22px !important;
+    border-radius: 999px;
+    border: 1px solid var(--gs-border);
+    background: var(--gs-bg-elevated);
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.gx-page .gs-checkbox::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    inset-inline-start: 3px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--gs-text-muted);
+    transition: transform 0.35s var(--gx-spring), background 0.3s ease;
+}
+
+.gx-page .gs-checkbox:checked {
+    background: var(--gs-gold-grad);
+    border-color: transparent;
+}
+
+.gx-page .gs-checkbox:checked::after {
+    background: #14100a;
+    transform: translateX(-17px);
+}
+
+[dir='ltr'] .gx-page .gs-checkbox:checked::after { transform: translateX(17px); }
+
+/* اسکرول‌بار ظریف داخل پنل‌ها */
+.gx-page ::-webkit-scrollbar { width: 8px; height: 8px; }
+.gx-page ::-webkit-scrollbar-thumb { background: var(--gs-border-hover); border-radius: 8px; }
+
+/* --------------------------------------------------------------------------
+   کاهش حرکت
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+    .gx-page,
+    .gx-page *,
+    .gx-hero *,
+    .gx-prod,
+    .gx-panel,
+    .gx-kpi {
+        animation: none !important;
+        transition-duration: 0.01ms !important;
+    }
+}

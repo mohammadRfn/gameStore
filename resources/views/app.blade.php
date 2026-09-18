@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GameShop</title>
+    <title>{{ optional(app(\Modules\Profile\Services\StoreProfileService::class)->findPrimary())->brand_name ?: 'GameShop' }}</title>
     {{-- گام ۱: حدس سریع از localStorage تا فلش رنگ نداشته باشیم --}}
     <script>
         (function () {
