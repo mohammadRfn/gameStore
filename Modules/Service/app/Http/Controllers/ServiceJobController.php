@@ -29,9 +29,25 @@ class ServiceJobController extends Controller
             $query->where('status', $status);
         }
 
+        if ($search = trim((string) $request->input('search'))) {
+            $query->where(function ($q) use ($search) {
+                $q->where('device_type', 'like', "%{$search}%")
+                    ->orWhere('device_serial', 'like', "%{$search}%")
+                    ->orWhereHas('customer', fn ($c) => $c
+                        ->where('name', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%"))
+                    ->orWhereHas('serviceTypes.serviceType', fn ($s) => $s
+                        ->where('name', 'like', "%{$search}%"));
+
+                if (ctype_digit($search)) {
+                    $q->orWhere('id', (int) $search);
+                }
+            });
+        }
+
         return Inertia::render('ServiceJobs/Index', [
-            'serviceJobs' => $query->paginate(20),
-            'filters'     => $request->only(['status']),
+            'serviceJobs' => $query->paginate(20)->withQueryString(),
+            'filters'     => $request->only(['status', 'search']),
         ]);
     }
     public function show(int $id)

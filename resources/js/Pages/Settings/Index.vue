@@ -28,6 +28,7 @@ import {
     Gamepad2,
     Globe,
     Info,
+    KeyRound,
     Layers,
     MonitorSmartphone,
     Palette,
@@ -53,6 +54,7 @@ import GsField from '@/Components/Settings/GsField.vue'
 import GsTextArea from '@/Components/Settings/GsTextArea.vue'
 import ToastHost from '@/Components/Settings/ToastHost.vue'
 import GearsCluster from '@/Components/Settings/GearsCluster.vue'
+import AccountCredentialsCard from '@/Components/Settings/AccountCredentialsCard.vue'
 
 const api = useSettingsApi()
 /* =========================================================================
@@ -291,9 +293,14 @@ const checkUpdates = () => runOp('updates', api.checkForUpdates, 'info')
 /* =========================================================================
  * ۱۰) ناوبری + Scroll Spy
  * ========================================================================= */
+const navItems = computed(() => [
+    ...tree.value,
+    { key: 'account', label: 'حساب کاربری', icon: KeyRound },
+])
+
 const activeSection = ref('general')
 const activeIndex = computed(() => {
-    const i = tree.value.findIndex((g) => g.key === activeSection.value)
+    const i = navItems.value.findIndex((g) => g.key === activeSection.value)
     return i < 0 ? 0 : i
 })
 const navPillStyle = computed(() => ({
@@ -311,7 +318,7 @@ function initSpy() {
         },
         { rootMargin: '-28% 0px -62% 0px' },
     )
-    tree.value.forEach((g) => {
+    navItems.value.forEach((g) => {
         const el = document.getElementById(g.key)
         if (el) spy.observe(el)
     })
@@ -412,7 +419,7 @@ onBeforeUnmount(() => {
                         <div class="st-nav__list">
                             <span class="st-nav__pill" :style="navPillStyle" aria-hidden="true" />
                             <button
-                                v-for="g in tree"
+                                v-for="g in navItems"
                                 :key="g.key"
                                 type="button"
                                 class="st-nav__item"
@@ -445,7 +452,7 @@ onBeforeUnmount(() => {
                         <!-- ناوبری موبایل -->
                         <div class="st-navbar-mobile">
                             <button
-                                v-for="g in tree"
+                                v-for="g in navItems"
                                 :key="g.key"
                                 type="button"
                                 class="st-nav__item"
@@ -582,6 +589,18 @@ onBeforeUnmount(() => {
                                         </button>
                                     </div>
                                 </div>
+                            </section>
+
+                            <section id="account" class="st-section">
+                                <div v-reveal="{ delay: 0 }" class="st-group-head">
+                                    <GsSectionHead
+                                        :icon="KeyRound"
+                                        title="حساب کاربری"
+                                        desc="نام کاربری و رمز عبور ورود به نرم‌افزار"
+                                    />
+                                </div>
+
+                                <AccountCredentialsCard @toast="pushToast" />
                             </section>
                         </div>
 

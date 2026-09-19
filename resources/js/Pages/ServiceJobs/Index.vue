@@ -27,6 +27,12 @@
 
             <!-- ================= فیلتر وضعیت ================= -->
             <div class="gx-toolbar">
+                <div class="gx-search">
+                    <Search :size="15" class="gx-search__icon" />
+                    <input v-model="filters.search" type="search"
+                        placeholder="جستجو: مشتری، دستگاه، سریال، نوع سرویس یا شماره..."
+                        @input="applyDebounced" />
+                </div>
                 <span style="display:flex;align-items:center;gap:.4rem;font-size:.76rem;color:var(--gs-text-muted)">
                     <Filter :size="14" />
                     وضعیت:
@@ -134,14 +140,30 @@ import {
     Filter,
     Pencil,
     Plus,
+    Search,
     Trash2,
     Wrench,
 } from 'lucide-vue-next'
 
 const props = defineProps({ serviceJobs: Object, filters: Object })
 
-const filters = ref({ status: props.filters?.status ?? '' })
-function apply() { router.get(route('service-jobs.index'), filters.value, { preserveState: true, replace: true }) }
+const filters = ref({
+    status: props.filters?.status ?? '',
+    search: props.filters?.search ?? '',
+})
+
+function apply() {
+    const params = {}
+    if (filters.value.status) params.status = filters.value.status
+    if (filters.value.search?.trim()) params.search = filters.value.search.trim()
+    router.get(route('service-jobs.index'), params, { preserveState: true, replace: true })
+}
+
+let searchTimer = null
+function applyDebounced() {
+    clearTimeout(searchTimer)
+    searchTimer = setTimeout(apply, 350)
+}
 
 function destroyJob(job) {
     if (!confirm(`آیا از حذف سرویس #${job.id} مطمئن هستید؟`)) return

@@ -679,13 +679,18 @@ function fa(n) {
 .gsw__filters {
     position: relative;
     display: flex;
+    flex-shrink: 0;
     gap: 0.4rem;
     margin-top: 0.6rem;
     overflow-x: auto;
-    padding-bottom: 0.25rem;
+    padding: 3px 0 0.25rem;
     scrollbar-width: none;
 }
-
+.gsw__head,
+.gsw__tools,
+.gsw__foot {
+    flex-shrink: 0;
+}
 .gsw__filters::-webkit-scrollbar { display: none; }
 
 .gsw__filter {
@@ -735,6 +740,7 @@ function fa(n) {
 .gsw__list {
     position: relative;
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -745,6 +751,7 @@ function fa(n) {
 
 .gsw__row {
     position: relative;
+    flex: none;
     border-radius: 14px;
     border: 1px solid var(--gs-border-soft);
     background: var(--gs-glass);

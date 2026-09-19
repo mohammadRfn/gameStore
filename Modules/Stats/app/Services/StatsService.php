@@ -53,7 +53,7 @@ class StatsService
             'daily'      => $daily,
             'products'   => $products->values(),
             'services'   => $services->values(),
-            'invoices'   => $invoices->take(20)->values(),
+            'invoices'   => $invoices->take(100)->values(),
             'payments'   => $this->paymentMix($fromAt, $toAt),
             'aging'      => $this->agingBuckets(),
             'stock'      => $stock,

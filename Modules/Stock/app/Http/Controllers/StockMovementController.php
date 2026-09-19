@@ -24,6 +24,14 @@ class StockMovementController extends Controller
             $query->where('item_id', $itemId);
         }
 
+        if ($search = trim((string) $request->input('search'))) {
+            $query->where(function ($q) use ($search) {
+                $q->where('reason', 'like', "%{$search}%")
+                    ->orWhere('note', 'like', "%{$search}%")
+                    ->orWhereHas('item', fn ($i) => $i->where('name', 'like', "%{$search}%"));
+            });
+        }
+
         // فقط اقلامی که «موجودی انبار دارد» تیک خورده باشد (tracks_stock)
         // در انتخابگر گردش انبار و کارت‌های خلاصه ظاهر می‌شوند.
         $items = Item::where('tracks_stock', true)
@@ -43,10 +51,10 @@ class StockMovementController extends Controller
         })->values();
 
         return Inertia::render('StockMovements/Index', [
-            'movements'    => $query->paginate(30),
+            'movements'    => $query->paginate(30)->withQueryString(),
             'items'        => $items,
             'stockSummary' => $stockSummary,
-            'filters'      => $request->only(['item_id']),
+            'filters'      => $request->only(['item_id', 'search']),
         ]);
     }
 

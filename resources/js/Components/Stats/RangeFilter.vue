@@ -14,8 +14,12 @@
             فقط وصول‌شده
         </label>
 
-        <JalaliDateInput v-model="from" class="gs-date" placeholder="از تاریخ" />
-        <JalaliDateInput v-model="to" class="gs-date" placeholder="تا تاریخ" />
+        <div class="filter-date">
+            <JalaliDateInput v-model="from" size="sm" placeholder="از تاریخ" />
+        </div>
+        <div class="filter-date">
+            <JalaliDateInput v-model="to" size="sm" placeholder="تا تاریخ" />
+        </div>
 
         <button type="submit" class="gs-btn gs-btn-primary">
             <Search :size="15" />
@@ -88,6 +92,11 @@ function apply() {
 </script>
 
 <style scoped>
+.filter-date {
+    width: 165px;
+    flex: none;
+}
+
 .filter-sep {
     width: 1px;
     align-self: stretch;

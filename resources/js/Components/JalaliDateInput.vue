@@ -44,7 +44,7 @@
                 @click.stop="clear"
             >✕</span>
 
-            <span class="jdi__chev" aria-hidden="true">
+            <span v-if="!(clearable && displayValue && !disabled)" class="jdi__chev" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
                      stroke-linecap="round" stroke-linejoin="round">
                     <path d="m6 9 6 6 6-6" />
@@ -205,9 +205,20 @@ const leadingBlanks = computed(() => {
 
 const yearRange = computed(() => {
     const base = todayJalali.jy
+    const sel = selectedJalali.value?.jy ?? base
     const arr = []
-    for (let y = base - 8; y <= base + 8; y++) arr.push(y)
+    for (let y = Math.min(base - 40, sel); y <= Math.max(base + 10, sel); y++) arr.push(y)
     return arr
+})
+
+// وقتی انتخاب سال باز شد، سال فعال وسط لیست بیاد
+watch(yearPicker, async (v) => {
+    await nextTick()
+    updatePopoverPosition()
+    if (!v) return
+    const box = popoverRef.value?.querySelector('.jdi-pop__years')
+    const el = box?.querySelector('.is-active')
+    if (box && el) box.scrollTop = el.offsetTop - box.clientHeight / 2 + el.clientHeight / 2
 })
 
 function toggleOpen() {
@@ -228,28 +239,48 @@ function updatePopoverPosition() {
     const el = wrapperRef.value
     if (!el) return
     const rect = el.getBoundingClientRect()
-    const width = Math.max(rect.width, 288)
+    // عرض تقویم نباید از عرض فیلد تبعیت کند؛ وگرنه در فیلدهای تمام‌عرض، تقویم تمام‌صفحه می‌شود
+    const width = Math.min(Math.max(rect.width, 288), 320, window.innerWidth - 16)
     let right = window.innerWidth - rect.right
     if (right + width > window.innerWidth) {
         right = Math.max(8, window.innerWidth - width - 8)
     }
+    right = Math.max(8, right)
 
-    // اگر فضای پایین کم بود، بالای فیلد باز شود
-    const estimatedHeight = 330
-    const openUp = rect.bottom + estimatedHeight > window.innerHeight && rect.top > estimatedHeight
+    // ارتفاع واقعی پاپ‌اور (اگر هنوز رندر نشده، تخمین)
+    const popH = popoverRef.value?.offsetHeight || 370
+    const gap = 6
+    const margin = 8
+
+    // اگر فضای پایین کم بود و بالا بیشتر بود، بالای فیلد باز شود
+    const spaceBelow = window.innerHeight - rect.bottom - gap - margin
+    const spaceAbove = rect.top - gap - margin
+    const openUp = spaceBelow < popH && spaceAbove > spaceBelow
+
+    let top = openUp ? rect.top - popH - gap : rect.bottom + gap
+    // همیشه داخل صفحه بماند
+    top = Math.max(margin, Math.min(top, window.innerHeight - popH - margin))
 
     popoverStyle.value = {
         position: 'fixed',
-        top: openUp ? 'auto' : `${rect.bottom + 6}px`,
-        bottom: openUp ? `${window.innerHeight - rect.top + 6}px` : 'auto',
+        top: `${top}px`,
         right: `${right}px`,
         width: `${width}px`,
         zIndex: 1000,
     }
 }
 
-function handleReposition() {
-    if (open.value) updatePopoverPosition()
+function handleReposition(e) {
+    if (!open.value) return
+    // اسکرول داخل خود پاپ‌اور (مثلاً لیست سال‌ها) نباید موقعیت را تغییر دهد
+    if (e?.target instanceof Node && popoverRef.value?.contains(e.target)) return
+    // اگر فیلد کاملاً از دید خارج شد، تقویم بسته شود
+    const rect = wrapperRef.value?.getBoundingClientRect()
+    if (rect && (rect.bottom < 0 || rect.top > window.innerHeight)) {
+        open.value = false
+        return
+    }
+    updatePopoverPosition()
 }
 
 function handleOutsideClick(e) {
@@ -327,17 +358,17 @@ function clear() {
 </script>
 
 <style scoped>
-.jdi { position: relative; width: 100%; }
+.jdi { position: relative; width: 100%; min-width: 172px; }
 
 /* ── تریگر ─────────────────────────────────────────────── */
 .jdi__trigger {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 0.55rem;
+    gap: 0.45rem;
     width: 100%;
     height: 44px;
-    padding: 0 0.85rem;
+    padding: 0 0.7rem;
     border-radius: 13px;
     border: 1px solid var(--gs-border);
     background:
@@ -401,8 +432,9 @@ function clear() {
     flex: 1;
     min-width: 0;
     font-weight: 700;
+    font-size: 0.95em;
     font-variant-numeric: tabular-nums;
-    letter-spacing: 0.02em;
+    letter-spacing: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -535,18 +567,24 @@ function clear() {
 .jdi-pop__picker { display: flex; flex-direction: column; gap: 0.5rem; }
 
 .jdi-pop__years {
-    display: flex;
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
     gap: 0.3rem;
-    overflow-x: auto;
-    padding-bottom: 0.3rem;
-    scrollbar-width: none;
+    max-height: 120px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 2px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--gs-border-hover) transparent;
 }
 
-.jdi-pop__years::-webkit-scrollbar { display: none; }
+.jdi-pop__years::-webkit-scrollbar { width: 5px; }
+.jdi-pop__years::-webkit-scrollbar-thumb { background: var(--gs-border-hover); border-radius: 4px; }
 
 .jdi-pop__year {
-    flex: none;
-    padding: 0.3rem 0.6rem;
+    padding: 0.35rem 0;
+    text-align: center;
     border-radius: 9px;
     border: 1px solid var(--gs-border-soft);
     background: var(--gs-glass);

@@ -135,7 +135,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="inv in invoices" :key="inv.id">
+                        <tr v-for="inv in pagedInvoices" :key="inv.id">
                             <td class="strong gold">{{ inv.number }}</td>
                             <td>{{ inv.customer }}</td>
                             <td>{{ money(inv.items) }}</td>
@@ -152,12 +152,29 @@
                     </tbody>
                 </table>
             </div>
+
+            <nav v-if="pageCount > 1" class="crm-pager" style="margin-top: .9rem" aria-label="صفحه‌بندی">
+                <button type="button" class="crm-pager__btn" :class="{ 'is-disabled': page === 1 }" @click="page--">
+                    قبلی
+                </button>
+                <button v-for="n in pageCount" :key="n" type="button" class="crm-pager__btn"
+                    :class="{ 'is-active': n === page }" @click="page = n">
+                    {{ faInt(n) }}
+                </button>
+                <button type="button" class="crm-pager__btn" :class="{ 'is-disabled': page === pageCount }"
+                    @click="page++">
+                    بعدی
+                </button>
+                <p class="crm-pager__info">
+                    نمایش {{ faInt(pageFrom) }} تا {{ faInt(pageTo) }} از {{ faInt(invoices.length) }} فاکتور
+                </p>
+            </nav>
         </section>
     </AppLayout>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import StatHero from '@/Components/Stats/StatHero.vue'
@@ -225,6 +242,15 @@ const topProductProfits = computed(() => topProducts.value.map((p) => p.profit))
 const topServices = computed(() => [...props.services].sort((a, b) => (b.revenue || 0) - (a.revenue || 0)).slice(0, 5))
 const topServiceNames = computed(() => topServices.value.map((s) => s.name))
 const topServiceRevenues = computed(() => topServices.value.map((s) => s.revenue))
+
+/* ─── Pagination (فاکتورها) ─── */
+const PER_PAGE = 10
+const page = ref(1)
+const pageCount = computed(() => Math.max(1, Math.ceil(props.invoices.length / PER_PAGE)))
+const pagedInvoices = computed(() => props.invoices.slice((page.value - 1) * PER_PAGE, page.value * PER_PAGE))
+const pageFrom = computed(() => (props.invoices.length ? (page.value - 1) * PER_PAGE + 1 : 0))
+const pageTo = computed(() => Math.min(page.value * PER_PAGE, props.invoices.length))
+watch(() => props.invoices, () => { page.value = 1 })
 
 /* ─── Status ─── */
 function statusLabel(s) {

@@ -36,8 +36,14 @@
                     <Moon v-else :size="18" />
                 </button>
 
+                <!-- Logout -->
+                <button class="gs-icon-btn gs-icon-btn--danger" title="خروج از حساب" aria-label="خروج از حساب"
+                    @click="logout">
+                    <LogOut :size="18" />
+                </button>
+
                 <!-- User -->
-                <div class="gs-user-menu" @click="userMenuOpen = !userMenuOpen">
+                <div class="gs-user-menu" @click.stop="userMenuOpen = !userMenuOpen">
                     <div class="gs-user-avatar">
                         {{ userInitial }}
                     </div>
@@ -106,10 +112,9 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
-import { Sun, Moon, icons } from 'lucide-vue-next'
+import { Sun, Moon, LogOut } from 'lucide-vue-next'
 import { useTheme } from '@/Composables/useTheme'
 import { useSettingsApi } from '@/Composables/useSettingsApi'
-import { label } from 'three/tsl'
 
 const page = usePage()
 
@@ -121,6 +126,11 @@ const themeClass = computed(() => isDark.value ? '' : 'light')
 function toggleTheme() {
     toggle()
     settingsApi.update({ 'general.theme': isDark.value ? 'dark' : 'light' }).catch(() => {})
+}
+
+// Logout
+function logout() {
+    router.post(route('logout'))
 }
 
 // Sidebar
@@ -409,6 +419,12 @@ const vClickOutside = {
     background: var(--gs-gold-muted);
     border-color: var(--gs-border-hover);
     color: var(--gs-gold);
+}
+
+.gs-icon-btn--danger:hover {
+    background: rgba(224, 92, 92, 0.1);
+    border-color: var(--gs-error);
+    color: var(--gs-error);
 }
 
 /* ============================================================

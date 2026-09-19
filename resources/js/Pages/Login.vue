@@ -54,7 +54,7 @@
                         <span>مرا به خاطر بسپار</span>
                     </label>
                 </div>
-
+                <Link :href="route('password.forgot')" class="gs-forgot">رمز عبور را فراموش کرده‌ای؟</Link>
                 <!-- Submit -->
                 <button type="submit" class="gs-btn gs-btn-primary gs-btn-lg"
                     style="width:100%;margin-top:1.5rem;justify-content:center" :disabled="form.processing">
@@ -72,7 +72,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useForm } from '@inertiajs/vue3'
+import { Link, useForm } from '@inertiajs/vue3'
 
 const showPass = ref(false)
 
@@ -150,6 +150,19 @@ function submit() {
 
 .gs-remember-row {
     margin-top: .5rem;
+}
+
+.gs-forgot {
+    display: inline-block;
+    margin-top: .75rem;
+    font-size: .8rem;
+    color: var(--gs-gold);
+    text-decoration: none;
+}
+
+.gs-forgot:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
 .gs-checkbox-label {
