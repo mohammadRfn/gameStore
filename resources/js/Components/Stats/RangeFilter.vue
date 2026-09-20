@@ -9,10 +9,6 @@
 
         <span class="filter-sep"></span>
 
-        <label class="gs-check">
-            <input type="checkbox" v-model="paidOnly" />
-            فقط وصول‌شده
-        </label>
 
         <div class="filter-date">
             <JalaliDateInput v-model="from" size="sm" placeholder="از تاریخ" />

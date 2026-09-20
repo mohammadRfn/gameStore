@@ -195,7 +195,9 @@ class InvoiceService
 
         $invoice->is_returned    = false;
         $invoice->returned_at    = null;
-        $invoice->payment_status = Invoice::PAYMENT_PAID;
+        $invoice->payment_status = $invoice->paid_at
+            ? Invoice::PAYMENT_PAID
+            : Invoice::PAYMENT_UNPAID;
         $invoice->save();
 
         return $invoice;

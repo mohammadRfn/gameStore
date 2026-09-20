@@ -23,6 +23,7 @@ class StatsService
 {
     public function dashboard(string $from, string $to, bool $paidOnly = true): array
     {
+        $paidOnly = true;
         $fromAt = Carbon::parse($from)->startOfDay();
         $toAt   = Carbon::parse($to)->endOfDay();
         $days   = max(1, $fromAt->diffInDays($toAt) + 1);
@@ -53,7 +54,8 @@ class StatsService
             'daily'      => $daily,
             'products'   => $products->values(),
             'services'   => $services->values(),
-            'invoices'   => $invoices->take(100)->values(),
+            'invoices'          => $invoices->where('is_returned', false)->take(100)->values(),
+            'returned_invoices' => $invoices->where('is_returned', true)->take(100)->values(),
             'payments'   => $this->paymentMix($fromAt, $toAt),
             'aging'      => $this->agingBuckets(),
             'stock'      => $stock,
@@ -84,7 +86,7 @@ class StatsService
     public function populateDailyItemStats(string $statDate): void
     {
         $day = Carbon::parse($statDate);
-        $rows = $this->productRows($day->copy()->startOfDay(), $day->copy()->endOfDay(), false);
+        $rows = $this->productRows($day->copy()->startOfDay(), $day->copy()->endOfDay(), true);
 
         DailyItemStat::where('stat_date', $statDate)->delete();
 
@@ -737,9 +739,9 @@ class StatsService
         $active = $invoices->where('is_returned', false);
         $paid   = $active->where('status', Invoice::PAYMENT_PAID);
         $unpaid = $active->where('status', Invoice::PAYMENT_UNPAID);
-        $returned = $invoices->where('is_returned', true)
-            ->merge($invoices->where('status', Invoice::PAYMENT_RETURNED));
-
+        $returned = $invoices->filter(
+            fn($i) => $i['is_returned'] || $i['status'] === Invoice::PAYMENT_RETURNED
+        );
         $billed    = (float) $active->sum('total');
         $collected = (float) $paid->sum('total');
         $outstanding = (float) $unpaid->sum('total');
@@ -761,11 +763,12 @@ class StatsService
             'collected'        => round($collected, 0),
             'outstanding'      => round($outstanding, 0),
             'returned'         => round((float) $returned->sum('total'), 0),
-            'invoice_count'    => $invoices->count(),
+            'invoice_count'    => $active->count(),
+            'returned_count'   => $returned->count(),
             'paid_count'       => $paid->count(),
-            'unique_customers' => $invoices->pluck('customer')->filter()->unique()->count(),
+            'unique_customers' => $active->pluck('customer')->filter()->unique()->count(),
             'new_customers'    => $newCustomers,
-            'avg_ticket'       => $invoices->count() ? round($billed / max($active->count(), 1), 0) : 0,
+            'avg_ticket'       => $active->count() ? round($billed / $active->count(), 0) : 0,
         ];
     }
 
