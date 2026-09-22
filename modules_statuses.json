@@ -14,5 +14,6 @@
     "Category": true,
     "Dashboard": true,
     "Authentication": true,
-    "Backup": true
+    "Backup": true,
+    "AuditLog": true
 }
