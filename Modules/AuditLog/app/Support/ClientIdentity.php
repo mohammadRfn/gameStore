@@ -40,11 +40,6 @@ class ClientIdentity
         return config('auditlog.shipping.auth.license_token') ?: null;
     }
 
-    public function clientSecret(): ?string
-    {
-        return config('auditlog.shipping.auth.client_secret') ?: null;
-    }
-
     /**
      * اثر انگشت دستگاه؛ اگر در کانفیگ تعریف نشده باشد از مشخصات ماشین ساخته می‌شود.
      */

@@ -16,15 +16,16 @@ use Throwable;
 /**
  * کلاینت HTTP امن برای StoreServer.
  *
- * هدرهای ارسالی (هم‌راستا با ClientApi\Http\Middleware\VerifyClientSignature):
- *   Authorization: Bearer <license-token>
- *   X-GS-Timestamp, X-GS-Nonce, X-GS-Fingerprint
- *   X-GS-Signature      = base64(HMAC-SHA256(canonical, client_secret))
- *   X-GS-Signature-Alg  = HMAC-SHA256
+ * هدرهای ارسالی (هم‌راستا با ClientApi\Http\Middleware\VerifyClientSignature
+ * و ClientApi\Http\Middleware\AuthenticateLicenseToken که واقعاً روی سرور اجرا می‌شوند):
+ *   Authorization: Bearer <license-token>   (بررسی در AuthenticateLicenseToken)
+ *   X-GS-Timestamp, X-GS-Nonce              (ضد replay در VerifyClientSignature)
+ *   X-GS-Fingerprint                        (باید دقیقاً با fingerprint دستگاه فعال‌شده یکی باشد)
  *   X-GS-Client         = gamestore/<version>
- *   X-GS-Batch-Id / Idempotency-Key = uuid دسته (برای جلوگیری از درج تکراری)
+ *   X-GS-Batch-Id / Idempotency-Key = uuid دسته (برای idempotency سمت سرور)
  *
- * canonical = METHOD \n PATH \n timestamp \n nonce \n sha256(body)
+ * توجه: سرور امضای HMAC جداگانه‌ای نمی‌خواند؛ کل احراز هویت روی توکن لایسنس
+ * (Bearer) + بررسی timestamp/nonce انجام می‌شود، نه یک راز مشترک (client_secret).
  */
 class StoreServerClient
 {
@@ -69,7 +70,7 @@ class StoreServerClient
         $startedAt = microtime(true);
 
         try {
-            $response = $this->request($url, $body, $gzip, $batchUuid)->send('POST', $url, [
+            $response = $this->request($gzip, $batchUuid)->send('POST', $url, [
                 'body' => $body,
             ]);
         } catch (ConnectionException $e) {
@@ -96,7 +97,7 @@ class StoreServerClient
         $startedAt = microtime(true);
 
         try {
-            $response = $this->request($url, $body, $gzip, (string) Str::uuid())->send('POST', $url, ['body' => $body]);
+            $response = $this->request($gzip, (string) Str::uuid())->send('POST', $url, ['body' => $body]);
         } catch (Throwable $e) {
             throw LogShippingException::transport($e);
         }
@@ -132,11 +133,11 @@ class StoreServerClient
         return ['status' => $response->status(), 'body' => $json, 'duration_ms' => $durationMs];
     }
 
-    private function request(string $url, string $body, bool $gzip, string $batchUuid): PendingRequest
+    private function request(bool $gzip, string $batchUuid): PendingRequest
     {
         $config = (array) config('auditlog.shipping');
 
-        $request = Http::withHeaders($this->headers($url, $body, $gzip, $batchUuid))
+        $request = Http::withHeaders($this->headers($gzip, $batchUuid))
             ->timeout((int) ($config['timeout'] ?? 20))
             ->connectTimeout((int) ($config['connect_timeout'] ?? 5))
             ->retry(
@@ -161,7 +162,7 @@ class StoreServerClient
     /**
      * @return array<string, string>
      */
-    private function headers(string $url, string $body, bool $gzip, string $batchUuid): array
+    private function headers(bool $gzip, string $batchUuid): array
     {
         /** @var array<string, string> $names */
         $names = (array) config('auditlog.shipping.headers', []);
@@ -182,25 +183,6 @@ class StoreServerClient
 
         if ($gzip) {
             $headers['Content-Encoding'] = 'gzip';
-        }
-
-        if ((bool) config('auditlog.shipping.auth.sign', true)) {
-            $secret = (string) ($this->identity->clientSecret() ?? '');
-
-            if ($secret === '') {
-                throw LogShippingException::misconfigured('کلید امضا تنظیم نشده است (STORE_SERVER_CLIENT_SECRET).');
-            }
-
-            $canonical = implode("\n", [
-                'POST',
-                (string) parse_url($url, PHP_URL_PATH),
-                $timestamp,
-                $nonce,
-                hash('sha256', $body),
-            ]);
-
-            $headers[$names['signature'] ?? 'X-GS-Signature'] = base64_encode(hash_hmac('sha256', $canonical, $secret, true));
-            $headers[$names['algorithm'] ?? 'X-GS-Signature-Alg'] = 'HMAC-SHA256';
         }
 
         return $headers;
