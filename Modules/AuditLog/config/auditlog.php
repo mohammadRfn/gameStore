@@ -229,21 +229,18 @@ return [
         // فاصله‌ی تلاش مجدد بر حسب ثانیه (نمایی/پلکانی)
         'backoff' => [60, 180, 600, 1800, 3600, 10800, 21600, 43200],
 
-        // احراز هویت و امضا (هم‌راستا با ClientApi در StoreServer)
+        // احراز هویت (هم‌راستا با ClientApi\Http\Middleware\AuthenticateLicenseToken +
+        // VerifyClientSignature در StoreServer؛ سرور راز مشترک/HMAC جداگانه‌ای ندارد)
         'auth' => [
             'license_token' => env('STORE_SERVER_LICENSE_TOKEN'),
             'license_uuid'  => env('STORE_SERVER_LICENSE_UUID'),
             'fingerprint'   => env('STORE_SERVER_FINGERPRINT'),
-            'client_secret' => env('STORE_SERVER_CLIENT_SECRET'),
-            'sign'          => (bool) env('AUDITLOG_SIGN_REQUESTS', true),
         ],
 
         'headers' => [
             'timestamp'   => 'X-GS-Timestamp',
             'nonce'       => 'X-GS-Nonce',
             'fingerprint' => 'X-GS-Fingerprint',
-            'signature'   => 'X-GS-Signature',
-            'algorithm'   => 'X-GS-Signature-Alg',
             'client'      => 'X-GS-Client',
             'batch'       => 'X-GS-Batch-Id',
             'idempotency' => 'Idempotency-Key',
