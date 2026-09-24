@@ -7,7 +7,7 @@ use Modules\Setting\Http\Controllers\AppSettingController;
 use Inertia\Inertia;
 
 Route::prefix('settings')
-    ->middleware(['auth'])
+    ->middleware(['auth', 'license.module:Setting'])
     ->name('settings.')
     ->group(function () {
         Route::get('/panel', fn() => Inertia::render('Settings/Index'))->name('panel');

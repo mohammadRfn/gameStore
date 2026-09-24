@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Modules\Backup\Http\Controllers\BackupController;
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'license.module:Backup'])->group(function () {
 
     Route::post('/backup/pick-directory', [BackupController::class, 'pickDirectory']);
 

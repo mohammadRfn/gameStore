@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Modules\CacheMaintenance\Http\Controllers\CacheMaintenanceController;
 
-Route::middleware('auth')->prefix('settings/cache')->name('settings.cache.')->group(function () {
+Route::middleware(['auth', 'license.module:CacheMaintenance'])->prefix('settings/cache')->name('settings.cache.')->group(function () {
     Route::get('/', function () {
         return Inertia::render('CacheMaintenance/Index');
     })->name('panel');

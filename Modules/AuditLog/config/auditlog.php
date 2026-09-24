@@ -281,7 +281,7 @@ return [
     */
     'api' => [
         'prefix'      => 'auditlog',
-        'middleware'  => ['auth:sanctum'],
+        'middleware'  => ['auth:sanctum', 'license.module:AuditLog'],
         'per_page'    => 30,
         'max_per_page' => 200,
         'export_limit' => 50000,

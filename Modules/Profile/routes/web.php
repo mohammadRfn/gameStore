@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Profile\Http\Controllers\StoreProfileController;
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'license.module:Profile'])->group(function () {
     // ---------------- Store Profiles ----------------
     Route::get('store-profiles', [StoreProfileController::class, 'index'])->name('store-profiles.index');
     Route::get('store-profiles/search', [StoreProfileController::class, 'search'])->name('store-profiles.search');
