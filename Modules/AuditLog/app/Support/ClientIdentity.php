@@ -4,16 +4,22 @@ declare(strict_types=1);
 
 namespace Modules\AuditLog\Support;
 
-use Illuminate\Support\Facades\Cache;
+use Modules\Licensing\Models\LicenseState;
+use Modules\Licensing\Services\DeviceFingerprint;
 use Throwable;
 
 /**
  * هویت این نصب از گیم‌استور؛ در هدرها و بدنه‌ی ارسال به StoreServer
  * استفاده می‌شود تا سرور بداند لاگ از کدام فروشگاه/دستگاه آمده است.
+ *
+ * license_uuid/license_token/fingerprint از ماژول Licensing (که فلوی
+ * فعال‌سازی واقعی و ذخیره‌سازی توکن را انجام می‌دهد) خوانده می‌شوند، نه از
+ * env() که هیچ‌جا در زمان اجرا نوشته نمی‌شد. مقادیر auditlog.shipping.auth.*
+ * فقط به‌عنوان override دستی (مثلاً برای تست) نگه داشته شده‌اند.
  */
 class ClientIdentity
 {
-    private const CACHE_KEY = 'auditlog:client-identity';
+    public function __construct(private readonly DeviceFingerprint $fingerprint) {}
 
     public function environment(): string
     {
@@ -32,36 +38,28 @@ class ClientIdentity
 
     public function licenseUuid(): ?string
     {
-        return config('auditlog.shipping.auth.license_uuid') ?: null;
+        $override = config('auditlog.shipping.auth.license_uuid');
+
+        return $override ?: (LicenseState::current()->license_uuid ?: null);
     }
 
     public function licenseToken(): ?string
     {
-        return config('auditlog.shipping.auth.license_token') ?: null;
+        $override = config('auditlog.shipping.auth.license_token');
+
+        return $override ?: (LicenseState::current()->token ?: null);
     }
 
     /**
-     * اثر انگشت دستگاه؛ اگر در کانفیگ تعریف نشده باشد از مشخصات ماشین ساخته می‌شود.
+     * اثر انگشت دستگاه - از ماژول Licensing گرفته می‌شود تا با مقداری که در
+     * فعال‌سازی و heartbeat فرستاده شده دقیقاً یکی باشد (سرور این دو را
+     * مقایسه می‌کند).
      */
     public function fingerprint(): string
     {
         $configured = (string) (config('auditlog.shipping.auth.fingerprint') ?? '');
 
-        if ($configured !== '') {
-            return $configured;
-        }
-
-        return Cache::rememberForever(self::CACHE_KEY, function (): string {
-            $parts = [
-                php_uname('n'),
-                php_uname('s'),
-                php_uname('m'),
-                (string) config('app.key'),
-                base_path(),
-            ];
-
-            return hash('sha256', implode('|', $parts));
-        });
+        return $configured !== '' ? $configured : $this->fingerprint->current();
     }
 
     /**

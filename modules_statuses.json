@@ -15,5 +15,6 @@
     "Dashboard": true,
     "Authentication": true,
     "Backup": true,
-    "AuditLog": true
+    "AuditLog": true,
+    "Licensing": true
 }

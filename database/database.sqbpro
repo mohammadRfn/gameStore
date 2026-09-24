@@ -1,102 +1,23 @@
-<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="database.sqlite" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="3"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="10957"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><table title="adjustment_categories" custom_title="0" dock_id="1" table="4,21:mainadjustment_categories"/><dock_state state="000000ff00000000fd00000001000000020000000000000000fc0100000001fb000000160064006f0063006b00420072006f00770073006500310100000000ffffffff0000011300ffffff000000000000000000000004000000040000000800000008fc00000000"/><default_encoding codec=""/><browse_table_settings/></tab_browse><tab_sql><sql name="SQL 1*">-- جدول audit_logs
-CREATE TABLE audit_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    uuid TEXT NOT NULL UNIQUE,
-
-    channel TEXT NOT NULL,
-    level TEXT NOT NULL DEFAULT 'info',
-    action TEXT NOT NULL,
-    description TEXT,
-
-    entity_type TEXT,
-    entity_id INTEGER,
-    entity_label TEXT,
-
-    actor_id INTEGER,
-    actor_type TEXT NOT NULL DEFAULT 'system',
-    actor_name TEXT,
-    actor_email TEXT,
-
-    request_id TEXT,
-    correlation_id TEXT,
-    session_id TEXT,
-    method TEXT,
-    route TEXT,
-    url TEXT,
-    ip TEXT,
-    user_agent TEXT,
-    status_code INTEGER,
-    duration_ms INTEGER,
-    memory_kb INTEGER,
-
-    old_values TEXT,
-    new_values TEXT,
-    changed_keys TEXT,
-    context TEXT,
-    tags TEXT,
-
-    environment TEXT,
-    app_version TEXT,
-    hostname TEXT,
-
-    sequence INTEGER NOT NULL DEFAULT 0,
-    hash TEXT,
-    previous_hash TEXT,
-
-    sync_status TEXT NOT NULL DEFAULT 'pending',
-    sync_attempts INTEGER NOT NULL DEFAULT 0,
-    next_attempt_at DATETIME,
-    synced_at DATETIME,
-    batch_uuid TEXT,
-    last_error TEXT,
-    remote_id TEXT,
-
-    occurred_at DATETIME NOT NULL,
-    created_at DATETIME,
+<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="database.sqlite" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="3"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="10957"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><table title="adjustment_categories" custom_title="0" dock_id="1" table="4,21:mainadjustment_categories"/><dock_state state="000000ff00000000fd00000001000000020000000000000000fc0100000001fb000000160064006f0063006b00420072006f00770073006500310100000000ffffffff0000011300ffffff000000000000000000000004000000040000000800000008fc00000000"/><default_encoding codec=""/><browse_table_settings/></tab_browse><tab_sql><sql name="SQL 1*">CREATE TABLE license_state (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    fingerprint TEXT,
+    license_uuid TEXT,
+    token TEXT,
+    status TEXT NOT NULL DEFAULT 'unactivated',
+    activation_request_uuid TEXT,
+    plan_code TEXT,
+    entitlements TEXT,
+    limits TEXT,
+    reject_reason TEXT,
+    lock_code TEXT,
+    lock_reason TEXT,
+    expires_at DATETIME,
+    valid_until DATETIME,
+    heartbeat_interval_minutes INTEGER NOT NULL DEFAULT 60,
+    poll_after_seconds INTEGER NOT NULL DEFAULT 30,
+    last_heartbeat_at DATETIME,
+    last_heartbeat_ok INTEGER NOT NULL DEFAULT 0,
     updated_at DATETIME
 );
 
-CREATE INDEX idx_audit_logs_channel ON audit_logs (channel);
-CREATE INDEX idx_audit_logs_level ON audit_logs (level);
-CREATE INDEX idx_audit_logs_action ON audit_logs (action);
-CREATE INDEX idx_audit_logs_entity_type ON audit_logs (entity_type);
-CREATE INDEX idx_audit_logs_actor_id ON audit_logs (actor_id);
-CREATE INDEX idx_audit_logs_request_id ON audit_logs (request_id);
-CREATE INDEX idx_audit_logs_correlation_id ON audit_logs (correlation_id);
-CREATE INDEX idx_audit_logs_sequence ON audit_logs (sequence);
-CREATE INDEX idx_audit_logs_sync_status ON audit_logs (sync_status);
-CREATE INDEX idx_audit_logs_next_attempt_at ON audit_logs (next_attempt_at);
-CREATE INDEX idx_audit_logs_batch_uuid ON audit_logs (batch_uuid);
-CREATE INDEX idx_audit_logs_occurred_at ON audit_logs (occurred_at);
-
-CREATE INDEX idx_audit_logs_channel_occurred_at ON audit_logs (channel, occurred_at);
-CREATE INDEX idx_audit_logs_entity_type_entity_id ON audit_logs (entity_type, entity_id);
-CREATE INDEX idx_audit_logs_sync_status_next_attempt_at ON audit_logs (sync_status, next_attempt_at);
-
-
--- جدول audit_log_batches
-CREATE TABLE audit_log_batches (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    uuid TEXT NOT NULL UNIQUE,
-
-    status TEXT NOT NULL DEFAULT 'pending',
-    log_count INTEGER NOT NULL DEFAULT 0,
-    checksum TEXT,
-    payload_bytes INTEGER NOT NULL DEFAULT 0,
-    endpoint TEXT,
-
-    attempts INTEGER NOT NULL DEFAULT 0,
-    http_status INTEGER,
-    error_code TEXT,
-    error_message TEXT,
-    response TEXT,
-
-    duration_ms INTEGER,
-    dispatched_at DATETIME,
-    acknowledged_at DATETIME,
-    created_at DATETIME,
-    updated_at DATETIME
-);
-
-CREATE INDEX idx_audit_log_batches_status ON audit_log_batches (status);
-CREATE INDEX idx_audit_log_batches_status_created_at ON audit_log_batches (status, created_at);</sql><current_tab id="0"/></tab_sql></sqlb_project>
+INSERT INTO license_state (id, status) VALUES (1, 'unactivated');</sql><current_tab id="0"/></tab_sql></sqlb_project>

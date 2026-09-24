@@ -1,0 +1,11 @@
+{
+    "name": "Licensing",
+    "alias": "licensing",
+    "description": "فعال‌سازی نرم‌افزار در برابر StoreServer (درخواست/کد یک‌بارمصرف) و هارت‌بیت دوره‌ای",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Licensing\\Providers\\LicensingServiceProvider"
+    ],
+    "files": []
+}
