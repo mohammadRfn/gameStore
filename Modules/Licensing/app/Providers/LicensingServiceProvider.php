@@ -7,7 +7,9 @@ namespace Modules\Licensing\Providers;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Routing\Router;
 use Modules\Licensing\Console\Commands\SendHeartbeatCommand;
+use Modules\Licensing\Http\Middleware\EnsureModuleLicensed;
 use Modules\Licensing\Http\Middleware\RequireActiveLicense;
+use Modules\Licensing\Services\LicenseGate;
 use Modules\Licensing\Providers\EventServiceProvider;
 use Modules\Licensing\Providers\RouteServiceProvider;
 use Modules\Licensing\Services\DeviceFingerprint;
@@ -54,6 +56,7 @@ class LicensingServiceProvider extends ModuleServiceProvider
         $this->app->singleton(DeviceFingerprint::class);
         $this->app->singleton(StoreServerLicenseClient::class);
         $this->app->singleton(LicensingService::class);
+        $this->app->singleton(LicenseGate::class);
     }
 
     public function boot(): void
@@ -82,6 +85,7 @@ class LicensingServiceProvider extends ModuleServiceProvider
 
         $router->pushMiddlewareToGroup('web', RequireActiveLicense::class);
         $router->aliasMiddleware('license.active', RequireActiveLicense::class);
+        $router->aliasMiddleware('license.module', EnsureModuleLicensed::class);
     }
 
     /**

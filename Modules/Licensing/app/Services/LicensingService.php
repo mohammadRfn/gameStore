@@ -181,6 +181,7 @@ class LicensingService
         $state->forceFill(['last_heartbeat_at' => Carbon::now('UTC'), 'last_heartbeat_ok' => false])->save();
     }
 
+    
     /** @param array<string, mixed> $data */
     private function applyApproved(LicenseState $state, array $data): LicenseState
     {

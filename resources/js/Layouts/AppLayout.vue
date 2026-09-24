@@ -118,6 +118,26 @@ import { useSettingsApi } from '@/Composables/useSettingsApi'
 
 const page = usePage()
 
+// ماژول‌های مجاز طبق لایسنس (از HandleInertiaRequests)
+const allowedModules = computed(() => page.props.license?.modules ?? [])
+const routeModule = {
+    'customers.index': 'Customer',
+    'requests.index': 'Request',
+    'invoices.index': 'Invoice',
+    'order-items.index': 'Invoice',
+    'items.index': 'Stock',
+    'stock-movements.index': 'Stock',
+    'categories.index': 'Category',
+    'service-jobs.index': 'Service',
+    'service-types.index': 'Service',
+    'stats.daily': 'Stats',
+    'stats.monthly': 'Stats',
+    'archives.panel': 'Archive',
+}
+// روت‌هایی که در map نیستند (داشبورد، تنظیمات، بکاپ، ...) هسته‌اند
+const isAllowed = (routeName) =>
+    !routeModule[routeName] || allowedModules.value.includes(routeModule[routeName])
+
 // Theme — حالت اشتراکی روی <html> اعمال می‌شود (بدون فلش هنگام لود)
 const { isDark, toggle } = useTheme()
 const settingsApi = useSettingsApi()
@@ -230,6 +250,12 @@ const sidebarGroups = [
         ],
     },
 ]
+
+const visibleQuickActions = computed(() => quickActions.filter(i => isAllowed(i.route)))
+const visibleSidebarGroups = computed(() =>
+    sidebarGroups
+        .map(g => ({ ...g, items: g.items.filter(i => isAllowed(i.route)) }))
+        .filter(g => g.items.length > 0))
 
 // Click Outside Directive
 const vClickOutside = {

@@ -58,6 +58,11 @@ class HandleInertiaRequests extends Middleware
             'shopName' => fn () => app(\Modules\Profile\Services\StoreProfileService::class)
                 ->findPrimary()
                 ?->brand_name ?: 'GameShop',
+
+            'license' => fn () => [
+                'modules'    => app(\Modules\Licensing\Services\LicenseGate::class)->modules(),
+                'expires_at' => app(\Modules\Licensing\Services\LicenseGate::class)->payload()['expires_at'] ?? null,
+            ],
         ]);
     }
 }
