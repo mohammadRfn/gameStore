@@ -6,7 +6,7 @@ use Modules\Invoice\Http\Controllers\InvoiceController;
 use Modules\Invoice\Http\Controllers\OrderItemController;
 use Modules\Invoice\Http\Controllers\InvoiceAdjustmentController;
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'license.module:Invoice'])->group(function () {
     Route::resource('invoices', InvoiceController::class);
     Route::resource('order-items', OrderItemController::class);
 

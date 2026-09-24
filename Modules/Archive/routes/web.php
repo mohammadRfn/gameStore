@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Modules\Archive\Http\Controllers\ArchiveController;
 
-Route::middleware(['auth', 'verified', 'license.module:Invoice'])->group(function () {
+Route::middleware(['auth', 'verified', 'license.module:Archive'])->group(function () {
     Route::prefix('archives')->name('archives.')->group(function () {
         Route::get('/', [ArchiveController::class, 'index'])->name('index');
         Route::get('panel', fn() => Inertia::render('Archive/Index'))->name('panel');

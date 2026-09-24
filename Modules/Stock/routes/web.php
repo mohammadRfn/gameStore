@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Stock\Http\Controllers\ItemController;
 use Modules\Stock\Http\Controllers\StockMovementController;
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'license.module:Stock'])->group(function () {
     Route::resource('items', ItemController::class);
 
     Route::get('stock-movements', [StockMovementController::class, 'index'])->name('stock-movements.index');

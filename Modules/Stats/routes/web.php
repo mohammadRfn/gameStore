@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Stats\Http\Controllers\MonthlySaleController;
 use Modules\Stats\Http\Controllers\StatsController;
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'license.module:Stats'])->group(function () {
     Route::get('stats', [StatsController::class, 'index'])->name('stats.index');
     Route::get('stats/products', [StatsController::class, 'products'])->name('stats.products');
     Route::get('stats/services', [StatsController::class, 'services'])->name('stats.services');

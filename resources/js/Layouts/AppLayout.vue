@@ -21,7 +21,7 @@
 
             <!-- Quick Actions -->
             <nav class="gs-topbar-nav">
-                <Link v-for="item in quickActions" :key="item.route" :href="route(item.route)"
+                <Link v-for="item in visibleQuickActions" :key="item.route" :href="route(item.route)"
                     :class="['gs-topbar-link', { 'active': isActive(item.route) }]">
                     <span class="gs-topbar-link-icon">{{ item.icon }}</span>
                     <span>{{ item.label }}</span>
@@ -76,7 +76,7 @@
                 </div>
 
                 <nav class="gs-sidebar-nav">
-                    <div v-for="group in sidebarGroups" :key="group.title" class="gs-sidebar-group">
+                    <div v-for="group in visibleSidebarGroups" :key="group.title" class="gs-sidebar-group">
                         <span class="gs-sidebar-group-title">{{ group.title }}</span>
                         <Link v-for="item in group.items" :key="item.route" :href="route(item.route)"
                             :class="['gs-sidebar-link', { 'active': isActive(item.route) }]" @click="closeSidebar">
@@ -250,7 +250,7 @@ const sidebarGroups = [
         ],
     },
 ]
-
+"همون هارتبیتی ک هرساعت میفرسته باید جوابگوی کار باشه و مشخص بکنه ک شخص دقیقا داره از چه ماژولهایی استفاده میکنه یعنی سمت سرور با هر هارتبیت ک میره مشخص بشه ک کاربر از چ پلنی استفاده کرده و چه ماژولهاییرو اخیرا استفاده کرده وابستگی رو هم نگرانش نباش باگ غیرفعال کردن و فعالسازی مجدد لایسنس رو هم داستانش اینه که بای فورا برطرف کنی من میخام ک هرموقع خاستم اپو از سمت سرور فعال یا غیرفعال کنم"
 const visibleQuickActions = computed(() => quickActions.filter(i => isAllowed(i.route)))
 const visibleSidebarGroups = computed(() =>
     sidebarGroups

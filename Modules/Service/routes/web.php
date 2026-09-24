@@ -5,7 +5,7 @@ use Modules\Service\Http\Controllers\ServiceJobController;
 use Modules\Service\Http\Controllers\ServiceJobItemController;
 use Modules\Service\Http\Controllers\ServiceTypeController;
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'license.module:Service'])->group(function () {
     Route::resource('service-jobs', ServiceJobController::class);
 
     Route::post('service-types/quick', [ServiceTypeController::class, 'quickStore'])
