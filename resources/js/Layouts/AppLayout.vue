@@ -133,6 +133,10 @@ const routeModule = {
     'stats.daily': 'Stats',
     'stats.monthly': 'Stats',
     'archives.panel': 'Archive',
+    'backups.panel': 'Backup',
+    'settings.panel': 'Setting',
+    'settings.cache.panel': 'CacheMaintenance',
+    'store-profiles.index': 'Profile',
 }
 // روت‌هایی که در map نیستند (داشبورد، تنظیمات، بکاپ، ...) هسته‌اند
 const isAllowed = (routeName) =>
@@ -145,7 +149,7 @@ const themeClass = computed(() => isDark.value ? '' : 'light')
 
 function toggleTheme() {
     toggle()
-    settingsApi.update({ 'general.theme': isDark.value ? 'dark' : 'light' }).catch(() => {})
+    settingsApi.update({ 'general.theme': isDark.value ? 'dark' : 'light' }).catch(() => { })
 }
 
 // Logout
@@ -250,7 +254,6 @@ const sidebarGroups = [
         ],
     },
 ]
-"همون هارتبیتی ک هرساعت میفرسته باید جوابگوی کار باشه و مشخص بکنه ک شخص دقیقا داره از چه ماژولهایی استفاده میکنه یعنی سمت سرور با هر هارتبیت ک میره مشخص بشه ک کاربر از چ پلنی استفاده کرده و چه ماژولهاییرو اخیرا استفاده کرده وابستگی رو هم نگرانش نباش باگ غیرفعال کردن و فعالسازی مجدد لایسنس رو هم داستانش اینه که بای فورا برطرف کنی من میخام ک هرموقع خاستم اپو از سمت سرور فعال یا غیرفعال کنم"
 const visibleQuickActions = computed(() => quickActions.filter(i => isAllowed(i.route)))
 const visibleSidebarGroups = computed(() =>
     sidebarGroups

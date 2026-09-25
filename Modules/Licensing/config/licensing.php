@@ -47,6 +47,9 @@ return [
     // heartbeat_interval_minutes واقعی را برمی‌گرداند و در LicenseState ذخیره می‌شود)
     'default_heartbeat_minutes' => (int) env('LICENSING_DEFAULT_HEARTBEAT_MINUTES', 60),
 
+    // فاصله‌ی heartbeat وقتی نرم‌افزار قفل است (برای اعمال سریع فعال‌سازی مجدد از سرور)
+    'locked_heartbeat_minutes' => (int) env('LICENSING_LOCKED_HEARTBEAT_MINUTES', 5),
+
     // فاصله‌ی پیش‌فرض poll وضعیت درخواست فعال‌سازی
     'default_poll_seconds' => (int) env('LICENSING_DEFAULT_POLL_SECONDS', 30),
         // کلید(های) عمومی Ed25519 سرور: { "kid": "publicKeyBase64Url" }

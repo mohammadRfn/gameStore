@@ -17,6 +17,7 @@ class LicensingService
     public function __construct(
         private readonly StoreServerLicenseClient $client,
         private readonly DeviceFingerprint $fingerprint,
+        private readonly ModuleUsageTracker $usage,
     ) {}
 
     public function state(): LicenseState
@@ -125,8 +126,11 @@ class LicensingService
             return; // هنوز فعال نشده؛ چیزی برای heartbeat نیست
         }
 
-        $intervalMinutes = $state->heartbeat_interval_minutes ?: (int) config('licensing.default_heartbeat_minutes', 60);
-        $due = $state->last_heartbeat_at === null || $state->last_heartbeat_at->addMinutes($intervalMinutes)->isPast();
+        // وقتی قفل است سریع‌تر می‌پرسیم تا «فعال‌سازی مجدد» از سمت سرور زود اعمال شود
+        $intervalMinutes = $state->isLocked()
+            ? max(1, (int) config('licensing.locked_heartbeat_minutes', 5))
+            : ($state->heartbeat_interval_minutes ?: (int) config('licensing.default_heartbeat_minutes', 60));
+        $due = $state->last_heartbeat_at === null || $state->last_heartbeat_at->copy()->addMinutes($intervalMinutes)->isPast();
 
         if (! $due) {
             return;
@@ -143,15 +147,31 @@ class LicensingService
             return;
         }
 
-        $result = $this->client->heartbeat(['app_version' => $this->appVersion()], $state->token);
-        $data   = (array) ($result['body']['data'] ?? []);
+        // مصرف ماژول‌ها از heartbeat قبلی؛ سرور با هر heartbeat پلن و ماژول‌های استفاده‌شده را ثبت می‌کند
+        $usage = $this->usage->pending();
+
+        $result = $this->client->heartbeat([
+            'app_version' => $this->appVersion(),
+            'stats'       => [
+                'modules'     => $usage,
+                'reported_at' => Carbon::now('UTC')->toIso8601String(),
+            ],
+        ], $state->token);
+        $data = (array) ($result['body']['data'] ?? []);
 
         if ($result['status'] === 423 || ($data['locked'] ?? false) === true) {
+            // سرور قبل از قفل‌کردن، مصرف را ثبت کرده است
+            $this->usage->acknowledge($usage);
+
+            $lockCode = (string) ($result['body']['error']['code'] ?? 'LICENSE_LOCKED');
+
             $state->forceFill([
                 'status'      => LicenseState::STATUS_LOCKED,
-                'lock_code'   => (string) ($result['body']['error']['code'] ?? 'LICENSE_LOCKED'),
+                'lock_code'   => $lockCode,
                 'lock_reason' => (string) ($result['body']['error']['message'] ?? 'لایسنس قفل شده است.'),
-                'token'       => null,
+                // توکن عمداً نگه داشته می‌شود تا heartbeat بعدی بتواند بعد از «فعال‌سازی مجدد»
+                // یا «تمدید» در سرور قفل را باز کند. فقط ابطال دائمی توکن را پاک می‌کند.
+                'token'       => $lockCode === 'LICENSE_REVOKED' ? null : $state->token,
                 'last_heartbeat_at' => Carbon::now('UTC'),
                 'last_heartbeat_ok' => false,
             ])->save();
@@ -160,6 +180,8 @@ class LicensingService
         }
 
         if ($result['status'] >= 200 && $result['status'] < 300) {
+            $this->usage->acknowledge($usage);
+
             $state->forceFill([
                 'status'                     => LicenseState::STATUS_ACTIVE,
                 'token'                      => $data['token'] ?? $state->token,

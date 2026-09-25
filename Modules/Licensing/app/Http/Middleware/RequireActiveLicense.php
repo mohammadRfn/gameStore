@@ -10,6 +10,7 @@ use Modules\Licensing\Models\LicenseState;
 use Modules\Licensing\Services\LicenseGate;
 use Modules\Licensing\Services\LicensingService;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 /**
  * قبل از هر چیز دیگری (حتی صفحه‌ی لاگین) بررسی می‌کند که این نصب فعال و
@@ -36,7 +37,12 @@ class RequireActiveLicense
             }
 
             // توکن منقضی یا نامعتبر: یک‌بار تلاش برای تمدید از سرور
-            $this->licensing->sendHeartbeatNow();
+            try {
+                $this->licensing->sendHeartbeatNow();
+            } catch (Throwable) {
+                // آفلاین یا سرور در دسترس نیست؛ پایین‌تر قفل محلی می‌شود
+            }
+
             $this->gate->flush();
 
             if ($this->gate->isUsable()) {

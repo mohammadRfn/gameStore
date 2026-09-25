@@ -10,6 +10,7 @@ use Modules\Licensing\Console\Commands\SendHeartbeatCommand;
 use Modules\Licensing\Http\Middleware\EnsureModuleLicensed;
 use Modules\Licensing\Http\Middleware\RequireActiveLicense;
 use Modules\Licensing\Services\LicenseGate;
+use Modules\Licensing\Services\ModuleUsageTracker;
 use Modules\Licensing\Providers\EventServiceProvider;
 use Modules\Licensing\Providers\RouteServiceProvider;
 use Modules\Licensing\Services\DeviceFingerprint;
@@ -57,6 +58,7 @@ class LicensingServiceProvider extends ModuleServiceProvider
         $this->app->singleton(StoreServerLicenseClient::class);
         $this->app->singleton(LicensingService::class);
         $this->app->singleton(LicenseGate::class);
+        $this->app->singleton(ModuleUsageTracker::class);
     }
 
     public function boot(): void

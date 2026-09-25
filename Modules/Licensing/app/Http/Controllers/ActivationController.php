@@ -13,6 +13,7 @@ use Inertia\Response as InertiaResponse;
 use Modules\Licensing\Models\LicenseState;
 use Modules\Licensing\Services\DeviceFingerprint;
 use Modules\Licensing\Services\LicensingService;
+use Throwable;
 
 class ActivationController extends Controller
 {
@@ -55,7 +56,20 @@ class ActivationController extends Controller
     // پولینگ AJAX از خود صفحه‌ی فعال‌سازی، نه ناوبری Inertia کامل
     public function poll(): JsonResponse
     {
-        $state = $this->licensing->refreshPendingStatus();
+        $state = $this->licensing->state();
+
+        if ($state->isLocked() && $state->token !== null) {
+            // قفل‌شده: همین الان از سرور بپرس؛ اگر ادمین «فعال‌سازی مجدد» زده باشد قفل باز می‌شود
+            try {
+                $this->licensing->sendHeartbeatNow();
+            } catch (Throwable) {
+                // آفلاین؛ در دور بعدی دوباره تلاش می‌شود
+            }
+
+            $state = $this->licensing->state();
+        } else {
+            $state = $this->licensing->refreshPendingStatus();
+        }
 
         return response()->json(['state' => $this->stateForFrontend($state)]);
     }

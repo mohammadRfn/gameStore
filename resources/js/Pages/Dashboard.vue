@@ -62,8 +62,11 @@ const userName = computed(() => page.props.auth?.user?.name || 'مدیر سیس�
 const today = todayFa()
 const hello = greeting()
 
+// ماژول‌های مجاز طبق لایسنس (HandleInertiaRequests → license.modules)
+const can = (module) => (page.props.license?.modules ?? []).includes(module)
+
 /* ---------------- شاخص‌ها ---------------- */
-const kpis = computed(() => [
+const allKpis = computed(() => [
     {
         key: 'customers',
         label: 'کل مشتریان',
@@ -110,6 +113,9 @@ const kpis = computed(() => [
     },
 ])
 
+const kpiModule = { customers: 'Customer', requests: 'Request', items: 'Stock', service: 'Service' }
+const kpis = computed(() => allKpis.value.filter((k) => can(kpiModule[k.key])))
+
 /* ---------------- دسترسی سریع ---------------- */
 const quickActions = [
     { title: 'مشتری جدید', desc: 'ثبت پروندهٔ مشتری', route: 'customers.create', icon: UserPlus, accent: 'var(--gs-info)' },
@@ -120,16 +126,27 @@ const quickActions = [
     { title: 'گردش انبار', desc: 'ورود و خروج کالا', route: 'stock-movements.index', icon: ArrowLeftRight, accent: 'var(--gs-warning)' },
 ]
 
+const actionModule = {
+    'customers.create': 'Customer',
+    'requests.create': 'Request',
+    'invoices.create': 'Invoice',
+    'service-jobs.create': 'Service',
+    'items.create': 'Stock',
+    'stock-movements.index': 'Stock',
+}
+const visibleQuickActions = computed(() => quickActions.filter((a) => can(actionModule[a.route])))
+
 /* ---------------- نبض کارگاه (از داده‌های واقعی) ---------------- */
 const workload = computed(() => {
     const open = Number(props.stats.open_requests || 0)
     const active = Number(props.stats.active_service_jobs || 0)
     const max = Math.max(open, active, 1)
     return [
-        { label: 'درخواست‌های باز', value: open, pct: (open / max) * 100, accent: 'var(--gs-gold)', to: route('requests.index') },
-        { label: 'سرویس‌های در جریان', value: active, pct: (active / max) * 100, accent: 'var(--gs-accent-3)', to: route('service-jobs.index') },
+        { label: 'درخواست‌های باز', value: open, pct: (open / max) * 100, accent: 'var(--gs-gold)', module: 'Request', to: route('requests.index') },
+        { label: 'سرویس‌های در جریان', value: active, pct: (active / max) * 100, accent: 'var(--gs-accent-3)', module: 'Service', to: route('service-jobs.index') },
     ]
 })
+const visibleWorkload = computed(() => workload.value.filter((w) => can(w.module)))
 
 const orbitSats = [
     { icon: Users, color: 'var(--gs-info)' },
@@ -139,6 +156,7 @@ const orbitSats = [
 </script>
 
 <template>
+
     <Head title="داشبورد مدیریت" />
 
     <AppLayout>
@@ -167,33 +185,29 @@ const orbitSats = [
                         <h1 class="st-hero__title">
                             <span>داشبورد</span>
                             <svg class="st-underline" viewBox="0 0 220 14" aria-hidden="true">
-                                <path
-                                    d="M4 10 C 60 2, 150 2, 216 8"
-                                    fill="none"
-                                    stroke="var(--gs-gold)"
-                                    stroke-width="3.5"
-                                    stroke-linecap="round"
-                                />
+                                <path d="M4 10 C 60 2, 150 2, 216 8" fill="none" stroke="var(--gs-gold)"
+                                    stroke-width="3.5" stroke-linecap="round" />
                             </svg>
                         </h1>
 
                         <p class="st-hero__lead">
-                            {{ hello }}، <b style="color: var(--gs-text-primary)">{{ userName }}</b> — نمای زندهٔ مشتریان،
+                            {{ hello }}، <b style="color: var(--gs-text-primary)">{{ userName }}</b> — نمای زندهٔ
+                            مشتریان،
                             درخواست‌ها، انبار و کارگاه در یک نگاه.
                         </p>
 
                         <div class="crm-hero__stats">
-                            <span class="st-stat">
+                            <span v-if="can('Customer')" class="st-stat">
                                 <Users :size="15" />
                                 مشتریان
                                 <b>{{ faInt(stats.customers_count) }}</b>
                             </span>
-                            <span class="st-stat">
+                            <span v-if="can('Request')" class="st-stat">
                                 <ClipboardList :size="15" />
                                 درخواست باز
                                 <b>{{ faInt(stats.open_requests) }}</b>
                             </span>
-                            <span class="st-stat">
+                            <span v-if="can('Service')" class="st-stat">
                                 <Wrench :size="15" />
                                 سرویس فعال
                                 <b>{{ faInt(stats.active_service_jobs) }}</b>
@@ -204,10 +218,10 @@ const orbitSats = [
                     <div class="crm-hero__side">
                         <CrmOrbit :icon="Gamepad2" :satellites="orbitSats" />
                         <div class="crm-hero__actions" style="flex-direction: column">
-                            <Link :href="route('requests.create')" class="a3d-btn a3d-btn--gold a3d-btn--sm">
+                            <Link v-if="can('Request')" :href="route('requests.create')" class="a3d-btn a3d-btn--gold a3d-btn--sm">
                                 <Plus :size="14" /> درخواست جدید
                             </Link>
-                            <Link :href="route('customers.create')" class="a3d-btn a3d-btn--ghost a3d-btn--sm">
+                            <Link v-if="can('Customer')" :href="route('customers.create')" class="a3d-btn a3d-btn--ghost a3d-btn--sm">
                                 <UserPlus :size="14" /> مشتری جدید
                             </Link>
                         </div>
@@ -218,26 +232,18 @@ const orbitSats = [
             <!-- ================= بدنه ================= -->
             <div class="st-shell crm-body crm-stack">
                 <!-- شاخص‌ها -->
-                <section class="crm-grid-kpi">
-                    <CrmKpiCard
-                        v-for="(k, i) in kpis"
-                        :key="k.key"
-                        :label="k.label"
-                        :value="k.value"
-                        :icon="k.icon"
-                        :accent="k.accent"
-                        :hint="k.hint"
-                        :hint-icon="k.hintIcon"
-                        :to="k.to"
-                        :fill="k.fill"
-                        :delay="60 + i * 70"
-                    />
+                <section v-if="kpis.length" class="crm-grid-kpi">
+                    <CrmKpiCard v-for="(k, i) in kpis" :key="k.key" :label="k.label" :value="k.value" :icon="k.icon"
+                        :accent="k.accent" :hint="k.hint" :hint-icon="k.hintIcon" :to="k.to" :fill="k.fill"
+                        :delay="60 + i * 70" />
                 </section>
 
                 <!-- دسترسی سریع -->
-                <section v-reveal="{ delay: 120 }">
+                <section v-if="visibleQuickActions.length" v-reveal="{ delay: 120 }">
                     <div class="st-sechead" style="margin-bottom: 0.9rem">
-                        <span class="st-sechead__icon"><Sparkles :size="21" /></span>
+                        <span class="st-sechead__icon">
+                            <Sparkles :size="21" />
+                        </span>
                         <div>
                             <h2 class="st-sechead__title">دسترسی سریع</h2>
                             <p class="st-sechead__desc">پرتکرارترین عملیات روزانهٔ فروشگاه</p>
@@ -245,16 +251,13 @@ const orbitSats = [
                     </div>
 
                     <div class="crm-tiles">
-                        <Link
-                            v-for="(a, i) in quickActions"
-                            :key="a.route"
-                            v-reveal="{ delay: 140 + i * 50 }"
-                            v-tilt="{ max: 12, lift: 16, scale: 1.04 }"
-                            :href="route(a.route)"
+                        <Link v-for="(a, i) in visibleQuickActions" :key="a.route" v-reveal="{ delay: 140 + i * 50 }"
+                            v-tilt="{ max: 12, lift: 16, scale: 1.04 }" :href="route(a.route)"
                             class="a3d-holo a3d-aura crm-tile"
-                            :style="{ '--crm-accent': a.accent, '--a3d-aura-color': a.accent }"
-                        >
-                            <span class="crm-tile__icon"><component :is="a.icon" :size="22" /></span>
+                            :style="{ '--crm-accent': a.accent, '--a3d-aura-color': a.accent }">
+                            <span class="crm-tile__icon">
+                                <component :is="a.icon" :size="22" />
+                            </span>
                             <span class="crm-tile__title">{{ a.title }}</span>
                             <span class="crm-tile__desc">{{ a.desc }}</span>
                         </Link>
@@ -262,38 +265,29 @@ const orbitSats = [
                 </section>
 
                 <!-- آخرین‌ها -->
-                <section class="crm-grid-2">
+                <section v-if="can('Request') || can('Invoice')" class="crm-grid-2">
                     <!-- آخرین درخواست‌ها -->
-                    <CrmPanel
-                        title="آخرین درخواست‌ها"
-                        desc="وضعیت رسیدگی به دستگاه‌های ورودی"
-                        :icon="ClipboardList"
-                        accent="var(--gs-gold)"
-                        :delay="180"
-                        flush
-                    >
+                    <CrmPanel v-if="can('Request')" title="آخرین درخواست‌ها" desc="وضعیت رسیدگی به دستگاه‌های ورودی" :icon="ClipboardList"
+                        accent="var(--gs-gold)" :delay="180" flush>
                         <template #actions>
                             <Link :href="route('requests.index')" class="crm-more">
-                                مشاهدهٔ همه <ChevronLeft :size="14" />
+                                مشاهدهٔ همه
+                                <ChevronLeft :size="14" />
                             </Link>
                         </template>
 
                         <div v-if="recentRequests.length" class="crm-rows">
-                            <Link
-                                v-for="(req, i) in recentRequests"
-                                :key="req.id"
-                                :href="route('requests.show', req.id)"
-                                class="crm-row"
-                                :style="{ '--i': i }"
-                            >
-                                <span class="crm-avatar crm-avatar--sm" :style="{ '--hue': avatarHue(req.customer_name) }">
+                            <Link v-for="(req, i) in recentRequests" :key="req.id"
+                                :href="route('requests.show', req.id)" class="crm-row" :style="{ '--i': i }">
+                                <span class="crm-avatar crm-avatar--sm"
+                                    :style="{ '--hue': avatarHue(req.customer_name) }">
                                     {{ initials(req.customer_name) }}
                                 </span>
                                 <div class="crm-row__main">
                                     <p class="crm-row__title">{{ req.customer_name }}</p>
                                     <p class="crm-row__sub">
                                         <template v-if="req.categories?.length">
-                                            {{ req.categories.map((c) => c.name).join('، ') }} ·
+                                            {{req.categories.map((c) => c.name).join('، ')}} ·
                                         </template>
                                         {{ clip(req.description, 70) || 'بدون شرح' }}
                                     </p>
@@ -305,12 +299,8 @@ const orbitSats = [
                             </Link>
                         </div>
 
-                        <CrmEmptyState
-                            v-else
-                            :icon="ClipboardList"
-                            title="هنوز درخواستی ثبت نشده"
-                            desc="اولین درخواست تعمیر یا سرویس را ثبت کنید تا این‌جا نمایش داده شود."
-                        >
+                        <CrmEmptyState v-else :icon="ClipboardList" title="هنوز درخواستی ثبت نشده"
+                            desc="اولین درخواست تعمیر یا سرویس را ثبت کنید تا این‌جا نمایش داده شود.">
                             <Link :href="route('requests.create')" class="a3d-btn a3d-btn--gold a3d-btn--sm">
                                 <Plus :size="14" /> ثبت درخواست
                             </Link>
@@ -318,32 +308,20 @@ const orbitSats = [
                     </CrmPanel>
 
                     <!-- آخرین فاکتورها -->
-                    <CrmPanel
-                        title="آخرین فاکتورهای فروش"
-                        desc="صورت‌حساب‌های صادرشدهٔ اخیر"
-                        :icon="Receipt"
-                        accent="var(--gs-success)"
-                        :delay="240"
-                        flush
-                    >
+                    <CrmPanel v-if="can('Invoice')" title="آخرین فاکتورهای فروش" desc="صورت‌حساب‌های صادرشدهٔ اخیر" :icon="Receipt"
+                        accent="var(--gs-success)" :delay="240" flush>
                         <template #actions>
                             <Link :href="route('invoices.index')" class="crm-more">
-                                مشاهدهٔ همه <ChevronLeft :size="14" />
+                                مشاهدهٔ همه
+                                <ChevronLeft :size="14" />
                             </Link>
                         </template>
 
                         <div v-if="recentInvoices.length" class="crm-rows">
-                            <Link
-                                v-for="(inv, i) in recentInvoices"
-                                :key="inv.id"
-                                :href="route('invoices.show', inv.id)"
-                                class="crm-row"
-                                :style="{ '--i': i }"
-                            >
-                                <span
-                                    class="crm-panel__icon"
-                                    style="--crm-accent: var(--gs-success); width: 36px; height: 36px; border-radius: 11px"
-                                >
+                            <Link v-for="(inv, i) in recentInvoices" :key="inv.id"
+                                :href="route('invoices.show', inv.id)" class="crm-row" :style="{ '--i': i }">
+                                <span class="crm-panel__icon"
+                                    style="--crm-accent: var(--gs-success); width: 36px; height: 36px; border-radius: 11px">
                                     <Receipt :size="16" />
                                 </span>
                                 <div class="crm-row__main">
@@ -357,12 +335,8 @@ const orbitSats = [
                             </Link>
                         </div>
 
-                        <CrmEmptyState
-                            v-else
-                            :icon="Receipt"
-                            title="فاکتوری صادر نشده"
-                            desc="با ثبت اولین فروش، فاکتورهای اخیر این‌جا فهرست می‌شوند."
-                        >
+                        <CrmEmptyState v-else :icon="Receipt" title="فاکتوری صادر نشده"
+                            desc="با ثبت اولین فروش، فاکتورهای اخیر این‌جا فهرست می‌شوند.">
                             <Link :href="route('invoices.create')" class="a3d-btn a3d-btn--gold a3d-btn--sm">
                                 <Plus :size="14" /> صدور فاکتور
                             </Link>
@@ -371,38 +345,36 @@ const orbitSats = [
                 </section>
 
                 <!-- نبض کارگاه -->
-                <CrmPanel
-                    title="نبض کارگاه"
-                    desc="بار کاری جاری بر اساس درخواست‌های باز و سرویس‌های فعال"
-                    :icon="Activity"
-                    accent="var(--gs-accent-3)"
-                    :delay="300"
-                >
+                <CrmPanel v-if="visibleWorkload.length" title="نبض کارگاه" desc="بار کاری جاری بر اساس درخواست‌های باز و سرویس‌های فعال"
+                    :icon="Activity" accent="var(--gs-accent-3)" :delay="300">
                     <template #actions>
-                        <span class="st-chip st-chip--plain"><Zap :size="12" /> به‌روزرسانی زنده با هر بازدید</span>
+                        <span class="st-chip st-chip--plain">
+                            <Zap :size="12" /> به‌روزرسانی زنده با هر بازدید
+                        </span>
                     </template>
 
                     <div class="crm-load">
-                        <Link
-                            v-for="w in workload"
-                            :key="w.label"
-                            :href="w.to"
-                            class="crm-load__row"
+                        <Link v-for="w in visibleWorkload" :key="w.label" :href="w.to" class="crm-load__row"
                             :style="{ '--crm-accent': w.accent, '--crm-w': w.pct + '%' }"
-                            style="text-decoration: none; color: inherit"
-                        >
+                            style="text-decoration: none; color: inherit">
                             <div class="crm-load__top">
                                 <span>{{ w.label }}</span>
                                 <b>{{ faInt(w.value) }}</b>
                             </div>
-                            <div class="crm-load__track"><div class="crm-load__fill" /></div>
+                            <div class="crm-load__track">
+                                <div class="crm-load__fill" />
+                            </div>
                         </Link>
                     </div>
                 </CrmPanel>
 
                 <footer class="crm-footer">
-                    <span><Gamepad2 :size="14" /> گیم‌استور — داشبورد مدیریت</span>
-                    <span><Layers :size="13" /> همگام با ماژول Dashboard</span>
+                    <span>
+                        <Gamepad2 :size="14" /> گیم‌استور — داشبورد مدیریت
+                    </span>
+                    <span>
+                        <Layers :size="13" /> همگام با ماژول Dashboard
+                    </span>
                 </footer>
             </div>
         </div>
