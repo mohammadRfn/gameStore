@@ -23,6 +23,15 @@
                     منتظر تأیید مدیر و دریافت کد یک‌بارمصرف بمانید؛ به‌محض دریافت کد، آن را در فرم زیر وارد کنید.
                 </p>
                 <p class="gs-label" style="text-align:center;margin-top:.5rem">وضعیت هر {{ local.poll_after_seconds }} ثانیه خودکار بررسی می‌شود…</p>
+
+                <button type="button" class="gs-link-btn" style="display:block;margin:.75rem auto 0" @click="showResend = !showResend">
+                    ارسال مجدد درخواست
+                </button>
+                <template v-if="showResend">
+                    <div class="gs-divider-gold" style="margin:1rem 0"></div>
+                    <RequestForm />
+                </template>
+
                 <div class="gs-divider-gold" style="margin:1.5rem 0"></div>
                 <RedeemForm />
             </template>
@@ -52,7 +61,7 @@
 </template>
 
 <script setup>
-import { reactive, onMounted, onUnmounted } from 'vue'
+import { reactive, ref, onMounted, onUnmounted } from 'vue'
 import RequestForm from '@/Components/Licensing/RequestForm.vue'
 import RedeemForm from '@/Components/Licensing/RedeemForm.vue'
 
@@ -62,6 +71,7 @@ const props = defineProps({
 })
 
 const local = reactive({ ...props.state })
+const showResend = ref(false)
 let timer = null
 
 function poll() {
