@@ -97,11 +97,7 @@ class LicensingServiceProvider extends ModuleServiceProvider
     private function registerTerminationHooks(): void
     {
         $this->app->terminating(function (): void {
-            try {
-                $this->app->make(LicensingService::class)->sendHeartbeatIfDue();
-            } catch (Throwable) {
-                // heartbeat در چرخه‌ی بعدی دوباره تلاش می‌شود
-            }
+             \Modules\Licensing\Jobs\SendHeartbeatJob::dispatch();
         });
     }
 

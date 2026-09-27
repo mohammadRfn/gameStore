@@ -150,13 +150,24 @@ class LicensingService
         // مصرف ماژول‌ها از heartbeat قبلی؛ سرور با هر heartbeat پلن و ماژول‌های استفاده‌شده را ثبت می‌کند
         $usage = $this->usage->pending();
 
-        $result = $this->client->heartbeat([
-            'app_version' => $this->appVersion(),
-            'stats'       => [
-                'modules'     => $usage,
-                'reported_at' => Carbon::now('UTC')->toIso8601String(),
-            ],
-        ], $state->token);
+        try {
+            $result = $this->client->heartbeat([
+                'app_version' => $this->appVersion(),
+                'stats'       => [
+                    'modules'     => $usage,
+                    'reported_at' => Carbon::now('UTC')->toIso8601String(),
+                ],
+            ], $state->token);
+        } catch (Throwable $e) {
+            $state->forceFill([
+                'last_heartbeat_at'    => Carbon::now('UTC'),
+                'last_heartbeat_ok'    => false,
+                'last_heartbeat_error' => 'transport: ' . $e->getMessage(),
+            ])->save();
+
+            return;
+        }
+
         $data = (array) ($result['body']['data'] ?? []);
 
         if ($result['status'] === 423 || ($data['locked'] ?? false) === true) {
@@ -172,8 +183,9 @@ class LicensingService
                 // توکن عمداً نگه داشته می‌شود تا heartbeat بعدی بتواند بعد از «فعال‌سازی مجدد»
                 // یا «تمدید» در سرور قفل را باز کند. فقط ابطال دائمی توکن را پاک می‌کند.
                 'token'       => $lockCode === 'LICENSE_REVOKED' ? null : $state->token,
-                'last_heartbeat_at' => Carbon::now('UTC'),
-                'last_heartbeat_ok' => false,
+                'last_heartbeat_at'    => Carbon::now('UTC'),
+                'last_heartbeat_ok'    => false,
+                'last_heartbeat_error' => "locked: {$lockCode}",
             ])->save();
 
             return;
@@ -192,6 +204,7 @@ class LicensingService
                 'heartbeat_interval_minutes' => (int) ($data['heartbeat_interval_minutes'] ?? $state->heartbeat_interval_minutes),
                 'lock_code'                  => null,
                 'lock_reason'                => null,
+                'last_heartbeat_error'       => null,
                 'last_heartbeat_at'          => Carbon::now('UTC'),
                 'last_heartbeat_ok'          => true,
             ])->save();
@@ -200,7 +213,11 @@ class LicensingService
         }
 
         // خطای موقتی (شبکه/سرور) - وضعیت محلی دست‌نخورده می‌ماند، دفعه‌ی بعد دوباره تلاش می‌شود
-        $state->forceFill(['last_heartbeat_at' => Carbon::now('UTC'), 'last_heartbeat_ok' => false])->save();
+        $state->forceFill([
+            'last_heartbeat_at'    => Carbon::now('UTC'),
+            'last_heartbeat_ok'    => false,
+            'last_heartbeat_error' => "http_{$result['status']}: " . json_encode($result['body']),
+        ])->save();
     }
 
     
