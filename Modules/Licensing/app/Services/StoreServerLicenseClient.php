@@ -99,6 +99,10 @@ class StoreServerLicenseClient
 
             if ($token !== null) {
                 $headers['Authorization'] = 'Bearer ' . $token;
+                // fallback: بعضی هاست‌ها (Nginx/PHP-FPM یا LiteSpeed بدون تنظیم pass-through)
+                // هدر Authorization را قبل از رسیدن به PHP حذف می‌کنند؛ چون X-GS-* همیشه سالم
+                // می‌رسد، توکن را اینجا هم می‌فرستیم تا سرور بتواند به آن fallback کند.
+                $headers[$names['token'] ?? 'X-GS-License-Token'] = $token;
             }
         }
 

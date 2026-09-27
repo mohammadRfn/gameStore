@@ -41,6 +41,7 @@ return [
         'nonce'       => 'X-GS-Nonce',
         'fingerprint' => 'X-GS-Fingerprint',
         'client'      => 'X-GS-Client',
+        'token'       => 'X-GS-License-Token', // جدید
     ],
 
     // فاصله‌ی پیش‌فرض heartbeat تا وقتی سرور عدد دیگری برنگردانده (سرور خودش هر بار
@@ -52,6 +53,7 @@ return [
 
     // فاصله‌ی پیش‌فرض poll وضعیت درخواست فعال‌سازی
     'default_poll_seconds' => (int) env('LICENSING_DEFAULT_POLL_SECONDS', 30),
-        // کلید(های) عمومی Ed25519 سرور: { "kid": "publicKeyBase64Url" }
+    // کلید(های) عمومی Ed25519 سرور: { "kid": "publicKeyBase64Url" }
     'public_keys' => json_decode((string) env('LICENSING_PUBLIC_KEYS', '{}'), true) ?: [],
+
 ];
