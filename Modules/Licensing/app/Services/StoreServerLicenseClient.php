@@ -59,7 +59,23 @@ class StoreServerLicenseClient
     {
         return $this->post($this->path('heartbeat'), $payload, withToken: true, token: $token);
     }
+    /** @return array{status: int, body: array<string, mixed>} */
+    public function state(string $token): array
+    {
+        $url = $this->baseUrl() . $this->path('state');
 
+        try {
+            // بدون retry و با timeout کوتاه؛ این پولینگ نباید چیزی را معطل کند
+            $response = Http::withHeaders($this->headers(true, $token))
+                ->withOptions(['verify' => (bool) config('licensing.server.verify_ssl', true)])
+                ->timeout(5)->connectTimeout(3)
+                ->get($url);
+        } catch (ConnectionException $e) {
+            throw LicenseServerException::transport($e);
+        }
+
+        return ['status' => $response->status(), 'body' => (array) $response->json()];
+    }
     private function post(string $path, array $payload, bool $withToken, ?string $token = null): array
     {
         $url = $this->baseUrl() . $path;

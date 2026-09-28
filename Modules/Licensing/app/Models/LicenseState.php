@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Licensing\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Modules\Licensing\Casts\UtcDateTimeCast;
 
 /**
  * جدول تک‌ردیفی (id=1) که وضعیت فعال‌سازی این نصب گیم‌استور را نگه می‌دارد.
@@ -51,9 +52,9 @@ class LicenseState extends Model
     protected $casts = [
         'entitlements'               => 'array',
         'limits'                     => 'array',
-        'expires_at'                 => 'datetime',
-        'valid_until'                => 'datetime',
-        'last_heartbeat_at'          => 'datetime',
+        'expires_at'                 => UtcDateTimeCast::class,
+        'valid_until'                => UtcDateTimeCast::class,
+        'last_heartbeat_at'          => UtcDateTimeCast::class,
         'last_heartbeat_ok'          => 'boolean',
         'heartbeat_interval_minutes' => 'integer',
         'poll_after_seconds'         => 'integer',

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Modules\Licensing\Services;
 
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Modules\Licensing\Models\LicenseState;
+use Throwable;
 
 /**
  * لایه‌ی orchestration: فرم‌ها/دستورات این سرویس را صدا می‌زنند، این سرویس
@@ -220,7 +222,49 @@ class LicensingService
         ])->save();
     }
 
-    
+        public function isStateCheckDue(): bool
+    {
+        return ! Cache::has('licensing:state-check');
+    }
+
+    /**
+     * پولینگ سبک: اگر وضعیت/پلن/ماژول‌های سرور با وضعیت محلی فرق داشت، heartbeat کامل می‌زند.
+     * هر خطایی نادیده گرفته می‌شود؛ heartbeat ساعتی پشتیبان است.
+     */
+    public function checkForChangesIfDue(): void
+    {
+        $state = $this->state();
+
+        if ($state->token === null || (! $state->isActive() && ! $state->isLocked())) {
+            return;
+        }
+
+        if (! Cache::add('licensing:state-check', 1, max(15, (int) config('licensing.state_check_seconds', 30)))) {
+            return;
+        }
+
+        try {
+            $result = $this->client->state($state->token);
+        } catch (Throwable $e) {
+            return;
+        }
+
+        if ($result['status'] < 200 || $result['status'] >= 300) {
+            return;
+        }
+
+        $data         = (array) ($result['body']['data'] ?? []);
+        $serverLocked = (bool) ($data['locked'] ?? false);
+
+        $entitlements = array_values((array) $state->entitlements);
+        sort($entitlements);
+        $localHash = md5(json_encode([$state->plan_code, $entitlements]));
+
+        if ($serverLocked !== $state->isLocked()
+            || (! $serverLocked && ($data['hash'] ?? null) !== $localHash)) {
+            $this->sendHeartbeatNow();
+        }
+    }
     /** @param array<string, mixed> $data */
     private function applyApproved(LicenseState $state, array $data): LicenseState
     {

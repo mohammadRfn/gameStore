@@ -19,6 +19,7 @@ class SendHeartbeatJob implements ShouldQueue
     {
         try {
             $licensing->sendHeartbeatIfDue();
+            $licensing->checkForChangesIfDue();
         } catch (Throwable) {
             // در چرخه‌ی بعدی دوباره تلاش می‌شود
         }
