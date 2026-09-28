@@ -242,6 +242,7 @@ return [
             'nonce'       => 'X-GS-Nonce',
             'fingerprint' => 'X-GS-Fingerprint',
             'client'      => 'X-GS-Client',
+            'token'       => 'X-GS-License-Token',
             'batch'       => 'X-GS-Batch-Id',
             'idempotency' => 'Idempotency-Key',
         ],

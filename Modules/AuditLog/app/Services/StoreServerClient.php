@@ -185,6 +185,14 @@ class StoreServerClient
             $headers['Content-Encoding'] = 'gzip';
         }
 
+        // fallback: بعضی هاست‌ها/ingressها هدر Authorization را حذف می‌کنند؛
+        // سرور توکن را از X-GS-License-Token هم می‌خواند (مثل ماژول Licensing)
+        $token = $this->identity->licenseToken();
+
+        if ($token !== null && $token !== '') {
+            $headers[$names['token'] ?? 'X-GS-License-Token'] = $token;
+        }
+
         return $headers;
     }
 
