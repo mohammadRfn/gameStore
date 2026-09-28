@@ -25,6 +25,7 @@ return [
             'activation_status'  => '/api/v1/activation/status/{uuid}',
             'activation_redeem'  => '/api/v1/activation/redeem',
             'heartbeat'          => '/api/v1/heartbeat',
+            'state'              => '/api/v1/license/state',
         ],
 
         'timeout'         => (int) env('LICENSING_HTTP_TIMEOUT', 15),
@@ -55,5 +56,4 @@ return [
     'default_poll_seconds' => (int) env('LICENSING_DEFAULT_POLL_SECONDS', 30),
     // کلید(های) عمومی Ed25519 سرور: { "kid": "publicKeyBase64Url" }
     'public_keys' => json_decode((string) env('LICENSING_PUBLIC_KEYS', '{}'), true) ?: [],
-    'state' => '/api/v1/license/state',
 ];

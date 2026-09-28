@@ -222,9 +222,9 @@ class LicensingService
         ])->save();
     }
 
-        public function isStateCheckDue(): bool
+    public function isStateCheckDue(): bool
     {
-        return ! Cache::has('licensing:state-check');
+        return ! Cache::store('file')->has('licensing:state-check');
     }
 
     /**
@@ -239,7 +239,7 @@ class LicensingService
             return;
         }
 
-        if (! Cache::add('licensing:state-check', 1, max(15, (int) config('licensing.state_check_seconds', 30)))) {
+        if (! Cache::store('file')->add('licensing:state-check', 1, max(15, (int) config('licensing.state_check_seconds', 30)))) {
             return;
         }
 
@@ -260,8 +260,10 @@ class LicensingService
         sort($entitlements);
         $localHash = md5(json_encode([$state->plan_code, $entitlements]));
 
-        if ($serverLocked !== $state->isLocked()
-            || (! $serverLocked && ($data['hash'] ?? null) !== $localHash)) {
+        if (
+            $serverLocked !== $state->isLocked()
+            || (! $serverLocked && ($data['hash'] ?? null) !== $localHash)
+        ) {
             $this->sendHeartbeatNow();
         }
     }
@@ -293,7 +295,7 @@ class LicensingService
             'cpu'        => php_uname('m'),
             'hostname'   => gethostname() ?: null,
             'timezone'   => (string) config('app.timezone', date_default_timezone_get()),
-        ], static fn ($v) => $v !== null && $v !== '');
+        ], static fn($v) => $v !== null && $v !== '');
     }
 
     private function appVersion(): string
