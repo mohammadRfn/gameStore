@@ -33,6 +33,7 @@ class LogShippingService
 {
     private const LOCK_KEY      = 'auditlog:shipping:lock';
     private const LAST_RUN_KEY  = 'auditlog:shipping:last-run';
+    private const DISPATCHED_KEY = 'auditlog:shipping:dispatched-at';
 
     public function __construct(
         private readonly LogPayloadBuilder $builder,
@@ -192,9 +193,28 @@ class LogShippingService
             $connection = config('auditlog.shipping.auto.queue');
 
             if ($connection !== null && $connection !== '') {
-                \Modules\AuditLog\Jobs\ShipAuditLogsJob::dispatch()->onConnection((string) $connection);
+                // آخرین اجرای موفق خیلی قدیمی است؟ یعنی worker صف کار نمی‌کند
+                $workerStalled = ! is_string($lastRun)
+                    || Carbon::parse($lastRun)->addSeconds($interval * 3)->isPast();
 
-                return;
+                if (! $workerStalled) {
+                    $dispatchedAt = Cache::get(self::DISPATCHED_KEY);
+
+                    // job همین الان در صف است؛ با هر درخواست دوباره dispatch نکن
+                    if (is_string($dispatchedAt) && Carbon::parse($dispatchedAt)->addSeconds($interval)->isFuture()) {
+                        return;
+                    }
+
+                    Cache::put(self::DISPATCHED_KEY, now()->toIso8601String(), now()->addDay());
+                    \Modules\AuditLog\Jobs\ShipAuditLogsJob::dispatch()->onConnection((string) $connection);
+
+                    return;
+                }
+
+                // worker کار نمی‌کند: به ارسال همزمان (خط بعدی) برمی‌گردیم تا لاگ‌ها گیر نکنند
+                if (is_string($lastRun)) {
+                    Log::warning('[AuditLog] worker صف ارسال لاگ فعال نیست؛ ارسال همزمان انجام شد.');
+                }
             }
 
             $this->shipPending();
@@ -342,6 +362,8 @@ class LogShippingService
             $attempts = (int) $log->sync_attempts + 1;
             $dead = ! $retryable || $attempts >= $maxAttempts;
             $delay = $backoff[min($attempts - 1, count($backoff) - 1)] ?? 3600;
+            // jitter ±۲۰٪: بعد از قطعی سرور، دستگاه‌ها همزمان retry نکنند
+            $delay = max(1, (int) round($delay * (1 + random_int(-20, 20) / 100)));
 
             AuditLog::query()->whereKey($log->getKey())->update([
                 'sync_status'     => $dead ? SyncStatus::Dead->value : SyncStatus::Failed->value,
