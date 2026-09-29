@@ -7,6 +7,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Modules\AuditLog\Enums\AuditAction;
+use Modules\AuditLog\Enums\LogLevel;
+use Modules\AuditLog\Facades\Audit;
 use Modules\Backup\Models\BackupRun;
 use Modules\Backup\Services\BackupManifest;
 use Modules\Backup\Services\BackupPathResolver;
@@ -211,6 +214,12 @@ class BackupController extends Controller
             return $this->error($e, 'خروجی گرفتن با خطا مواجه شد.');
         }
 
+        Audit::system(AuditAction::ExportGenerated, 'خروجی داده گرفته شد', [
+            'run_id'   => $run->id,
+            'mode'     => $data['mode'] ?? BackupRun::MODE_FULL,
+            'redacted' => (bool) ($data['redact_sensitive'] ?? false),
+        ]);
+
         return response()->json([
             'message' => 'پشتیبان‌گیری با موفقیت انجام شد.',
             'data'    => $this->backupService->presentRun($run),
@@ -244,6 +253,8 @@ class BackupController extends Controller
         $csv     = config('backup.csv');
 
         $fileName = $entity['key'] . '_' . now()->format('Ymd_His') . '.csv';
+
+        Audit::system(AuditAction::ExportGenerated, 'دانلود CSV یک جدول', ['entity' => $entity['key']]);
 
         return response()->streamDownload(function () use ($entity, $columns, $csv) {
             $out = fopen('php://output', 'wb');
@@ -357,6 +368,14 @@ class BackupController extends Controller
             $run = $this->backupService->import($data, $request->user()?->id);
         } catch (Throwable $e) {
             return $this->error($e, 'بازیابی اطلاعات با خطا مواجه شد.');
+        }
+
+        if (! $run->is_dry_run) {
+            Audit::security('backup_restored', 'بازیابی اطلاعات از بسته‌ی پشتیبان انجام شد', [
+                'run_id'   => $run->id,
+                'mode'     => $data['mode'] ?? null,
+                'entities' => $data['entities'] ?? 'all',
+            ], LogLevel::Warning);
         }
 
         return response()->json([

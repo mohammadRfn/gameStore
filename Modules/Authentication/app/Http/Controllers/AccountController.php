@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Modules\AuditLog\Enums\LogLevel;
+use Modules\AuditLog\Facades\Audit;
 
 class AccountController extends Controller
 {
@@ -73,11 +75,29 @@ class AccountController extends Controller
             ], 422);
         }
 
+        $oldUsername = $user->username;
+
         $user->username = $newUsername;
         if ($newPassword) {
             $user->password = Hash::make($newPassword);
         }
         $user->save();
+
+        if ($newPassword) {
+            // حالت force بدون رمز فعلی انجام می‌شود؛ حساس‌تر است
+            Audit::security('password_changed', 'رمز عبور حساب تغییر کرد', [
+                'user_id' => $user->id,
+                'forced'  => $force,
+            ], $force ? LogLevel::Critical : LogLevel::Warning);
+        }
+
+        if ($newUsername !== $oldUsername) {
+            Audit::security('username_changed', 'نام کاربری تغییر کرد', [
+                'user_id' => $user->id,
+                'from'    => $oldUsername,
+                'to'      => $newUsername,
+            ]);
+        }
 
         if ($newPassword) {
             Auth::login($user);

@@ -8,6 +8,8 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\AuditLog\Enums\LogLevel;
+use Modules\AuditLog\Facades\Audit;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -40,6 +42,10 @@ class PasswordRecoveryController extends Controller
         $user = User::query()->where('username', trim($data['username']))->first();
 
         if (! $user) {
+            Audit::security('password_reset_unknown_user', 'تلاش بازنشانی رمز برای نام کاربری ناموجود', [
+                'username' => mb_substr(trim($data['username']), 0, 64),
+            ]);
+
             throw ValidationException::withMessages([
                 'username' => 'کاربری با این نام کاربری پیدا نشد.',
             ]);
@@ -48,6 +54,11 @@ class PasswordRecoveryController extends Controller
         $user->password = Hash::make($data['new_password']);
         $user->setRememberToken(Str::random(60)); // کوکی «مرا به خاطر بسپار» قبلی باطل شود
         $user->save();
+
+        Audit::security('password_reset', 'رمز عبور از صفحه‌ی فراموشی بازنشانی شد', [
+            'user_id'  => $user->id,
+            'username' => $user->username,
+        ], LogLevel::Critical);
 
         return response()->json([
             'ok'      => true,

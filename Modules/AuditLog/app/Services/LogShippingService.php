@@ -235,6 +235,30 @@ class LogShippingService
         return AuditLog::query()->shippable()->exists();
     }
 
+    /**
+     * خلاصه‌ی سبک از وضعیت صف برای heartbeat.
+     *
+     * @return array<string, mixed>
+     */
+    public function healthSnapshot(): array
+    {
+        $counts = AuditLog::query()
+            ->select('sync_status', DB::raw('count(*) as aggregate'))
+            ->groupBy('sync_status')
+            ->pluck('aggregate', 'sync_status')
+            ->all();
+
+        $oldest = AuditLog::query()->shippable()->value('occurred_at');
+
+        return [
+            'pending'        => (int) ($counts[SyncStatus::Pending->value] ?? 0),
+            'failed'         => (int) ($counts[SyncStatus::Failed->value] ?? 0),
+            'dead'           => (int) ($counts[SyncStatus::Dead->value] ?? 0),
+            'oldest_pending' => $oldest !== null ? \Illuminate\Support\Carbon::parse($oldest, 'UTC')->utc()->toIso8601String() : null,
+            'last_sequence'  => (int) AuditLog::query()->max('sequence'),
+        ];
+    }
+
     /** بازگرداندن رکوردهای dead/failed به صف ارسال. */
     public function retryFailed(bool $includeDead = true): int
     {

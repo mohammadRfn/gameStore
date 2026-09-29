@@ -141,6 +141,22 @@ class LicensingService
         $this->sendHeartbeatNow();
     }
 
+    /** وضعیت صف ارسال لاگ؛ هرگز نباید heartbeat را خراب کند. */
+    private function auditLogHealth(): ?array
+    {
+        $service = \Modules\AuditLog\Services\LogShippingService::class;
+
+        if (! class_exists($service)) {
+            return null;
+        }
+
+        try {
+            return app($service)->healthSnapshot();
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
     public function sendHeartbeatNow(): void
     {
         $state = $this->state();
@@ -158,6 +174,7 @@ class LicensingService
                 'stats'       => [
                     'modules'     => $usage,
                     'reported_at' => Carbon::now('UTC')->toIso8601String(),
+                    'audit_log'   => $this->auditLogHealth(),
                 ],
             ], $state->token);
         } catch (Throwable $e) {
