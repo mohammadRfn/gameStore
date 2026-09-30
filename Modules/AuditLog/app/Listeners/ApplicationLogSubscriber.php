@@ -11,6 +11,7 @@ use Modules\AuditLog\Enums\AuditAction;
 use Modules\AuditLog\Enums\LogChannel;
 use Modules\AuditLog\Enums\LogLevel;
 use Modules\AuditLog\Services\AuditLogger;
+use Modules\AuditLog\Services\WarningAggregator;
 use Throwable;
 
 /**
@@ -30,6 +31,19 @@ class ApplicationLogSubscriber
     public function handleMessageLogged(MessageLogged $event): void
     {
         if ($this->handling || ! (bool) config('auditlog.capture.error.enabled', true)) {
+            return;
+        }
+
+        // هشدارها تجمیع می‌شوند (نه تک‌تک) تا حجم لاگ کنترل‌نشده بالا نرود
+        if (strtolower($event->level) === 'warning' && (bool) config('auditlog.capture.warning.enabled', true)) {
+            if (! str_starts_with($event->message, '[AuditLog]')) {
+                try {
+                    app(WarningAggregator::class)->record($event->message, $event->context);
+                } catch (Throwable) {
+                    // بی‌صدا؛ نباید لاگر اصلی را بشکند
+                }
+            }
+
             return;
         }
 

@@ -143,6 +143,14 @@ return [
             'trace_lines' => 20,
         ],
 
+        // هشدارها (warning): تک‌تک ثبت نمی‌شوند؛ تجمیع و هر بازه یک خلاصه
+        'warning' => [
+            'enabled'       => (bool) env('AUDITLOG_WARNINGS', true),
+            'flush_minutes' => 60,
+            'max_tracked'   => 200,  // حداکثر پیام متمایز در حالت مشترک
+            'max_summaries' => 20,   // حداکثر رکورد خلاصه در هر بازه
+        ],
+
         // کوئری‌های کند دیتابیس
         'slow_query' => [
             'enabled'      => (bool) env('AUDITLOG_SLOW_QUERY', false),

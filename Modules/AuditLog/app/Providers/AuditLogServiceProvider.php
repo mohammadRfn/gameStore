@@ -17,6 +17,7 @@ use Modules\AuditLog\Observers\AuditableObserver;
 use Modules\AuditLog\Services\AuditLogger;
 use Modules\AuditLog\Services\AuditRecorder;
 use Modules\AuditLog\Services\LogShippingService;
+use Modules\AuditLog\Services\WarningAggregator;
 use Modules\AuditLog\Support\AuditContext;
 use Modules\AuditLog\Support\ClientIdentity;
 use Modules\AuditLog\Support\HashChain;
@@ -66,6 +67,7 @@ class AuditLogServiceProvider extends ModuleServiceProvider
         $this->app->singleton(AuditRecorder::class);
         $this->app->singleton(AuditLogger::class);
         $this->app->singleton(LogShippingService::class);
+        $this->app->singleton(WarningAggregator::class);
 
         // فساد Audit
         $this->app->alias(AuditLogger::class, 'auditlog');
@@ -137,7 +139,30 @@ class AuditLogServiceProvider extends ModuleServiceProvider
      */
     private function registerTerminationHooks(): void
     {
+        // خطای مرگبار: terminating اجرا نمی‌شود و بافر لاگ از بین می‌رفت. shutdown handler خود لاراول
+        // زودتر ثبت شده و خطا را به لاگر می‌دهد؛ اینجا (بعد از آن) بافر را روی دیسک می‌نویسیم.
+        register_shutdown_function(function (): void {
+            $error = error_get_last();
+
+            if ($error === null || ! in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR], true)) {
+                return;
+            }
+
+            try {
+                $this->app->make(AuditRecorder::class)->flush();
+            } catch (Throwable) {
+                // best-effort
+            }
+        });
+
         $this->app->terminating(function (): void {
+            // خلاصه‌ی هشدارهای تجمیع‌شده (ساعتی)؛ باید قبل از flush بافر باشد
+            try {
+                $this->app->make(WarningAggregator::class)->flushIfDue();
+            } catch (Throwable) {
+                // نباید پایان چرخه را بشکند
+            }
+
             try {
                 $this->app->make(AuditRecorder::class)->flush();
             } catch (Throwable) {
