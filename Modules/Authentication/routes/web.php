@@ -4,7 +4,10 @@ use Illuminate\Support\Facades\Route;
 use Modules\Authentication\Http\Controllers\AuthController;
 use Modules\Authentication\Http\Controllers\AccountController;
 use Modules\Authentication\Http\Controllers\PasswordRecoveryController;
+use Modules\Authentication\Http\Controllers\SetupController;
 
+Route::get('setup', [SetupController::class, 'show'])->name('setup.show');
+Route::post('setup', [SetupController::class, 'store'])->middleware('throttle:10,1')->name('setup.store');
 Route::middleware('guest')->group(function () {
     Route::get('login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('login', [AuthController::class, 'login'])->name('login.store');
