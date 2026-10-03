@@ -89,8 +89,34 @@ class AuditRecorder
         }
     }
 
-    /** @param list<LogEntry> $entries */
+    /**
+     * خواندن sequence/hash آخر و درج رکوردهای جدید باید اتمیک باشد؛ وگرنه دو پروسه‌ی هم‌زمان
+     * (وب‌سرور + queue worker، یا دو درخواست) هر دو sequence یکسان می‌سازند و زنجیره fork می‌شود.
+     * قفل فایلی بین پروسه‌ها کار می‌کند و به نوع دیتابیس یا کش وابسته نیست.
+     *
+     * @param list<LogEntry> $entries
+     */
     private function insert(array $entries): void
+    {
+        $lock = @fopen(storage_path('framework/auditlog-chain.lock'), 'c');
+
+        if ($lock !== false && ! flock($lock, LOCK_EX)) {
+            fclose($lock);
+            $lock = false;
+        }
+
+        try {
+            $this->insertLocked($entries);
+        } finally {
+            if ($lock !== false) {
+                flock($lock, LOCK_UN);
+                fclose($lock);
+            }
+        }
+    }
+
+    /** @param list<LogEntry> $entries */
+    private function insertLocked(array $entries): void
     {
         $connection = $this->connection();
         $now = now();
