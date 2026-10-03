@@ -371,7 +371,8 @@ class CacheMaintenanceService
 
     protected function clearSettingsCache(): array
     {
-        $this->settings->flush();
+        // SettingService متد flush() ندارد؛ نام درست flushCache() است
+        $this->settings->flushCache();
         Cache::forget(config('settings.cache_key', 'app_settings.all'));
 
         return [
@@ -453,8 +454,10 @@ class CacheMaintenanceService
         $results = [];
 
         if ($options['warm_settings']) {
-            $this->settings->flush();
-            $this->settings->autoload();
+            // SettingService متدهای flush()/autoload() ندارد: پاک‌سازی با flushCache()
+            // و گرم‌کردن کش با getAll() (miss باعث remember و پرشدن کش می‌شود)
+            $this->settings->flushCache();
+            $this->settings->getAll();
             $results['settings'] = ['ok' => true, 'message' => 'Settings autoload cache warmed.'];
         }
 

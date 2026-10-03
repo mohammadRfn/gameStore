@@ -228,6 +228,8 @@ class LicensingService
                 'last_heartbeat_ok'          => true,
             ])->save();
 
+            $this->notifyPatches($data['patches'] ?? null);
+
             return;
         }
 
@@ -237,6 +239,25 @@ class LicensingService
             'last_heartbeat_ok'    => false,
             'last_heartbeat_error' => "http_{$result['status']}: " . json_encode($result['body']),
         ])->save();
+    }
+
+    /**
+     * heartbeat فهرست خلاصه‌ی پچ‌های قابل‌اعمال را می‌آورد. اگر خالی نیست فهرست کامل
+     * (با manifest و امضا) را می‌گیریم؛ اگر خالی است پیشنهادهای قبلیِ نصب‌نشده را پاک می‌کنیم.
+     * هیچ خطایی نباید heartbeat را خراب کند.
+     */
+    private function notifyPatches(mixed $summary): void
+    {
+        if (! is_array($summary) || ! config('licensing.patch.enabled', true)) {
+            return;
+        }
+
+        try {
+            $patches = app(PatchService::class);
+            $summary === [] ? $patches->clearAvailable() : $patches->sync();
+        } catch (Throwable) {
+            // در heartbeat یا باز کردن صفحه‌ی بروزرسانی دوباره تلاش می‌شود
+        }
     }
 
     public function isStateCheckDue(): bool
@@ -317,7 +338,7 @@ class LicensingService
 
     private function appVersion(): string
     {
-        return (string) config('app.version', env('APP_VERSION', '1.0.0'));
+        return AppVersion::current();
     }
 
     /** @param array{status: int, body: array<string, mixed>} $result */

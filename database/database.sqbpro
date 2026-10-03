@@ -1,2 +1,44 @@
-<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="database.sqlite" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="3"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="10957"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><table title="adjustment_categories" custom_title="0" dock_id="1" table="4,21:mainadjustment_categories"/><dock_state state="000000ff00000000fd00000001000000020000000000000000fc0100000001fb000000160064006f0063006b00420072006f00770073006500310100000000ffffffff0000011300ffffff000000000000000000000004000000040000000800000008fc00000000"/><default_encoding codec=""/><browse_table_settings/></tab_browse><tab_sql><sql name="SQL 1*">ALTER TABLE license_state
-ADD COLUMN last_heartbeat_error TEXT NULL;</sql><current_tab id="0"/></tab_sql></sqlb_project>
+<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="database.sqlite" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="3"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="10957"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><table title="adjustment_categories" custom_title="0" dock_id="1" table="4,21:mainadjustment_categories"/><dock_state state="000000ff00000000fd00000001000000020000000000000000fc0100000001fb000000160064006f0063006b00420072006f00770073006500310100000000ffffffff0000011300ffffff000000000000000000000004000000040000000800000008fc00000000"/><default_encoding codec=""/><browse_table_settings/></tab_browse><tab_sql><sql name="SQL 1*">CREATE TABLE IF NOT EXISTS &quot;license_patches&quot; (
+  &quot;id&quot; integer primary key autoincrement not null,
+  &quot;patch_code&quot; varchar not null,
+  &quot;title&quot; varchar not null default '',
+  &quot;description&quot; text,
+  &quot;type&quot; varchar not null default 'files',
+  &quot;from_min&quot; varchar not null default '0.0.0',
+  &quot;from_max&quot; varchar not null default '999.999.999',
+  &quot;to_version&quot; varchar not null default '0.0.0',
+  &quot;requires_restart&quot; tinyint(1) not null default '0',
+  &quot;mandatory&quot; tinyint(1) not null default '0',
+  &quot;size&quot; integer not null default '0',
+  &quot;sha256&quot; varchar,
+  &quot;depends_on&quot; text,
+  &quot;status&quot; varchar not null default 'available',
+  &quot;stage&quot; varchar,
+  &quot;progress&quot; integer not null default '0',
+  &quot;message&quot; text,
+  &quot;error_code&quot; varchar,
+  &quot;version_before&quot; varchar,
+  &quot;version_after&quot; varchar,
+  &quot;applied_files&quot; text,
+  &quot;backup_path&quot; text,
+  &quot;attempts&quot; integer not null default '0',
+  &quot;restart_pending&quot; tinyint(1) not null default '0',
+  &quot;pending_report&quot; text,
+  &quot;last_seen_at&quot; datetime,
+  &quot;started_at&quot; datetime,
+  &quot;finished_at&quot; datetime,
+  &quot;created_at&quot; datetime,
+  &quot;updated_at&quot; datetime
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS &quot;license_patches_patch_code_unique&quot; ON &quot;license_patches&quot; (&quot;patch_code&quot;);
+CREATE INDEX IF NOT EXISTS &quot;license_patches_status_index&quot; ON &quot;license_patches&quot; (&quot;status&quot;);
+
+CREATE TABLE IF NOT EXISTS &quot;schema_patches&quot; (
+  &quot;id&quot; integer primary key autoincrement not null,
+  &quot;patch_code&quot; text not null,
+  &quot;script&quot; text not null,
+  &quot;checksum&quot; text not null,
+  &quot;applied_at&quot; text not null,
+  UNIQUE (&quot;patch_code&quot;, &quot;script&quot;)
+);</sql><current_tab id="0"/></tab_sql></sqlb_project>

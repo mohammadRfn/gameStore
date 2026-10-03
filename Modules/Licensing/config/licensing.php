@@ -26,6 +26,9 @@ return [
             'activation_redeem'  => '/api/v1/activation/redeem',
             'heartbeat'          => '/api/v1/heartbeat',
             'state'              => '/api/v1/license/state',
+            'keys'               => '/api/v1/keys',
+            'patches'            => '/api/v1/patches',
+            'patch_status'       => '/api/v1/patches/{code}/status',
         ],
 
         'timeout'         => (int) env('LICENSING_HTTP_TIMEOUT', 15),
@@ -56,4 +59,28 @@ return [
     'default_poll_seconds' => (int) env('LICENSING_DEFAULT_POLL_SECONDS', 30),
     // کلید(های) عمومی Ed25519 سرور: { "kid": "publicKeyBase64Url" }
     'public_keys' => json_decode((string) env('LICENSING_PUBLIC_KEYS', '{}'), true) ?: [],
+
+    /*
+    |--------------------------------------------------------------------------
+    | بروزرسانی با پچ (دریافت از StoreServer)
+    |--------------------------------------------------------------------------
+    | GS_PATCH_TARGET_PATH : ریشه‌ای که فایل‌های پچ در آن نوشته می‌شود. پیش‌فرض base_path().
+    |                        هنگام تست با `php artisan serve` حتماً روی «یک کپی» از پروژه بگذار؛
+    |                        مسیری که پوشه‌ی .git دارد به‌طور پیش‌فرض رد می‌شود تا سورس تو بازنویسی نشود.
+    | LICENSING_PUBLIC_KEYS: کلید عمومی امضا (pinned) به شکل {"kid":"base64url"} - بالاتر تعریف شده.
+    | GS_PATCH_ALLOW_TOFU  : فقط تست؛ اگر کلید pinned نبود، کلید از /api/v1/keys گرفته و ذخیره می‌شود.
+    */
+    'patch' => [
+        'enabled'          => (bool) env('GS_PATCH_ENABLED', true),
+        'target_path'      => (string) env('GS_PATCH_TARGET_PATH', ''),
+        'allow_git_target' => (bool) env('GS_PATCH_ALLOW_GIT_TARGET', false),
+        'allow_tofu'       => (bool) env('GS_PATCH_ALLOW_TOFU', false),
+        // باید با licensing.patch.allowed_roots در StoreServer هم‌راستا باشد (Modules را آنجا اضافه کنید)
+        'allowed_roots'    => ['app', 'resources', 'public', 'config', 'routes', 'database', 'lang', 'Modules'],
+        'keep_backups'     => (int) env('GS_PATCH_KEEP_BACKUPS', 3),
+        'php_binary'       => (string) env('GS_PATCH_PHP_BINARY', ''),
+        'health_timeout'   => (int) env('GS_PATCH_HEALTH_TIMEOUT', 120),
+        'stale_minutes'    => 15,
+        'maintenance_ttl_minutes' => 10,
+    ],
 ];

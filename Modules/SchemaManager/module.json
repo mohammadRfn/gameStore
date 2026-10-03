@@ -1,0 +1,11 @@
+{
+    "name": "SchemaManager",
+    "alias": "schemamanager",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\SchemaManager\\Providers\\SchemaManagerServiceProvider"
+    ],
+    "files": []
+}

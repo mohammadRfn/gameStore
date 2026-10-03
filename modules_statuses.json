@@ -16,5 +16,6 @@
     "Authentication": true,
     "Backup": true,
     "AuditLog": true,
-    "Licensing": true
+    "Licensing": true,
+    "SchemaManager": true
 }

@@ -76,6 +76,69 @@ class StoreServerLicenseClient
 
         return ['status' => $response->status(), 'body' => (array) $response->json()];
     }
+    /**
+     * کلیدهای عمومی Ed25519 سرور (فقط برای حالت TOFU در محیط تست).
+     *
+     * @return array{status: int, body: array<string, mixed>}
+     */
+    public function keys(): array
+    {
+        return $this->get($this->path('keys'), withToken: false);
+    }
+
+    /**
+     * فهرست کامل پچ‌های قابل‌اعمال برای این دستگاه، همراه manifest، امضا و لینک دانلود تازه.
+     *
+     * @return array{status: int, body: array<string, mixed>}
+     */
+    public function patches(string $token): array
+    {
+        return $this->get($this->path('patches'), withToken: true, token: $token);
+    }
+
+    /**
+     * گزارش وضعیت پچ: downloading|downloaded|applying|applied|failed|rolled_back
+     *
+     * @param array<string, mixed> $payload status + version_before/version_after/error_message
+     * @return array{status: int, body: array<string, mixed>}
+     */
+    public function patchStatus(string $patchCode, array $payload, string $token): array
+    {
+        $path = str_replace('{code}', rawurlencode($patchCode), (string) config('licensing.server.endpoints.patch_status'));
+
+        return $this->post($path, $payload, withToken: true, token: $token);
+    }
+
+    /**
+     * هدرهای دانلود پچ. لینک امضاشده نیاز به nonce ندارد (resume ممکن بماند)،
+     * ولی توکن و اثرانگشت لازم است.
+     *
+     * @return list<string>
+     */
+    public function downloadHeaders(string $token): array
+    {
+        $out = [];
+        foreach ($this->headers(true, $token) as $name => $value) {
+            $out[] = "{$name}: {$value}";
+        }
+
+        return $out;
+    }
+
+    /** @return array{status: int, body: array<string, mixed>} */
+    private function get(string $path, bool $withToken, ?string $token = null): array
+    {
+        $url = $this->baseUrl() . $path;
+
+        try {
+            $response = $this->request($withToken, $token)->get($url);
+        } catch (ConnectionException $e) {
+            throw LicenseServerException::transport($e);
+        }
+
+        return ['status' => $response->status(), 'body' => (array) $response->json()];
+    }
+
     private function post(string $path, array $payload, bool $withToken, ?string $token = null): array
     {
         $url = $this->baseUrl() . $path;
@@ -127,7 +190,7 @@ class StoreServerLicenseClient
 
     private function clientHeader(): string
     {
-        return 'gamestore/' . (string) config('app.version', env('APP_VERSION', '1.0.0'));
+        return 'gamestore/' . AppVersion::current();
     }
 
     private function baseUrl(): string

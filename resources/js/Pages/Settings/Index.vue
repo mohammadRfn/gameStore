@@ -55,6 +55,7 @@ import GsTextArea from '@/Components/Settings/GsTextArea.vue'
 import ToastHost from '@/Components/Settings/ToastHost.vue'
 import GearsCluster from '@/Components/Settings/GearsCluster.vue'
 import AccountCredentialsCard from '@/Components/Settings/AccountCredentialsCard.vue'
+import PatchUpdates from '@/Components/Settings/PatchUpdates.vue'
 
 const api = useSettingsApi()
 /* =========================================================================
@@ -68,7 +69,7 @@ const GROUP_UI = {
 const SECTION_UI = {
     appearance: { label: 'ظاهر', icon: Palette, desc: 'تم روشن/تیره رابط کاربری' },
     startup: { label: 'راه‌اندازی', icon: MonitorSmartphone, desc: 'رفتار برنامه هنگام روشن‌شدن سیستم' },
-    updates: { label: 'بروزرسانی', icon: RefreshCw, desc: 'بررسی و نصب بروزرسانی خودکار' },
+    updates: { label: 'بروزرسانی', icon: RefreshCw, desc: 'دریافت و نصب بروزرسانی از سرور' },
 }
 
 /** توضیح کمکی برای هر کلید (UX بهتر — بک‌اند فقط label دارد) */
@@ -288,7 +289,6 @@ async function runOp(name, fn, okKind = 'success') {
         busyOp.value = ''
     }
 }
-const checkUpdates = () => runOp('updates', api.checkForUpdates, 'info')
 
 /* =========================================================================
  * ۱۰) ناوبری + Scroll Spy
@@ -574,20 +574,7 @@ onBeforeUnmount(() => {
                                     </GsRow>
 
                                     <!-- عملیات ویژهٔ هر بخش -->
-                                    <div v-if="sec.key === 'updates'" class="st-sec-ops">
-                                        <button
-                                            type="button"
-                                            class="a3d-btn a3d-btn--sm"
-                                            :disabled="busyOp === 'updates'"
-                                            @click="checkUpdates"
-                                        >
-                                            <RefreshCw
-                                                :size="14"
-                                                :class="{ 'st-spinner': busyOp === 'updates' }"
-                                            />
-                                            بررسی بروزرسانی
-                                        </button>
-                                    </div>
+                                    <PatchUpdates v-if="sec.key === 'updates'" @toast="pushToast" />
                                 </div>
                             </section>
 
