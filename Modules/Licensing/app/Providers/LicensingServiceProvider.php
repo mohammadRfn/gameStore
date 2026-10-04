@@ -105,7 +105,18 @@ class LicensingServiceProvider extends ModuleServiceProvider
     private function registerTerminationHooks(): void
     {
         $this->app->terminating(function (): void {
-             \Modules\Licensing\Jobs\SendHeartbeatJob::dispatch();
+            // درخواست‌های داخلی NativePHP (رویداد پنجره / خروجی child-process) نباید job بسازند؛
+            // خروجی خود job دوباره به‌شکل رویداد برمی‌گردد و حلقه‌ی بی‌پایان می‌سازد.
+            if (request()->is('_native/*')) {
+                return;
+            }
+
+            // حداکثر یک dispatch در هر ۳۰ ثانیه؛ موعد واقعی heartbeat را خود job چک می‌کند.
+            if (! \Illuminate\Support\Facades\Cache::store('file')->add('licensing:heartbeat-dispatch', 1, 30)) {
+                return;
+            }
+
+            \Modules\Licensing\Jobs\SendHeartbeatJob::dispatch();
         });
     }
 
