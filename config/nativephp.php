@@ -141,14 +141,8 @@ return [
     /**
      * The queue workers that get auto-started on your application start.
      */
-    'queue_workers' => [
-        'default' => [
-            'queues' => ['default'],
-            'memory_limit' => 128,
-            'timeout' => 60,
-            'sleep' => 3,
-        ],
-    ],
+    // ورکر صف به‌صورت دستی در NativeAppServiceProvider بالا می‌آید (queue:work --tries=1)
+    'queue_workers' => [],
 
     /**
      * Define your own scripts to run before and after the build process.
