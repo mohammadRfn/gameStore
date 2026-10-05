@@ -1165,7 +1165,6 @@
       4 => 'php artisan config:cache',
       5 => 'php artisan route:cache',
       6 => 'php artisan view:cache',
-      7 => 'php artisan modules:cache',
     ),
     'postbuild' => 
     array (

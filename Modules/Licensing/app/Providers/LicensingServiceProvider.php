@@ -105,6 +105,12 @@ class LicensingServiceProvider extends ModuleServiceProvider
     private function registerTerminationHooks(): void
     {
         $this->app->terminating(function (): void {
+            // دستورهای artisan (package:discover، native:config، ...) هرگز job نمی‌سازند؛
+            // heartbeat در CLI از طریق schedule:run انجام می‌شود.
+            if ($this->app->runningInConsole()) {
+                return;
+            }
+
             // درخواست‌های داخلی NativePHP (رویداد پنجره / خروجی child-process) نباید job بسازند؛
             // خروجی خود job دوباره به‌شکل رویداد برمی‌گردد و حلقه‌ی بی‌پایان می‌سازد.
             if (request()->is('_native/*')) {
