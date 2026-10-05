@@ -33,7 +33,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 
           array (
-            '_route' => 'generated::CkcMX9hug15oGK1l',
+            '_route' => 'generated::61LNxfJr2eN69Nxv',
           ),
           1 => NULL,
           2 => 
@@ -52,7 +52,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 
           array (
-            '_route' => 'generated::lHYBw2NbEBWD90sk',
+            '_route' => 'generated::nWujGHbp2pa9jWBE',
           ),
           1 => NULL,
           2 => 
@@ -71,7 +71,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 
           array (
-            '_route' => 'generated::Ha4gYxDugGWCkAia',
+            '_route' => 'generated::miQ39fVTP9u9ODnX',
           ),
           1 => NULL,
           2 => 
@@ -91,7 +91,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 
           array (
-            '_route' => 'generated::3o8zyX0bHK1zyF91',
+            '_route' => 'generated::7ZLZxIM5CwyFx42Y',
           ),
           1 => NULL,
           2 => 
@@ -629,7 +629,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 
           array (
-            '_route' => 'generated::BJptyft3YRqkNDTj',
+            '_route' => 'generated::BLW7xFFgmzWEWnLx',
           ),
           1 => NULL,
           2 => 
@@ -4405,7 +4405,7 @@ app('router')->setCompiledRoutes(
       'waitSeconds' => NULL,
       'withTrashed' => false,
     ),
-    'generated::CkcMX9hug15oGK1l' => 
+    'generated::61LNxfJr2eN69Nxv' => 
     array (
       'methods' => 
       array (
@@ -4422,7 +4422,7 @@ app('router')->setCompiledRoutes(
         'where' => 
         array (
         ),
-        'as' => 'generated::CkcMX9hug15oGK1l',
+        'as' => 'generated::61LNxfJr2eN69Nxv',
       ),
       'fallback' => false,
       'defaults' => 
@@ -4438,7 +4438,7 @@ app('router')->setCompiledRoutes(
       'waitSeconds' => NULL,
       'withTrashed' => false,
     ),
-    'generated::lHYBw2NbEBWD90sk' => 
+    'generated::nWujGHbp2pa9jWBE' => 
     array (
       'methods' => 
       array (
@@ -4455,7 +4455,7 @@ app('router')->setCompiledRoutes(
         'where' => 
         array (
         ),
-        'as' => 'generated::lHYBw2NbEBWD90sk',
+        'as' => 'generated::nWujGHbp2pa9jWBE',
       ),
       'fallback' => false,
       'defaults' => 
@@ -4471,7 +4471,7 @@ app('router')->setCompiledRoutes(
       'waitSeconds' => NULL,
       'withTrashed' => false,
     ),
-    'generated::Ha4gYxDugGWCkAia' => 
+    'generated::miQ39fVTP9u9ODnX' => 
     array (
       'methods' => 
       array (
@@ -4483,7 +4483,7 @@ app('router')->setCompiledRoutes(
       array (
         'uses' => 'Native\\Laravel\\Http\\Controllers\\CreateSecurityCookieController@__invoke',
         'controller' => 'Native\\Laravel\\Http\\Controllers\\CreateSecurityCookieController',
-        'as' => 'generated::Ha4gYxDugGWCkAia',
+        'as' => 'generated::miQ39fVTP9u9ODnX',
       ),
       'fallback' => false,
       'defaults' => 
@@ -4499,7 +4499,7 @@ app('router')->setCompiledRoutes(
       'waitSeconds' => NULL,
       'withTrashed' => false,
     ),
-    'generated::3o8zyX0bHK1zyF91' => 
+    'generated::7ZLZxIM5CwyFx42Y' => 
     array (
       'methods' => 
       array (
@@ -4528,7 +4528,7 @@ app('router')->setCompiledRoutes(
                         \'exception\' => $exception,
                     ]), status: $exception ? 500 : 200);
                 }";s:5:"scope";s:54:"Illuminate\\Foundation\\Configuration\\ApplicationBuilder";s:4:"this";N;s:4:"self";s:32:"0000000000000ba90000000000000000";}}',
-        'as' => 'generated::3o8zyX0bHK1zyF91',
+        'as' => 'generated::7ZLZxIM5CwyFx42Y',
       ),
       'fallback' => false,
       'defaults' => 
@@ -5945,7 +5945,7 @@ app('router')->setCompiledRoutes(
       'waitSeconds' => NULL,
       'withTrashed' => false,
     ),
-    'generated::BJptyft3YRqkNDTj' => 
+    'generated::BLW7xFFgmzWEWnLx' => 
     array (
       'methods' => 
       array (
@@ -5968,7 +5968,7 @@ app('router')->setCompiledRoutes(
         'where' => 
         array (
         ),
-        'as' => 'generated::BJptyft3YRqkNDTj',
+        'as' => 'generated::BLW7xFFgmzWEWnLx',
       ),
       'fallback' => false,
       'defaults' => 
