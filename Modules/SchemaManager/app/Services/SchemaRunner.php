@@ -35,7 +35,7 @@ final class SchemaRunner
             return self::$last;
         }
 
-        $skip = fn (string $why): array => self::$last = ['status' => 'skipped', 'reason' => $why, 'fresh' => false, 'created_tables' => [], 'added_columns' => [], 'upgrades' => [], 'warnings' => [], 'error' => null];
+        $skip = fn(string $why): array => self::$last = ['status' => 'skipped', 'reason' => $why, 'fresh' => false, 'created_tables' => [], 'added_columns' => [], 'upgrades' => [], 'warnings' => [], 'error' => null];
 
         if (! config('schemamanager.enabled', true)) {
             return $skip('disabled');
@@ -49,8 +49,16 @@ final class SchemaRunner
             return $skip('not_sqlite');
         }
         $name = $conn->getDatabaseName();
-        if (! is_string($name) || $name === ':memory:' || ! is_file($name)) {
-            return $skip('db_file_missing'); // فایل را خودمان نمی‌سازیم (NativePHP / مدیر پروژه می‌سازد)
+        if (! is_string($name) || $name === '' || $name === ':memory:') {
+            return $skip('db_file_missing');
+        }
+        if (! is_file($name)) {
+            // نصب تازه: فایل خالی را می‌سازیم تا baseline رویش اعمال شود
+            @mkdir(dirname($name), 0755, true);
+            @touch($name);
+            if (! is_file($name)) {
+                return $skip('db_file_missing');
+            }
         }
 
         try {
