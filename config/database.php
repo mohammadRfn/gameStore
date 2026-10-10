@@ -2,6 +2,14 @@
 
 use Illuminate\Support\Str;
 
+// اولین اجرا: اگر فایل دیتابیس مقصد وجود ندارد، از قالب خالی بساز
+$__dbPath = env('DB_DATABASE');
+if ($__dbPath && $__dbPath !== ':memory:' && ! file_exists($__dbPath)) {
+    @mkdir(dirname($__dbPath), 0755, true);
+    $__template = base_path('database/schema.sqlite');
+    file_exists($__template) ? @copy($__template, $__dbPath) : @touch($__dbPath);
+}
+
 return [
 
     /*
@@ -148,7 +156,7 @@ return [
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
-            'prefix' => env('REDIS_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-database-'),
+            'prefix' => env('REDIS_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')) . '-database-'),
             'persistent' => env('REDIS_PERSISTENT', false),
         ],
 
