@@ -4,14 +4,6 @@
         <!-- TopBar -->
         <header class="gs-topbar">
             <div class="gs-topbar-right">
-                <!-- Hamburger -->
-                <button class="gs-hamburger" @click="toggleSidebar"
-                    :aria-label="sidebarOpen ? 'بستن منو' : 'باز کردن منو'">
-                    <span :class="['gs-hamburger-line', { 'open': sidebarOpen }]"></span>
-                    <span :class="['gs-hamburger-line', { 'open': sidebarOpen }]"></span>
-                    <span :class="['gs-hamburger-line', { 'open': sidebarOpen }]"></span>
-                </button>
-
                 <!-- Brand -->
                 <Link :href="route('dashboard')" class="gs-brand">
                     <span class="gs-brand-icon">♟</span>
@@ -61,37 +53,6 @@
                 </div>
             </div>
         </header>
-
-        <!-- Sidebar Overlay -->
-        <Transition name="gs-fade">
-            <div v-if="sidebarOpen" class="gs-sidebar-overlay" @click="closeSidebar"></div>
-        </Transition>
-
-        <!-- Sidebar -->
-        <Transition name="gs-slide">
-            <aside v-if="sidebarOpen" class="gs-sidebar">
-                <div class="gs-sidebar-header">
-                    <span class="gs-label">منوی اصلی</span>
-                    <button class="gs-icon-btn" @click="closeSidebar">✕</button>
-                </div>
-
-                <nav class="gs-sidebar-nav">
-                    <div v-for="group in visibleSidebarGroups" :key="group.title" class="gs-sidebar-group">
-                        <span class="gs-sidebar-group-title">{{ group.title }}</span>
-                        <Link v-for="item in group.items" :key="item.route" :href="route(item.route)"
-                            :class="['gs-sidebar-link', { 'active': isActive(item.route) }]" @click="closeSidebar">
-                            <span class="gs-sidebar-link-icon">{{ item.icon }}</span>
-                            <span>{{ item.label }}</span>
-                        </Link>
-                    </div>
-                </nav>
-
-                <div class="gs-sidebar-footer">
-                    <div class="gs-divider-gold"></div>
-                    <p class="gs-label" style="text-align:center">{{ page.props.shopName }} v1.0</p>
-                </div>
-            </aside>
-        </Transition>
 
         <!-- Main -->
         <main class="gs-main">
@@ -157,11 +118,6 @@ function logout() {
     router.post(route('logout'))
 }
 
-// Sidebar
-const sidebarOpen = ref(false)
-function toggleSidebar() { sidebarOpen.value = !sidebarOpen.value }
-function closeSidebar() { sidebarOpen.value = false }
-
 // User Menu
 const userMenuOpen = ref(false)
 const userInitial = computed(() => {
@@ -194,71 +150,8 @@ const quickActions = [
     { label: 'پروفایل فروشگاه', icon: '🏪', route: 'store-profiles.index' },
 ]
 
-// Sidebar Groups
-const sidebarGroups = [
-    {
-        title: 'مدیریت',
-        items: [
-            { label: 'داشبورد', icon: '◈', route: 'dashboard' },
-            { label: 'مشتریان', icon: '👤', route: 'customers.index' },
-            { label: 'درخواست‌ها', icon: '📋', route: 'requests.index' },
-        ],
-    },
-    {
-        title: 'فروش',
-        items: [
-            { label: 'فاکتورها', icon: '🧾', route: 'invoices.index' },
-            { label: 'اقلام سفارش', icon: '🛒', route: 'order-items.index' },
-        ],
-    },
-    {
-        title: 'انبار',
-        items: [
-            { label: 'محصولات', icon: '📦', route: 'items.index' },
-            { label: 'دسته‌بندی‌ها', icon: '🗂', route: 'categories.index' },
-            { label: 'گردش انبار', icon: '🔄', route: 'stock-movements.index' },
-        ],
-    },
-    {
-        title: 'سرویس',
-        items: [
-            { label: 'سرویس‌کارها', icon: '🔧', route: 'service-jobs.index' },
-            { label: 'نوع سرویس', icon: '⚙️', route: 'service-types.index' },
-        ],
-    },
-    {
-        title: 'گزارشات',
-        items: [
-            { label: 'روزانه', icon: '📅', route: 'stats.daily' },
-            { label: 'ماهانه', icon: '📆', route: 'stats.monthly' },
-        ],
-    },
-    {
-        title: 'بایگانی',
-        items: [
-            { label: 'آرشیو اسناد', icon: '🗄', route: 'archives.panel' },
-        ],
-    },
-    {
-        title: 'امنیت داده',
-        items: [
-            { label: 'مرکز بکاپ', icon: '♛', route: 'backups.panel' },
-        ],
-    },
-    {
-        title: 'سیستم',
-        items: [
-            { label: 'تنظیمات', icon: '⚙️', route: 'settings.panel' },
-            { label: 'نگهداری کش', icon: '🧹', route: 'settings.cache.panel' },
-            { label: 'پروفایل فروشگاه', icon: '🏪', route: 'store-profiles.index' },
-        ],
-    },
-]
+
 const visibleQuickActions = computed(() => quickActions.filter(i => isAllowed(i.route)))
-const visibleSidebarGroups = computed(() =>
-    sidebarGroups
-        .map(g => ({ ...g, items: g.items.filter(i => isAllowed(i.route)) }))
-        .filter(g => g.items.length > 0))
 
 // Click Outside Directive
 const vClickOutside = {
@@ -321,47 +214,7 @@ const vClickOutside = {
     flex-shrink: 0;
 }
 
-/* ============================================================
-   Hamburger
-   ============================================================ */
-.gs-hamburger {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 6px;
-    border-radius: 6px;
-    transition: background var(--gs-transition);
-}
 
-.gs-hamburger:hover {
-    background: var(--gs-gold-muted);
-}
-
-.gs-hamburger-line {
-    display: block;
-    width: 22px;
-    height: 2px;
-    background: var(--gs-text-secondary);
-    border-radius: 2px;
-    transition: all var(--gs-transition);
-}
-
-.gs-hamburger-line.open:nth-child(1) {
-    transform: translateY(7px) rotate(45deg);
-    background: var(--gs-gold);
-}
-
-.gs-hamburger-line.open:nth-child(2) {
-    opacity: 0;
-}
-
-.gs-hamburger-line.open:nth-child(3) {
-    transform: translateY(-7px) rotate(-45deg);
-    background: var(--gs-gold);
-}
 
 /* ============================================================
    Brand
@@ -535,100 +388,6 @@ const vClickOutside = {
     background: rgba(224, 92, 92, 0.1);
 }
 
-/* ============================================================
-   Sidebar Overlay
-   ============================================================ */
-.gs-sidebar-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 150;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(2px);
-}
-
-/* ============================================================
-   Sidebar
-   ============================================================ */
-.gs-sidebar {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 200;
-    width: var(--gs-sidebar-w);
-    background: var(--gs-bg-card);
-    border-left: 1px solid var(--gs-border);
-    box-shadow: -4px 0 30px rgba(0, 0, 0, 0.4);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-.gs-sidebar-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid var(--gs-border);
-    margin-top: 60px;
-}
-
-.gs-sidebar-nav {
-    flex: 1;
-    overflow-y: auto;
-    padding: 0.75rem 0;
-}
-
-.gs-sidebar-group {
-    margin-bottom: 0.5rem;
-}
-
-.gs-sidebar-group-title {
-    display: block;
-    font-size: 0.7rem;
-    font-weight: 500;
-    color: var(--gs-gold);
-    letter-spacing: 0.1em;
-    padding: 0.6rem 1.25rem 0.3rem;
-    text-transform: uppercase;
-}
-
-.gs-sidebar-link {
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
-    padding: 0.6rem 1.25rem;
-    font-size: 0.875rem;
-    font-weight: 400;
-    color: var(--gs-text-secondary);
-    text-decoration: none;
-    transition: all var(--gs-transition);
-    border-right: 3px solid transparent;
-}
-
-.gs-sidebar-link:hover {
-    background: var(--gs-gold-muted);
-    color: var(--gs-text-primary);
-    border-right-color: var(--gs-gold);
-}
-
-.gs-sidebar-link.active {
-    background: var(--gs-gold-muted);
-    color: var(--gs-gold);
-    border-right-color: var(--gs-gold);
-    font-weight: 500;
-}
-
-.gs-sidebar-link-icon {
-    font-size: 1rem;
-    width: 20px;
-    text-align: center;
-    flex-shrink: 0;
-}
-
-.gs-sidebar-footer {
-    padding: 1rem 1.25rem;
-}
 
 /* ============================================================
    Main Content
@@ -659,15 +418,5 @@ const vClickOutside = {
 .gs-fade-enter-from,
 .gs-fade-leave-to {
     opacity: 0;
-}
-
-.gs-slide-enter-active,
-.gs-slide-leave-active {
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.gs-slide-enter-from,
-.gs-slide-leave-to {
-    transform: translateX(100%);
 }
 </style>

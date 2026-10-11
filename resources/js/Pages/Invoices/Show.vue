@@ -277,7 +277,9 @@
             </div>
 
             <InvoiceRestockPanel :invoice="invoice" style="margin-top:1.25rem" />
-            <DigitalMenuPanel :invoice-id="invoice.id" :categories="categories" />
+            <!-- منوی دیجیتال فقط در پلن‌هایی که ماژول DigitalMenu دارند (پرو/پریمیوم) -->
+            <DigitalMenuPanel v-if="$page.props.license?.modules?.includes('DigitalMenu')" :invoice-id="invoice.id"
+                :categories="categories" />
 
             <!-- Sidebar -->
             <div style="display:flex;flex-direction:column;gap:1rem">
