@@ -1,5 +1,5 @@
 -- baseline اسکیما (تولیدشده توسط schema:export) — دستی ویرایش نکنید
--- 2026-10-10T16:13:44+00:00 | version 1.0.0
+-- 2026-10-11T16:00:48+00:00 | version 1.0.0
 
 CREATE TABLE IF NOT EXISTS "adjustment_categories" (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -693,7 +693,7 @@ CREATE TABLE IF NOT EXISTS "store_profiles" (
     updated_at         DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS "users" ("id" integer primary key autoincrement not null, "name" varchar not null, "email" varchar not null, "email_verified_at" datetime, "password" varchar not null, "remember_token" varchar, "created_at" datetime, "updated_at" datetime, "deleted_at" datetime, username varchar);
+CREATE TABLE IF NOT EXISTS "users" ("id" integer primary key autoincrement not null, "name" varchar not null, "email" varchar not null, "email_verified_at" datetime, "password" varchar not null, "remember_token" varchar, "created_at" datetime, "updated_at" datetime, "deleted_at" datetime, username varchar, recovery_code_hash TEXT NULL);
 
 CREATE TABLE IF NOT EXISTS warranties (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
