@@ -115,7 +115,7 @@
   ),
   'app' => 
   array (
-    'name' => 'Laravel',
+    'name' => 'MyStore',
     'env' => 'local',
     'debug' => true,
     'url' => 'http://localhost',
@@ -727,7 +727,7 @@
         ),
       ),
     ),
-    'prefix' => 'laravel-cache-',
+    'prefix' => 'mystore-cache-',
   ),
   'database' => 
   array (
@@ -826,7 +826,7 @@
       'options' => 
       array (
         'cluster' => 'redis',
-        'prefix' => 'laravel-database-',
+        'prefix' => 'mystore-database-',
         'persistent' => false,
       ),
       'default' => 
@@ -1069,7 +1069,7 @@
     'from' => 
     array (
       'address' => 'hello@example.com',
-      'name' => 'Laravel',
+      'name' => 'MyStore',
     ),
     'markdown' => 
     array (
@@ -1083,7 +1083,7 @@
   'nativephp' => 
   array (
     'version' => '1.0.0',
-    'app_id' => 'com.nativephp.app',
+    'app_id' => 'com.mystore.app',
     'deeplink_scheme' => NULL,
     'author' => NULL,
     'copyright' => NULL,
@@ -1316,7 +1316,7 @@
       0 => 2,
       1 => 100,
     ),
-    'cookie' => 'laravel-session',
+    'cookie' => 'mystore-session',
     'path' => '/',
     'domain' => NULL,
     'secure' => NULL,
