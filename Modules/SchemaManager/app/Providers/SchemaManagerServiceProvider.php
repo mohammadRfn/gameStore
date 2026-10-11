@@ -4,6 +4,7 @@ namespace Modules\SchemaManager\Providers;
 
 use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Routing\Router;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Modules\SchemaManager\Console\Commands\SchemaApplyCommand;
 use Modules\SchemaManager\Console\Commands\SchemaExportCommand;
@@ -35,6 +36,26 @@ class SchemaManagerServiceProvider extends ModuleServiceProvider
         parent::register();
 
         $this->app->singleton(SchemaRunner::class);
+
+        // نصب تازه: بعضی ماژول‌ها (مثل CacheMaintenance) همان لحظه‌ی بوت از دیتابیس می‌خوانند.
+        // این callback در register ثبت می‌شود تا پیش از callbackهای booted آن‌ها اجرا شود.
+        $this->app->booted(function (): void {
+            $argv = $_SERVER['argv'] ?? [];
+            foreach (['package:discover', 'schema:export', 'schema:verify'] as $skip) {
+                if (in_array($skip, $argv, true)) {
+                    return;
+                }
+            }
+
+            try {
+                $name = DB::connection()->getDatabaseName();
+                if (is_string($name) && $name !== '' && $name !== ':memory:' && ! is_file($name)) {
+                    $this->app->make(SchemaRunner::class)->ensure();
+                }
+            } catch (Throwable) {
+                // خطا در لاگ SchemaRunner ثبت می‌شود
+            }
+        });
     }
 
     public function boot(): void
