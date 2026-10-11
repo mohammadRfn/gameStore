@@ -16,6 +16,11 @@ class AuthController extends Controller
 {
     public function showLogin()
     {
+        // نصب تازه: هنوز هیچ کاربری ساخته نشده → اول راه‌اندازی اولیه
+        if (! User::query()->exists()) {
+            return redirect()->route('setup.show');
+        }
+
         return Inertia::render('Login');
     }
 

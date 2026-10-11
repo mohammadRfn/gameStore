@@ -78,9 +78,6 @@ class SetupController extends Controller
 
         Audit::security('setup_owner_created', 'حساب مدیر در راه‌اندازی اولیه ساخته شد', ['user_id' => $user->id], LogLevel::Critical);
 
-        Auth::login($user);
-        $request->session()->regenerate();
-
         return Inertia::render('Setup', ['step' => 'recovery', 'recoveryCode' => $code]);
     }
 }

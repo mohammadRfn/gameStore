@@ -55,8 +55,8 @@
                 </p>
                 <div class="gs-recovery" dir="ltr">{{ recoveryCode }}</div>
                 <button type="button" class="gs-btn gs-btn-primary gs-btn-lg"
-                    style="width:100%;margin-top:1.5rem;justify-content:center" @click="router.visit(route('dashboard'))">
-                    کد را ذخیره کردم؛ ورود به داشبورد
+                    style="width:100%;margin-top:1.5rem;justify-content:center" @click="router.visit(route('login'))">
+                    کد را ذخیره کردم؛ ادامه به صفحه ورود
                 </button>
             </div>
         </div>
