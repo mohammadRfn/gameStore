@@ -1169,7 +1169,7 @@
     'postbuild' => 
     array (
     ),
-    'binary_path' => NULL,
+    'binary_path' => 'C:\\Users\\moham\\Documents\\projects\\gameshop\\vendor\\nativephp\\php-bin\\bin',
     'hot_reload' => 
     array (
       0 => 'C:\\Users\\moham\\Documents\\projects\\gameshop\\app/Providers/NativeAppServiceProvider.php',
@@ -1625,7 +1625,7 @@
       'certificate_profile_name' => NULL,
       'code_signing_account_name' => NULL,
     ),
-    'php_binary_path' => NULL,
+    'php_binary_path' => 'C:\\Users\\moham\\Documents\\projects\\gameshop\\vendor\\nativephp\\php-bin\\bin',
   ),
   'modules' => 
   array (
