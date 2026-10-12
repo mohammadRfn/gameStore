@@ -156,6 +156,10 @@ final class PatchBuilder
             throw new RuntimeException("ساخت پوشه‌ی خروجی ممکن نشد: $outDir");
         }
         $zipPath = "$outDir/$id.zip";
+        file_put_contents("$outDir/$id.changes.txt", implode("\n", array_map(
+            static fn (array $e): string => "[{$e['action']}] {$e['path']}",
+            $entries
+        )) . "\n");
         $zip = new ZipArchive();
         if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             throw new RuntimeException('ساخت zip ممکن نشد.');
@@ -294,13 +298,14 @@ final class PatchBuilder
     private function skip(string $rel): bool
     {
         $n = '/' . $rel . '/';
-        foreach (['/node_modules/', '/.git/', '/vendor/', '/storage/', '/bootstrap/cache/'] as $seg) {
+        // مواردی که NativePHP موقع بسته‌بندی حذف می‌کند (مثل tests و .gitkeep) نباید در مقایسه بیایند
+        foreach (['/node_modules/', '/.git/', '/vendor/', '/storage/', '/bootstrap/cache/', '/tests/'] as $seg) {
             if (str_contains($n, $seg)) {
                 return true;
             }
         }
         $base = basename($rel);
-        if (in_array($base, ['.DS_Store', 'Thumbs.db', 'hot', '.gitignore'], true)) {
+        if (in_array($base, ['.DS_Store', 'Thumbs.db', 'hot'], true) || str_starts_with($base, '.git')) {
             return true;
         }
         if (preg_match('/\.(log|sqlite3?|db|sqlite-wal|sqlite-shm|sqlite-journal)$/i', $base)) {
