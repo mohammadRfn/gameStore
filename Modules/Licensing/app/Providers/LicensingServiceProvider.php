@@ -7,6 +7,7 @@ namespace Modules\Licensing\Providers;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Routing\Router;
 use Modules\Licensing\Console\Commands\PatchApplyCommand;
+use Modules\Licensing\Console\Commands\PatchBuildCommand;
 use Modules\Licensing\Console\Commands\PatchHealthCommand;
 use Modules\Licensing\Console\Commands\PatchSyncCommand;
 use Modules\Licensing\Console\Commands\SendHeartbeatCommand;
@@ -43,11 +44,12 @@ class LicensingServiceProvider extends ModuleServiceProvider
         PatchApplyCommand::class,
         PatchSyncCommand::class,
         PatchHealthCommand::class,
+        PatchBuildCommand::class,
     ];
 
     /**
      * این آرایه است که parent::register()/boot() را وادار می‌کند routes/web.php
-     * را واقعاً بارگذاری کند - بدونش روت‌های licensing.* اصلاً ثبت نمی‌شوند،
+     * را واقعاً بارگذاری کند - بدونش روت‌های licensing.* اصلاً ثبت نمی‌شوند，
      * حتی اگر middleware درست کار کند (دقیقاً همون الگوی Authentication).
      */
     protected array $providers = [
