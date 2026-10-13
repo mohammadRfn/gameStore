@@ -8,6 +8,7 @@ use FilesystemIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use RuntimeException;
+use Modules\Licensing\Patching\Core\SqlGuard;
 use ZipArchive;
 
 /**
@@ -123,7 +124,24 @@ final class PatchBuilder
                 $deletes[] = ['path' => $rel, 'action' => 'delete'];
             }
         }
-        if ($stat['add'] + $stat['replace'] + $stat['delete'] === 0) {
+        // اسکریپت‌های SQL اختیاری (پوشه‌ی --sql): هر *.sql به ترتیب نام، داخل تراکنش روی دیتابیس مشتری اجرا می‌شود
+        $sqlScripts = [];
+        $sqlSources = [];
+        if (! empty($o['sql'])) {
+            foreach ($this->readSqlDir((string) $o['sql']) as $i => [$name, $content]) {
+                $g = SqlGuard::inspect($content);
+                if ($g['forbidden']) {
+                    throw new RuntimeException("اسکریپت {$name} دستور ممنوع دارد: " . implode('، ', $g['forbidden']));
+                }
+                if ($g['destructive']) {
+                    throw new RuntimeException("اسکریپت {$name} دستور مخرب دارد (" . implode('، ', $g['destructive']) . ') و این ابزار آن را خودکار تأیید نمی‌کند.');
+                }
+                $sqlScripts[] = ['file' => 'sql/' . $name, 'checksum' => hash('sha256', $content), 'order' => $i + 1];
+                $sqlSources['sql/' . $name] = $content;
+            }
+        }
+
+        if ($stat['add'] + $stat['replace'] + $stat['delete'] === 0 && $sqlScripts === []) {
             throw new RuntimeException('هیچ تفاوتی با نسخه‌ی مبنا نیست؛ پچی لازم نیست (بیلد فرانت را هم زده‌ای؟).');
         }
 
@@ -143,22 +161,25 @@ final class PatchBuilder
             'patch_id' => $id,
             'title' => $title,
             'description' => $o['desc'] ?? '',
-            'type' => 'files',
+            'type' => $sqlScripts === [] ? 'files' : ($entries === [] ? 'database' : 'both'),
             'from_min' => $from,
             'from_max' => $fromMax,
             'to_version' => $to,
             'requires_restart' => $o['restart'] ?? true,
             'files' => $entries,
         ];
+        if ($sqlScripts !== []) {
+            $manifest['sql_scripts'] = $sqlScripts;
+        }
 
         $outDir = $this->work . '/out';
         if (! is_dir($outDir) && ! mkdir($outDir, 0777, true)) {
             throw new RuntimeException("ساخت پوشه‌ی خروجی ممکن نشد: $outDir");
         }
         $zipPath = "$outDir/$id.zip";
-        file_put_contents("$outDir/$id.changes.txt", implode("\n", array_map(
-            static fn (array $e): string => "[{$e['action']}] {$e['path']}",
-            $entries
+        file_put_contents("$outDir/$id.changes.txt", implode("\n", array_merge(
+            array_map(static fn (array $e): string => "[{$e['action']}] {$e['path']}", $entries),
+            array_map(static fn (array $e): string => "[sql] {$e['file']}", $sqlScripts)
         )) . "\n");
         $zip = new ZipArchive();
         if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
@@ -167,6 +188,9 @@ final class PatchBuilder
         $zip->addFromString('manifest.json', (string) json_encode($manifest, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
         foreach ($files as $f) {
             $zip->addFile($f['_src'], 'files/' . $f['path']);
+        }
+        foreach ($sqlSources as $name => $content) {
+            $zip->addFromString($name, $content);
         }
         $zip->close();
 
@@ -191,6 +215,7 @@ final class PatchBuilder
             'to' => $to,
             'restart' => (bool) $manifest['requires_restart'],
             'stat' => $stat,
+            'sql' => array_column($sqlScripts, 'file'),
             'code' => array_values(array_filter($entries, static fn (array $e): bool => ! str_starts_with($e['path'], 'public/build/'))),
             'warnings' => $warnings,
             'size' => (int) filesize($zipPath),
@@ -226,7 +251,7 @@ final class PatchBuilder
         }
         for ($i = 0; $i < $z->numFiles; $i++) {
             $n = (string) $z->getNameIndex($i);
-            if (! ($n === 'manifest.json' || str_starts_with($n, 'files/')) || str_contains($n, '\\')) {
+            if (! ($n === 'manifest.json' || str_starts_with($n, 'files/') || str_starts_with($n, 'sql/')) || str_contains($n, '\\')) {
                 throw new RuntimeException("ورودی نامعتبر در zip: $n");
             }
         }
@@ -239,7 +264,45 @@ final class PatchBuilder
                 throw new RuntimeException('عدم تطابق هش/حجم در zip: ' . $e['path']);
             }
         }
+        foreach ($m['sql_scripts'] ?? [] as $sc) {
+            $d = $z->getFromName((string) $sc['file']);
+            if ($d === false || hash('sha256', $d) !== strtolower((string) $sc['checksum'])) {
+                throw new RuntimeException('عدم تطابق checksum اسکریپت SQL در zip: ' . $sc['file']);
+            }
+        }
         $z->close();
+    }
+
+    /**
+     * خواندن *.sql از یک پوشه به ترتیب نام.
+     *
+     * @return list<array{0:string,1:string}> [نام فایل، محتوا]
+     */
+    private function readSqlDir(string $dir): array
+    {
+        $dir = rtrim($dir, "\\/");
+        if (! is_dir($dir)) {
+            throw new RuntimeException("پوشه‌ی SQL پیدا نشد: $dir");
+        }
+        $found = glob($dir . '/*.sql') ?: [];
+        sort($found, SORT_STRING);
+        if ($found === []) {
+            throw new RuntimeException("در $dir هیچ فایل .sql پیدا نشد.");
+        }
+        $out = [];
+        foreach ($found as $path) {
+            $name = basename($path);
+            if (! preg_match('/^[A-Za-z0-9._\-]+\.sql$/', $name)) {
+                throw new RuntimeException("نام فایل SQL نامعتبر است: $name (فقط حروف انگلیسی، عدد، نقطه، خط تیره و زیرخط).");
+            }
+            $content = (string) file_get_contents($path);
+            if (trim($content) === '') {
+                throw new RuntimeException("فایل SQL خالی است: $name");
+            }
+            $out[] = [$name, $content];
+        }
+
+        return $out;
     }
 
     private function snapshot(string $from): int

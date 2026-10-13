@@ -77,9 +77,10 @@ const KEY_DESC = {
     'general.theme': 'ظاهر کلی برنامه',
     'desktop.auto_launch': 'اجرای برنامه هم‌زمان با روشن‌شدن سیستم',
     'desktop.minimize_to_tray': 'کوچک‌شدن به Tray به‌جای بستن کامل',
-    'desktop.auto_update_url': 'آدرس سرور بروزرسانی خودکار',
-    'desktop.auto_update_check': 'بررسی بروزرسانی هنگام اجرای برنامه',
 }
+
+/** تنظیم‌هایی که در UI نمایش داده نمی‌شوند (بک‌اند و مقدار پیش‌فرضشان دست‌نخورده می‌ماند) */
+const HIDDEN_KEYS = new Set(['desktop.auto_update_url', 'desktop.auto_update_check'])
 
 /* =========================================================================
  * ۲) وضعیت داده‌ها
@@ -107,7 +108,7 @@ const dirtyKeys = computed(() =>
     ),
 )
 const dirtyCount = computed(() => dirtyKeys.value.length)
-const totalCount = computed(() => Object.keys(meta).length)
+const totalCount = computed(() => Object.keys(meta).filter((k) => !HIDDEN_KEYS.has(k)).length)
 
 /* =========================================================================
  * ۳) ساختار درختی گروه → بخش → آیتم‌ها برای رندر
@@ -117,11 +118,14 @@ const tree = computed(() => {
     for (const gKey of Object.keys(GROUP_UI)) {
         const sections = {}
         for (const key of Object.keys(meta)) {
+            if (HIDDEN_KEYS.has(key)) continue
             const m = meta[key]
             if (m.group !== gKey) continue
             const sec = m.section || 'other'
             ;(sections[sec] ||= []).push(m)
         }
+        // بخش «بروزرسانی» حتی بدون تنظیم‌های بالا باید بماند (کامپوننت PatchUpdates داخل آن است)
+        if (gKey === 'desktop') sections.updates ||= []
         const sectionList = Object.keys(sections).map((sKey) => ({
             key: sKey,
             ui: SECTION_UI[sKey] || { label: sKey, icon: SettingsIcon, desc: '' },

@@ -28,6 +28,7 @@ class PatchBuildCommand extends Command
         {--from-max= : (make) حداکثر نسخه‌ی قابل‌ارتقا؛ پیش‌فرض: نسخه‌ی مبنا}
         {--id= : (make) شناسه‌ی پچ؛ پیش‌فرض p-<نسخه>}
         {--restart=1 : (make) 1 = نیاز به ری‌استارت}
+        {--sql= : (make) پوشه‌ی فایل‌های .sql که با پچ روی دیتابیس مشتری اجرا می‌شوند (به ترتیب نام)}
         {--work= : پوشه‌ی کاری؛ پیش‌فرض: کنار پروژه، پوشه‌ی patch-work}
         {--build : (make) قبل از ساخت، npm run build را اجرا کن}';
 
@@ -86,6 +87,7 @@ class PatchBuildCommand extends Command
             'to' => $this->option('to') ?: null,
             'from_max' => $this->option('from-max') ?: null,
             'id' => $this->option('id') ?: null,
+            'sql' => $this->option('sql') ?: null,
             'restart' => (string) ($this->option('restart') ?? '1') === '1',
         ], static fn ($v) => $v !== null));
 
@@ -98,6 +100,9 @@ class PatchBuildCommand extends Command
             $r['to'],
             $r['restart'] ? 'yes' : 'no'
         ));
+        if ($r['sql'] !== []) {
+            $this->line('  اسکریپت SQL (' . count($r['sql']) . '): ' . implode('، ', $r['sql']));
+        }
         $this->line('  تغییرهای غیرِ بیلد (' . count($r['code']) . '):');
         foreach (array_slice($r['code'], 0, 25) as $e) {
             $this->line("    [{$e['action']}] {$e['path']}");
