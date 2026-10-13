@@ -4,8 +4,15 @@ declare(strict_types=1);
 
 namespace Modules\Setting\Providers;
 
+use Modules\Setting\Console\Commands\PatchElectronCommand;
 use Modules\Setting\Events\SettingsChanged;
+use Modules\Setting\Events\TrayShowRequested;
 use Modules\Setting\Listeners\InvalidateSettingCache;
+use Modules\Setting\Listeners\MarkTrayReady;
+use Modules\Setting\Listeners\ShowMainWindow;
+use Native\Laravel\Events\MenuBar\MenuBarClicked;
+use Native\Laravel\Events\MenuBar\MenuBarCreated;
+use Native\Laravel\Events\MenuBar\MenuBarDoubleClicked;
 use Modules\Setting\Services\Setting\Contracts\SettingRepositoryContract;
 use Modules\Setting\Services\Setting\Repositories\DatabaseSettingRepository;
 use Modules\Setting\Services\Setting\SettingDefaults;
@@ -31,10 +38,19 @@ class SettingServiceProvider extends ServiceProvider
             InvalidateSettingCache::class,
             SyncDesktopAutoLaunch::class,
         ],
+
+        // رویدادهای Tray که Electron می‌فرستد (هر کدام یک درخواست جدید است؛ پس باید در هر درخواست ثبت شوند)
+        MenuBarCreated::class => [MarkTrayReady::class],
+        MenuBarClicked::class => [ShowMainWindow::class],
+        MenuBarDoubleClicked::class => [ShowMainWindow::class],
+        TrayShowRequested::class => [ShowMainWindow::class],
     ];
 
     public function register(): void
     {
+        // بدون این خط، $listen (از EventServiceProvider) هرگز ثبت نمی‌شد و هیچ‌کدام از لیسنرها اجرا نمی‌شدند
+        parent::register();
+
         // 1) Merge config
         $this->mergeConfigFrom(__DIR__ . '/../../config/setting.php', 'setting');
 
@@ -69,6 +85,8 @@ class SettingServiceProvider extends ServiceProvider
     {
         // Publish کردن config برای customize توسط کاربر
         if ($this->app->runningInConsole()) {
+            $this->commands([PatchElectronCommand::class]);
+
             $this->publishes([
                 __DIR__ . '/../../config/setting.php' => config_path('setting.php'),
             ], 'setting-config');

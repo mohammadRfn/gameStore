@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Modules\Setting\Services\Desktop\DesktopShell;
 use Native\Laravel\Contracts\ProvidesPhpIni;
 use Native\Laravel\Facades\ChildProcess;
 use Native\Laravel\Facades\Window;
@@ -19,13 +20,8 @@ class NativeAppServiceProvider implements ProvidesPhpIni
         $this->startQueueWorker();
         $this->startLanServer();
 
-        if (class_exists(\Native\Laravel\Facades\App::class)) {
-            try {
-                \Native\Laravel\Facades\App::openAtLogin(app('settings')->autoLaunch());
-            } catch (Throwable $e) {
-                //
-            }
-        }
+        // اجرای خودکار با ویندوز + آیکن Tray + بستن به Tray (هر خطا لاگ می‌شود)
+        DesktopShell::boot();
     }
 
     /** php artisan queue:work --tries=1 (با همان alias قبلی تا چیزی به آن وابسته نشکند) */
