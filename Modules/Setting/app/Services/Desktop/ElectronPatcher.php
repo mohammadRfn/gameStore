@@ -14,6 +14,8 @@ namespace Modules\Setting\Services\Desktop;
  *   - اجرای دوباره‌ی برنامه (دابل‌کلیک روی شورتکات) پنجره‌ی مخفی را نشان می‌دهد
  *   - (single) فقط یک نمونه از برنامه اجرا می‌شود؛ اجرای دوباره پنجره‌ی نمونه‌ی اول را نشان می‌دهد
  *     (قفل تک‌نمونه‌ی خود NativePHP فقط وقتی NATIVEPHP_DEEPLINK_SCHEME ست باشد فعال می‌شود)
+ *   - (noproxy) درخواست‌های لوکال (Electron ↔ PHP روی 127.0.0.1) هرگز از پروکسی/VPN سیستم عبور نمی‌کنند؛
+ *     وگرنه موقع بوت سرد که کلاینت پروکسی هنوز بالا نیامده، پیام «booted» با ECONNREFUSED به پورت پروکسی شکست می‌خورد
  *   - (boot) درخواست «booted» به لاراول موقع بوت سرد سیستم (اجرای خودکار) اگر به خاطر خطای اتصال شکست بخورد
  *     دوباره تلاش می‌شود، و مراحل راه‌اندازی در  %APPDATA%/<app>/native-boot.log ثبت می‌شود
  *
@@ -26,6 +28,8 @@ final class ElectronPatcher
     private const MARKER_BOOT = 'GS-BOOT-PATCH';
 
     private const MARKER_SINGLE = 'GS-SINGLE-PATCH';
+
+    private const MARKER_NOPROXY = 'GS-NOPROXY-PATCH';
 
     public static function defaultDistPath(): string
     {
@@ -94,6 +98,15 @@ JS],
         state.icon = icon;
 JS],
             ]),
+            'index.js [noproxy]' => $this->patchFile("$dist/index.js", self::MARKER_NOPROXY, [
+                ['/initialize\(\);(\s*)state\.icon = icon;/', <<<'JS'
+// GS-NOPROXY-PATCH: ترافیک لوکال از پروکسی/VPN رد نشود (به PHP هم به ارث می‌رسد)
+        process.env.NO_PROXY = '127.0.0.1,localhost,::1' + (process.env.NO_PROXY ? ',' + process.env.NO_PROXY : '');
+        process.env.no_proxy = process.env.NO_PROXY;
+        initialize();
+        state.icon = icon;
+JS],
+            ]),
             'utils.js [boot]' => $this->patchFile("$dist/server/utils.js", self::MARKER_BOOT, [
                 ['/import \{ session \} from \'electron\';/', <<<'JS'
 import { app as gsApp, session } from 'electron';
@@ -146,6 +159,14 @@ JS],
 JS],
                 ['/yield this\.startPhpApp\(\);/', "gsLog('php: starting');\n            yield this.startPhpApp();\n            gsLog('php: started on port ' + state.phpPort);"],
                 ['/yield notifyLaravel\("booted"\);/', "gsLog('booted: notifying');\n            yield notifyLaravel(\"booted\");"],
+            ]),
+            // باید بعد از utils.js [boot] بیاید، چون به متن پچ‌شده‌ی آن تکیه دارد
+            'utils.js [noproxy]' => $this->patchFile("$dist/server/utils.js", self::MARKER_NOPROXY, [
+                ['/yield axios\.post\(`http:\/\/127\.0\.0\.1:\$\{state\.phpPort\}\/_native\/api\/\$\{endpoint\}`, payload, \{/', <<<'JS'
+// GS-NOPROXY-PATCH
+                yield axios.post(`http://127.0.0.1:${state.phpPort}/_native/api/${endpoint}`, payload, {
+                    proxy: false,
+JS],
             ]),
         ];
     }
