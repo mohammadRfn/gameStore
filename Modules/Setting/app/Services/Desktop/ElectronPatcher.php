@@ -12,12 +12,16 @@ namespace Modules\Setting\Services\Desktop;
  *   - endpoint جدید  POST /api/window/hide-on-close  {enabled: bool}
  *   - وقتی فعال باشد، close پنجره‌ی main لغو و پنجره hide می‌شود (مگر موقع quit/خاموش‌شدن ویندوز)
  *   - اجرای دوباره‌ی برنامه (دابل‌کلیک روی شورتکات) پنجره‌ی مخفی را نشان می‌دهد
+ *   - (boot) درخواست «booted» به لاراول موقع بوت سرد سیستم (اجرای خودکار) اگر به خاطر خطای اتصال شکست بخورد
+ *     دوباره تلاش می‌شود، و مراحل راه‌اندازی در  %APPDATA%/<app>/native-boot.log ثبت می‌شود
  *
  * چندبار اجرا کردنش بی‌خطر است (idempotent).
  */
 final class ElectronPatcher
 {
-    private const MARKER = 'GS-TRAY-PATCH';
+    private const MARKER_TRAY = 'GS-TRAY-PATCH';
+
+    private const MARKER_BOOT = 'GS-BOOT-PATCH';
 
     public static function defaultDistPath(): string
     {
@@ -32,7 +36,7 @@ final class ElectronPatcher
         $dist = rtrim(str_replace('\\', '/', $dist), '/');
 
         return [
-            'server/api/window.js' => $this->patchFile("$dist/server/api/window.js", [
+            'window.js [tray]' => $this->patchFile("$dist/server/api/window.js", self::MARKER_TRAY, [
                 ['/import \{ BrowserWindow \} from [\'"]electron[\'"];/', "import { app, BrowserWindow } from 'electron';"],
                 ['/const router = express\.Router\(\);/', <<<'JS'
 const router = express.Router();
@@ -54,7 +58,7 @@ window.on('session-end', () => { state.gsQuitting = true; });
         if (state.windows[id]) {
 JS],
             ]),
-            'index.js' => $this->patchFile("$dist/index.js", [
+            'index.js [tray]' => $this->patchFile("$dist/index.js", self::MARKER_TRAY, [
                 ['/if \(this\.mainWindow\) \{\s*if \(this\.mainWindow\.isMinimized\(\)\)\s*this\.mainWindow\.restore\(\);\s*this\.mainWindow\.focus\(\);\s*\}/', <<<'JS'
 // GS-TRAY-PATCH: نمایش پنجره‌ی مخفی‌شده در Tray
                         const gsWin = this.mainWindow || state.windows["main"];
@@ -66,6 +70,59 @@ JS],
                         }
 JS],
             ]),
+            'utils.js [boot]' => $this->patchFile("$dist/server/utils.js", self::MARKER_BOOT, [
+                ['/import \{ session \} from \'electron\';/', <<<'JS'
+import { app as gsApp, session } from 'electron';
+import * as gsFs from 'fs';
+import * as gsPath from 'path';
+JS],
+                ['/import axios from \'axios\';/', <<<'JS'
+import axios from 'axios';
+// GS-BOOT-PATCH: لاگ راه‌اندازی در userData/native-boot.log
+export function gsLog(msg) {
+    try {
+        gsFs.appendFileSync(gsPath.join(gsApp.getPath('userData'), 'native-boot.log'), new Date().toISOString() + ' ' + msg + '\n');
+    }
+    catch (e) {
+    }
+}
+JS],
+                ['~try \{\s*yield axios\.post\(`http://127\.0\.0\.1:\$\{state\.phpPort\}/_native/api/\$\{endpoint\}`, payload, \{\s*headers: \{\s*"X-NativePHP-Secret": state\.randomSecret,\s*\},\s*\}\);\s*\}\s*catch \(e\) \{\s*\}~', <<<'JS'
+const gsBoot = endpoint === 'booted';
+        for (let gsTry = 1;; gsTry++) {
+            try {
+                yield axios.post(`http://127.0.0.1:${state.phpPort}/_native/api/${endpoint}`, payload, {
+                    headers: {
+                        "X-NativePHP-Secret": state.randomSecret,
+                    },
+                });
+                if (gsBoot)
+                    gsLog('booted: ok (attempt ' + gsTry + ')');
+                break;
+            }
+            catch (e) {
+                if (!gsBoot)
+                    break;
+                const gsStatus = e && e.response ? e.response.status : null;
+                gsLog('booted: attempt ' + gsTry + ' failed: ' + (e && e.message) + (gsStatus ? ' [HTTP ' + gsStatus + ']' : ''));
+                // خطای HTTP یعنی درخواست به لاراول رسیده؛ تلاش دوباره boot() را دوباره اجرا می‌کرد
+                if (gsStatus || gsTry >= 30)
+                    break;
+                yield new Promise((r) => setTimeout(r, 2000));
+            }
+        }
+JS],
+            ]),
+            'index.js [boot]' => $this->patchFile("$dist/index.js", self::MARKER_BOOT, [
+                ['/import \{ notifyLaravel \} from "\.\/server\/utils\.js";/', 'import { notifyLaravel, gsLog } from "./server/utils.js";'],
+                ['/this\.bootstrapApp\(app\);/', <<<'JS'
+// GS-BOOT-PATCH
+        gsLog('app start (pid ' + process.pid + ')');
+        this.bootstrapApp(app).catch((e) => gsLog('bootstrapApp failed: ' + (e && e.stack ? e.stack : e)));
+JS],
+                ['/yield this\.startPhpApp\(\);/', "gsLog('php: starting');\n            yield this.startPhpApp();\n            gsLog('php: started on port ' + state.phpPort);"],
+                ['/yield notifyLaravel\("booted"\);/', "gsLog('booted: notifying');\n            yield notifyLaravel(\"booted\");"],
+            ]),
         ];
     }
 
@@ -73,14 +130,14 @@ JS],
      * @param array<int,array{0:string,1:string}> $rules [regex, جایگزین]
      * @return array{ok:bool,message:string}
      */
-    private function patchFile(string $file, array $rules): array
+    private function patchFile(string $file, string $marker, array $rules): array
     {
         if (! is_file($file)) {
             return ['ok' => false, 'message' => "پیدا نشد: $file"];
         }
 
         $src = (string) file_get_contents($file);
-        if (str_contains($src, self::MARKER)) {
+        if (str_contains($src, $marker)) {
             return ['ok' => true, 'message' => 'قبلاً پچ شده'];
         }
 
