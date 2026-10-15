@@ -125,20 +125,29 @@ class InvoiceService
      */
     public function markAsPaid(int $invoiceId, array $data): Invoice
     {
-        $invoice = Invoice::findOrFail($invoiceId);
+        // در یک تراکنش: اگر موجودی کافی نباشد، پرداخت هم ثبت نمی‌شود (نه «پرداخت‌شده بدون کسر موجودی»)
+        return DB::transaction(function () use ($invoiceId, $data) {
+            $invoice = Invoice::findOrFail($invoiceId);
 
-        $invoice->payment_status         = Invoice::PAYMENT_PAID;
-        $invoice->payment_method         = $data['payment_method'] ?? $invoice->payment_method;
-        $invoice->payment_terminal_mode  = $data['payment_terminal_mode'] ?? $invoice->payment_terminal_mode;
-        $invoice->paid_at                = now();
-        $invoice->save();
+            $invoice->payment_status         = Invoice::PAYMENT_PAID;
+            $invoice->payment_method         = $data['payment_method'] ?? $invoice->payment_method;
+            $invoice->payment_terminal_mode  = $data['payment_terminal_mode'] ?? $invoice->payment_terminal_mode;
+            $invoice->paid_at                = now();
+            $invoice->save();
 
-        $this->maybeDeductStock($invoice);
-        $this->warrantyService->activateWarrantiesForInvoice($invoice);
+            $this->maybeDeductStock($invoice);
 
-        $invoice->request?->markCompleted();
+            // قطعات مصرفیِ سرویس‌های تحویل‌شده‌ی این فاکتور حالا که پرداخت شده از انبار کم می‌شوند
+            foreach ($invoice->serviceJobs()->get() as $serviceJob) {
+                $this->stockMovementService->syncServiceJobConsumption($serviceJob);
+            }
 
-        return $invoice->fresh();
+            $this->warrantyService->activateWarrantiesForInvoice($invoice);
+
+            $invoice->request?->markCompleted();
+
+            return $invoice->fresh();
+        });
     }
     public function attachReceiptImage(int $invoiceId, $image): Invoice
     {

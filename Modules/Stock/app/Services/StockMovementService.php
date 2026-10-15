@@ -367,6 +367,10 @@ class StockMovementService
         });
     }
 
+    /**
+     * @deprecated جایگزین: syncServiceJobConsumption() — آن متد هم افزودن/ویرایش/حذف قطعه را پوشش می‌دهد
+     * و جلوی ثبت تکراری را می‌گیرد. این متد جایی صدا زده نمی‌شد.
+     */
     public function recordConsumptionForServiceJob(ServiceJob $serviceJob): void
     {
         $serviceJob->loadMissing('items', 'invoice');
@@ -399,6 +403,122 @@ class StockMovementService
             }
         });
     }
+    private const SERVICE_CONSUMPTION_REASON = 'service_consumption';
+
+    private function serviceJobItemNote(int $serviceJobItemId): string
+    {
+        return "Service job item #{$serviceJobItemId}";
+    }
+
+    /**
+     * قطعات مصرف‌شده‌ی یک سرویس را با حرکت‌های انبار هم‌گام می‌کند.
+     *
+     * موجودی فقط وقتی کم می‌شود که هم‌زمان:
+     *   ۱) وضعیت سرویس «تحویل داده شده» (delivered) باشد، و
+     *   ۲) سرویس روی یک فاکتور باشد که وضعیتش «پرداخت‌شده» است.
+     * اگر این شرط برقرار نباشد (مثلاً وضعیت سرویس برگردد)، حرکت‌های مصرف این سرویس حذف و موجودی برمی‌گردد.
+     * اگر فاکتور مرجوع شده باشد، هیچ تغییری داده نمی‌شود (قطعات سرویس به انبار برنمی‌گردند).
+     *
+     * وقتی شرط برقرار است:
+     *  - قطعه‌ی جدید → حرکت خروجی (reason=service_consumption)
+     *  - تغییر تعداد/کالا → حرکت قبلی حذف و حرکت جدید ثبت می‌شود
+     *  - قطعه‌ی حذف‌شده از سرویس → حرکتش حذف می‌شود و موجودی برمی‌گردد
+     * فقط کالاهایی که «موجودی انبار دارد» (tracks_stock) کم می‌شوند. هر ردیف با note یکتا
+     * ("Service job item #ID") شناسایی می‌شود، پس به ستون جدید در دیتابیس نیازی نیست.
+     * چندبار صدا زدنش بی‌خطر است. اگر موجودی کافی نباشد RuntimeException می‌دهد (تراکنش بالادستی rollback می‌شود).
+     */
+    public function syncServiceJobConsumption(ServiceJob $serviceJob): void
+    {
+        $invoice = $serviceJob->invoice_id
+            ? Invoice::withTrashed()->find($serviceJob->invoice_id)
+            : null;
+
+        // فاکتور مرجوع‌شده: موجودی همان‌طور که هست می‌ماند
+        if ($invoice && ($invoice->is_returned || $invoice->payment_status === Invoice::PAYMENT_RETURNED)) {
+            return;
+        }
+
+        $eligible = !$serviceJob->trashed()
+            && $serviceJob->status === ServiceJob::STATUS_DELIVERED
+            && $invoice
+            && $invoice->payment_status === Invoice::PAYMENT_PAID;
+
+        if (!$eligible) {
+            $this->releaseServiceJobConsumption($serviceJob->id);
+            return;
+        }
+
+        DB::transaction(function () use ($serviceJob) {
+            $jobItems = ServiceJobItem::where('service_job_id', $serviceJob->id)->get();
+
+            $movements = StockMovement::where('service_job_id', $serviceJob->id)
+                ->where('reason', self::SERVICE_CONSUMPTION_REASON)
+                ->get()
+                ->keyBy('note');
+
+            $keepNotes = [];
+
+            foreach ($jobItems as $jobItem) {
+                $note = $this->serviceJobItemNote($jobItem->id);
+                $keepNotes[] = $note;
+
+                $item    = $jobItem->item_id ? Item::find($jobItem->item_id) : null;
+                $should  = $item && $item->tracks_stock && (int) $jobItem->quantity > 0;
+                $existing = $movements->get($note);
+
+                if ($existing
+                    && $should
+                    && (int) $existing->item_id === (int) $jobItem->item_id
+                    && (int) $existing->quantity === (int) $jobItem->quantity
+                ) {
+                    continue; // بدون تغییر
+                }
+
+                if ($existing) {
+                    $existing->delete();
+                }
+
+                if (!$should) {
+                    continue;
+                }
+
+                $currentStock = $this->getCurrentStock($jobItem->item_id);
+                if ($currentStock < (int) $jobItem->quantity) {
+                    throw new RuntimeException(
+                        "موجودی انبار برای «{$item->name}» کافی نیست (موجودی فعلی: {$currentStock})."
+                    );
+                }
+
+                StockMovement::create([
+                    'item_id'        => $jobItem->item_id,
+                    'service_job_id' => $serviceJob->id,
+                    'invoice_id'     => $serviceJob->invoice_id,
+                    'movement_type'  => StockMovement::TYPE_OUT,
+                    'quantity'       => $jobItem->quantity,
+                    'unit_cost'      => null,
+                    'reason'         => self::SERVICE_CONSUMPTION_REASON,
+                    'note'           => $note,
+                ]);
+            }
+
+            foreach ($movements as $note => $movement) {
+                if (!in_array($note, $keepNotes, true)) {
+                    $movement->delete();
+                }
+            }
+        });
+    }
+
+    /**
+     * وقتی کل سرویس حذف می‌شود، حرکت‌های مصرف قطعاتش پاک و موجودی برگردانده می‌شود.
+     */
+    public function releaseServiceJobConsumption(int $serviceJobId): void
+    {
+        StockMovement::where('service_job_id', $serviceJobId)
+            ->where('reason', self::SERVICE_CONSUMPTION_REASON)
+            ->delete();
+    }
+
     /**
      * ویرایش شماره سریالِ یک ردیفِ «موجود در انبار» (چه قبلاً سریال داشته چه نداشته).
      * برخلاف assignSerialNumber، اینجا فرقی نمی‌کنه serial_number قبلاً پر بوده یا نه.

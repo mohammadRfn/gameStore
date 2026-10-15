@@ -104,7 +104,13 @@ class InvoiceController extends Controller
             'payment_terminal_mode' => 'nullable|in:manual,automatic',
         ]);
 
-        $this->invoiceService->markAsPaid($invoiceId, $data);
+        try {
+            $this->invoiceService->markAsPaid($invoiceId, $data);
+        } catch (\RuntimeException $e) {
+            // معمولاً یعنی موجودی انبار برای یکی از اقلام یا قطعات سرویس کافی نیست
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
         return redirect()->back();
     }
     public function attachReceipt(HttpRequest $request, int $invoiceId)

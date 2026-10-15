@@ -7,7 +7,7 @@ use Modules\Service\Models\ServiceJob;
 use Modules\Service\Models\ServiceJobItem;
 use Modules\Stock\Models\Item;
 use RuntimeException;
-
+use Modules\Stock\Services\StockMovementService;
 class ServiceJobService
 {
     public function findServiceJob(int $id): ServiceJob
@@ -40,6 +40,9 @@ class ServiceJobService
             if (!empty($data['service_types']) && is_array($data['service_types'])) {
                 $this->syncServiceTypes($serviceJob, $data['service_types']);
             }
+
+            // موجودی فقط وقتی کم می‌شود که سرویس «تحویل داده شده» و فاکتورش «پرداخت‌شده» باشد
+            app(StockMovementService::class)->syncServiceJobConsumption($serviceJob);
 
             $this->recalcTotals($serviceJob);
 
@@ -88,6 +91,9 @@ class ServiceJobService
                 $this->syncServiceTypes($serviceJob, $data['service_types']);
             }
 
+            // موجودی فقط وقتی کم می‌شود که سرویس «تحویل داده شده» و فاکتورش «پرداخت‌شده» باشد
+            app(StockMovementService::class)->syncServiceJobConsumption($serviceJob);
+
             $this->recalcTotals($serviceJob);
             if ($serviceJob->request_id) {
                 $serviceJob->request?->markInProgress();
@@ -103,6 +109,9 @@ class ServiceJobService
         if (in_array($serviceJob->status, [ServiceJob::STATUS_COMPLETED, ServiceJob::STATUS_DELIVERED])) {
             throw new RuntimeException('Cannot delete completed jobs.');
         }
+
+        // قطعات مصرف‌شده‌ی این سرویس به انبار برگردند (حرکت‌های service_consumption حذف می‌شوند)
+        app(StockMovementService::class)->releaseServiceJobConsumption($serviceJob->id);
 
         $serviceJob->trashed() ? $serviceJob->forceDelete() : $serviceJob->delete();
     }

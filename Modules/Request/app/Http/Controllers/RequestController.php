@@ -50,7 +50,7 @@ class RequestController extends Controller
         return Inertia::render('Requests/Edit', [
             'request'    => $this->requestService->showRequest($id),
             'categories' => $this->categoryService->getAllCategories(),
-            'customers'  => \App\Models\Customer::select('id', 'name')->get(),
+            'customers'  => \Modules\Customer\Models\Customer::select('id', 'name')->get(),
         ]);
     }
 
