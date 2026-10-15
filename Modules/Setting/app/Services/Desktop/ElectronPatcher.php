@@ -12,6 +12,8 @@ namespace Modules\Setting\Services\Desktop;
  *   - endpoint جدید  POST /api/window/hide-on-close  {enabled: bool}
  *   - وقتی فعال باشد، close پنجره‌ی main لغو و پنجره hide می‌شود (مگر موقع quit/خاموش‌شدن ویندوز)
  *   - اجرای دوباره‌ی برنامه (دابل‌کلیک روی شورتکات) پنجره‌ی مخفی را نشان می‌دهد
+ *   - (single) فقط یک نمونه از برنامه اجرا می‌شود؛ اجرای دوباره پنجره‌ی نمونه‌ی اول را نشان می‌دهد
+ *     (قفل تک‌نمونه‌ی خود NativePHP فقط وقتی NATIVEPHP_DEEPLINK_SCHEME ست باشد فعال می‌شود)
  *   - (boot) درخواست «booted» به لاراول موقع بوت سرد سیستم (اجرای خودکار) اگر به خاطر خطای اتصال شکست بخورد
  *     دوباره تلاش می‌شود، و مراحل راه‌اندازی در  %APPDATA%/<app>/native-boot.log ثبت می‌شود
  *
@@ -22,6 +24,8 @@ final class ElectronPatcher
     private const MARKER_TRAY = 'GS-TRAY-PATCH';
 
     private const MARKER_BOOT = 'GS-BOOT-PATCH';
+
+    private const MARKER_SINGLE = 'GS-SINGLE-PATCH';
 
     public static function defaultDistPath(): string
     {
@@ -68,6 +72,26 @@ JS],
                             gsWin.show();
                             gsWin.focus();
                         }
+JS],
+            ]),
+            'index.js [single]' => $this->patchFile("$dist/index.js", self::MARKER_SINGLE, [
+                ['/initialize\(\);(\s*)state\.icon = icon;/', <<<'JS'
+// GS-SINGLE-PATCH: فقط یک نمونه از برنامه؛ نمونه‌ی دوم بلافاصله بسته می‌شود
+        if (!app.requestSingleInstanceLock()) {
+            app.quit();
+            return;
+        }
+        app.on('second-instance', () => {
+            const gsWin = state.windows["main"];
+            if (gsWin) {
+                if (gsWin.isMinimized())
+                    gsWin.restore();
+                gsWin.show();
+                gsWin.focus();
+            }
+        });
+        initialize();
+        state.icon = icon;
 JS],
             ]),
             'utils.js [boot]' => $this->patchFile("$dist/server/utils.js", self::MARKER_BOOT, [
