@@ -96,7 +96,7 @@ function onChange(e) {
                 :id="id"
                 :type="type"
                 :value="value"
-                :dir="dir"
+                :dir="effectiveDir"
                 :placeholder="placeholder"
                 :maxlength="maxlength ?? undefined"
                 :disabled="disabled"

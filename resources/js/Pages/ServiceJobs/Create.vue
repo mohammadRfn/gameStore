@@ -241,6 +241,7 @@
                 </div>
             </div>
 
+            <Teleport to="body">
             <!-- Item picker modal -->
             <div v-if="pickerOpen" class="gs-modal-overlay" @click.self="closePicker">
                 <div class="gs-card gs-modal">
@@ -294,6 +295,7 @@
                     </div>
                 </div>
             </div>
+            </Teleport>
         </form>
         </div>
     </AppLayout>
@@ -601,12 +603,15 @@ function submit() {
 .gs-modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, .5);
+    z-index: 600;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 50;
     padding: 1rem;
+    background: rgba(4, 4, 8, 0.62);
+    backdrop-filter: blur(7px) saturate(0.85);
+    -webkit-backdrop-filter: blur(7px) saturate(0.85);
+    animation: gs-modal-fade 0.2s ease both;
 }
 
 .gs-modal {
@@ -617,6 +622,17 @@ function submit() {
     flex-direction: column;
     overflow: hidden;
     padding: 0;
+    direction: rtl;
+    border-radius: 20px;
+    border: 1px solid var(--gs-border-hover);
+    background: var(--gs-bg-card-strong);
+    box-shadow: var(--gs-shadow-md), 0 0 70px -22px var(--gs-gold-glow);
+    color: var(--gs-text-primary);
+}
+
+@keyframes gs-modal-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .gs-modal-header {
