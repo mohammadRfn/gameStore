@@ -281,9 +281,11 @@ function submit() {
 
 .gx-grid2 {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0 1.25rem;
 }
+
+.gx-grid2 > * { min-width: 0; }
 
 @media (max-width: 640px) {
     .gx-grid2 { grid-template-columns: 1fr; }

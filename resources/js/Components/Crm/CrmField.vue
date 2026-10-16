@@ -43,6 +43,15 @@ const isArea = computed(() => props.type === 'textarea')
 const isSelect = computed(() => props.type === 'select')
 const count = computed(() => String(value.value).length)
 
+/* فیلد خالی با dir="auto" چپ‌به‌راست حساب می‌شود؛ پس تا وقتی چیزی تایپ نشده،
+   جهت را از روی خط پلیس‌هولدر (فارسی → راست‌چین، لاتین → چپ‌چین) تعیین می‌کنیم */
+const RTL_CHARS = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/
+const effectiveDir = computed(() => {
+    if (props.dir !== 'auto') return props.dir
+    if (String(value.value) !== '') return 'auto'
+    return props.placeholder && !RTL_CHARS.test(props.placeholder) ? 'ltr' : 'rtl'
+})
+
 function onInput(e) {
     const raw = e.target.value
     emit('update:modelValue', props.type === 'number' ? (raw === '' ? null : Number(raw)) : raw)
@@ -68,7 +77,7 @@ function onChange(e) {
                 :id="id"
                 :value="value"
                 :rows="rows"
-                :dir="dir"
+                :dir="effectiveDir"
                 :placeholder="placeholder"
                 :maxlength="maxlength ?? undefined"
                 :disabled="disabled"

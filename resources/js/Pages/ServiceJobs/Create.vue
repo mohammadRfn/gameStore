@@ -267,7 +267,7 @@
                             <button v-for="item in itemsInCategory" :key="item.id" type="button" class="gs-picker-item"
                                 @click="pickItem(item)">
                                 <span>{{ item.name }}</span>
-                                <span class="gs-muted">{{ formatPrice(item.price) }}</span>
+                                <span class="gs-muted">{{ formatPrice(item.sale_price) }}</span>
                             </button>
                         </template>
                     </div>
@@ -401,7 +401,7 @@ function selectCategory(cat) {
 function backToCategories() { pickerStep.value = 'categories' }
 function closePicker() { pickerOpen.value = false }
 function pickItem(item) {
-    form.items.push({ item_id: item.id, quantity: 1, unit_price: item.price })
+    form.items.push({ item_id: item.id, quantity: 1, unit_price: item.sale_price })
     closePicker()
 }
 function removeItem(i) { form.items.splice(i, 1) }

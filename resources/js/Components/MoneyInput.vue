@@ -131,7 +131,7 @@ defineExpose({ focus: () => inputRef.value?.focus() })
     align-items: center;
     gap: 0.5rem;
     width: 100%;
-    min-width: 150px;
+    min-width: min(150px, 100%);
     height: var(--mny-h);
     padding: 0 0.85rem;
     border-radius: 13px;
@@ -215,7 +215,8 @@ defineExpose({ focus: () => inputRef.value?.focus() })
 .mny__input {
     position: relative;
     z-index: 1;
-    flex: 1;
+    flex: 1 1 0;
+    width: 0;
     min-width: 0;
     height: 100%;
     border: 0;
