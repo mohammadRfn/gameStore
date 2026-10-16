@@ -171,6 +171,7 @@ class LicensingService
         try {
             $result = $this->client->heartbeat([
                 'app_version' => $this->appVersion(),
+                'system_info' => $this->systemInfo(),
                 'stats'       => [
                     'modules'     => $usage,
                     'reported_at' => Carbon::now('UTC')->toIso8601String(),
@@ -327,13 +328,8 @@ class LicensingService
     /** @return array<string, mixed> */
     private function systemInfo(): array
     {
-        return array_filter([
-            'os'         => PHP_OS_FAMILY,
-            'os_version' => php_uname('r'),
-            'cpu'        => php_uname('m'),
-            'hostname'   => gethostname() ?: null,
-            'timezone'   => (string) config('app.timezone', date_default_timezone_get()),
-        ], static fn($v) => $v !== null && $v !== '');
+        // مشخصات واقعی CPU/RAM/ویندوز/سریال‌ها (کش‌شده؛ بدون هزینه در heartbeat)
+        return app(SystemInfoCollector::class)->collect();
     }
 
     private function appVersion(): string
