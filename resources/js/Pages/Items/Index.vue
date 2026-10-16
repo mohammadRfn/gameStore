@@ -12,9 +12,9 @@
                 cube="📦"
                 satellite="🎮"
                 :stats="[
-                    { label: 'کل اقلام', value: faInt(items.length) },
-                    { label: 'موجود در انبار', value: faInt(inStockCount) },
-                    { label: 'دسته‌بندی‌ها', value: faInt(categoryChips.length) },
+                    { label: 'کل اقلام', value: faInt(stats.total) },
+                    { label: 'موجود در انبار', value: faInt(stats.in_stock) },
+                    { label: 'دسته‌بندی‌ها', value: faInt(categories.length) },
                 ]"
             >
                 <template #chip-icon>
@@ -34,7 +34,7 @@
                     <Search :size="15" class="gx-search__icon" />
                     <input v-model="search" type="search" placeholder="جستجو نام محصول..." />
                 </div>
-                <div v-if="categoryChips.length" class="gx-seg">
+                <div v-if="categories.length" class="gx-seg">
                     <button
                         type="button"
                         class="gx-seg__btn"
@@ -44,22 +44,22 @@
                         همه
                     </button>
                     <button
-                        v-for="c in categoryChips"
-                        :key="c"
+                        v-for="c in categories"
+                        :key="c.id"
                         type="button"
                         class="gx-seg__btn"
-                        :class="{ 'is-active': categoryFilter === c }"
-                        @click="categoryFilter = categoryFilter === c ? '' : c"
+                        :class="{ 'is-active': categoryFilter === c.id }"
+                        @click="categoryFilter = categoryFilter === c.id ? '' : c.id"
                     >
-                        {{ c }}
+                        {{ c.name }}
                     </button>
                 </div>
             </div>
 
             <!-- ================= گرید محصولات ================= -->
-            <div class="gx-prodgrid" v-if="filteredItems.length">
+            <div class="gx-prodgrid" v-if="items.data.length">
                 <article
-                    v-for="(item, idx) in filteredItems"
+                    v-for="(item, idx) in items.data"
                     :key="item.id"
                     v-tilt="{ max: 7, scale: 1.015, lift: 12 }"
                     class="gx-prod a3d-aura"
@@ -134,6 +134,20 @@
                 </div>
             </div>
 
+            <!-- ================= پجینیشن ================= -->
+            <div class="gx-pagination" v-if="items.last_page > 1">
+                <Link v-if="items.prev_page_url" :href="items.prev_page_url" class="a3d-btn a3d-btn--sm" preserve-scroll>
+                    <ChevronRight :size="14" /> قبلی
+                </Link>
+                <span class="gx-pagination__num">
+                    صفحهٔ <b>{{ faInt(items.current_page) }}</b> از {{ faInt(items.last_page) }}
+                </span>
+                <Link v-if="items.next_page_url" :href="items.next_page_url" class="a3d-btn a3d-btn--sm" preserve-scroll>
+                    بعدی
+                    <ChevronLeft :size="14" />
+                </Link>
+            </div>
+
             <!-- ================= مودال حذف ================= -->
             <Transition name="gs-fade">
                 <div v-if="deleteTarget" class="gs-modal-overlay" @click.self="deleteTarget = null">
@@ -201,7 +215,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, watch, onBeforeUnmount } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import axios from 'axios'
 import AppLayout from '@/Layouts/AppLayout.vue'
@@ -211,6 +225,8 @@ import { vTilt } from '@/Composables/useTilt'
 import {
     AlertTriangle,
     Barcode,
+    ChevronLeft,
+    ChevronRight,
     Package,
     Pencil,
     Plus,
@@ -219,25 +235,35 @@ import {
     Trash2,
 } from 'lucide-vue-next'
 
-const props = defineProps({ items: Array })
+const props = defineProps({
+    items: Object,
+    filters: { type: Object, default: () => ({}) },
+    categories: { type: Array, default: () => [] },
+    stats: { type: Object, default: () => ({ total: 0, in_stock: 0 }) },
+})
 
-const search = ref('')
-const categoryFilter = ref('')
+// جست‌وجو و فیلتر دسته‌بندی سمت سرور انجام می‌شود (۲۵ قلم در هر صفحه)
+const search = ref(props.filters.search ?? '')
+const categoryFilter = ref(props.filters.category_id ? Number(props.filters.category_id) : '')
 
-const categoryChips = computed(() =>
-    [...new Set(props.items.map(i => i.category?.name).filter(Boolean))]
-)
-
-const inStockCount = computed(() =>
-    props.items.filter(i => !i.tracks_stock || (i.current_stock ?? 0) > 0).length
-)
-
-const filteredItems = computed(() =>
-    props.items.filter(i =>
-        i.name.toLowerCase().includes(search.value.toLowerCase()) &&
-        (!categoryFilter.value || i.category?.name === categoryFilter.value)
+function applyFilters() {
+    router.get(
+        route('items.index'),
+        {
+            search: search.value || undefined,
+            category_id: categoryFilter.value || undefined,
+        },
+        { preserveState: true, preserveScroll: true, replace: true }
     )
-)
+}
+
+let searchTimer = null
+watch(search, () => {
+    clearTimeout(searchTimer)
+    searchTimer = setTimeout(applyFilters, 350)
+})
+watch(categoryFilter, applyFilters)
+onBeforeUnmount(() => clearTimeout(searchTimer))
 
 const deleteTarget = ref(null)
 const deleting = ref(false)

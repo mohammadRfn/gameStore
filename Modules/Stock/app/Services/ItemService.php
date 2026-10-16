@@ -4,6 +4,7 @@ namespace Modules\Stock\Services;
 
 use Modules\Category\Models\Category;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Modules\Stock\Models\Item;
 
 class ItemService
@@ -11,6 +12,34 @@ class ItemService
     public function getAllItems(): Collection
     {
         return Item::with('category')->get();
+    }
+
+    /**
+     * لیست صفحه‌بندی‌شده‌ی محصولات انبار؛ جست‌وجوی نام و فیلتر دسته‌بندی سمت سرور انجام می‌شود.
+     *
+     * @param array{search?:string|null, category_id?:int|null} $filters
+     */
+    public function paginateItems(array $filters = [], int $perPage = 25): LengthAwarePaginator
+    {
+        return Item::with('category')
+            ->when(!empty($filters['search']), fn ($q) => $q->where('name', 'like', '%' . $filters['search'] . '%'))
+            ->when(!empty($filters['category_id']), fn ($q) => $q->where('category_id', (int) $filters['category_id']))
+            ->orderByDesc('id')
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    /** فقط دسته‌بندی‌هایی که حداقل یک محصول دارند (برای چیپ‌های فیلتر). */
+    public function getCategoriesWithItems(): Collection
+    {
+        return Category::whereIn('id', Item::query()->whereNotNull('category_id')->select('category_id'))
+            ->orderBy('name')
+            ->get(['id', 'name']);
+    }
+
+    public function countItems(): int
+    {
+        return Item::count();
     }
 
     public function findItem(int $id): Item

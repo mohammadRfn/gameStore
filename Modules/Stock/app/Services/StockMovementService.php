@@ -466,7 +466,8 @@ class StockMovementService
                 $should  = $item && $item->tracks_stock && (int) $jobItem->quantity > 0;
                 $existing = $movements->get($note);
 
-                if ($existing
+                if (
+                    $existing
                     && $should
                     && (int) $existing->item_id === (int) $jobItem->item_id
                     && (int) $existing->quantity === (int) $jobItem->quantity
@@ -593,5 +594,78 @@ class StockMovementService
         if (!in_array($movementType, $allowed, true)) {
             throw new RuntimeException("Invalid stock movement type: {$movementType}");
         }
+    }
+    /**
+     * موجودی چند کالا با یک کوئری گروهی (به‌جای یک کوئری برای هر کالا).
+     *
+     * @param  int[] $itemIds
+     * @return array<int,int> [item_id => موجودی]
+     */
+    public function getCurrentStockMap(array $itemIds): array
+    {
+        if (empty($itemIds)) {
+            return [];
+        }
+
+        return StockMovement::whereIn('item_id', $itemIds)
+            ->whereIn('movement_type', [
+                StockMovement::TYPE_IN,
+                StockMovement::TYPE_ADJUST_IN,
+                StockMovement::TYPE_OUT,
+                StockMovement::TYPE_ADJUST_OUT,
+            ])
+            ->groupBy('item_id')
+            ->selectRaw("item_id, SUM(CASE WHEN movement_type IN ('in','adjust_in') THEN quantity ELSE -quantity END) AS stock")
+            ->pluck('stock', 'item_id')
+            ->map(fn($v) => (int) $v)
+            ->all();
+    }
+
+    /**
+     * تعداد سریال‌های خالی (موجود در انبار ولی بدون شماره) چند کالا با یک کوئری گروهی.
+     *
+     * @param  int[] $itemIds
+     * @return array<int,int> [item_id => تعداد]
+     */
+    public function getMissingSerialCountMap(array $itemIds): array
+    {
+        if (empty($itemIds)) {
+            return [];
+        }
+
+        return ItemSerialNumber::whereIn('item_id', $itemIds)
+            ->where('status', ItemSerialNumber::STATUS_IN_STOCK)
+            ->whereNull('serial_number')
+            ->groupBy('item_id')
+            ->selectRaw('item_id, COUNT(*) AS missing')
+            ->pluck('missing', 'item_id')
+            ->map(fn($v) => (int) $v)
+            ->all();
+    }
+
+    /**
+     * تعداد کل اقلامِ «موجود»: کالاهای بدون پیگیری موجودی + کالاهای دارای موجودی مثبت.
+     */
+    public function countItemsInStock(): int
+    {
+        $untracked = Item::where('tracks_stock', false)->count();
+
+        $tracked = StockMovement::query()
+            ->join('items', 'items.id', '=', 'stock_movements.item_id')
+            ->whereNull('items.deleted_at')
+            ->where('items.tracks_stock', true)
+            ->whereIn('stock_movements.movement_type', [
+                StockMovement::TYPE_IN,
+                StockMovement::TYPE_ADJUST_IN,
+                StockMovement::TYPE_OUT,
+                StockMovement::TYPE_ADJUST_OUT,
+            ])
+            ->groupBy('stock_movements.item_id')
+            ->havingRaw("SUM(CASE WHEN stock_movements.movement_type IN ('in','adjust_in') THEN stock_movements.quantity ELSE -stock_movements.quantity END) > 0")
+            ->select('stock_movements.item_id')
+            ->get()
+            ->count();
+
+        return $untracked + $tracked;
     }
 }

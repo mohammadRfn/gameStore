@@ -3,6 +3,7 @@
 namespace Modules\Stock\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request as HttpRequest;
 use Inertia\Inertia;
 use Modules\Stock\Http\Requests\ItemRequest;
 use Modules\Stock\Services\ItemService;
@@ -15,20 +16,34 @@ class ItemController extends Controller
         protected StockMovementService $stockMovementService
     ) {}
 
-    public function index()
+    public function index(HttpRequest $request)
     {
-        $items = $this->itemService->getAllItems()->map(function ($item) {
-            $item->current_stock = $item->tracks_stock
-                ? $this->stockMovementService->getCurrentStock($item->id)
-                : null;
-            $item->missing_serial_count = $item->has_serial_number
-                ? $this->stockMovementService->getMissingSerialCount($item->id)
-                : 0;
+        $filters = [
+            'search'      => trim((string) $request->query('search', '')),
+            'category_id' => $request->query('category_id') ? (int) $request->query('category_id') : null,
+        ];
+
+        $items = $this->itemService->paginateItems($filters, 25);
+
+        // موجودی و سریال‌های ناقص فقط برای ۲۵ قلمِ همین صفحه و با یک کوئری گروهی محاسبه می‌شود
+        $ids        = $items->getCollection()->pluck('id')->all();
+        $stockMap   = $this->stockMovementService->getCurrentStockMap($ids);
+        $missingMap = $this->stockMovementService->getMissingSerialCountMap($ids);
+
+        $items->getCollection()->transform(function ($item) use ($stockMap, $missingMap) {
+            $item->current_stock = $item->tracks_stock ? ($stockMap[$item->id] ?? 0) : null;
+            $item->missing_serial_count = $item->has_serial_number ? ($missingMap[$item->id] ?? 0) : 0;
             return $item;
         });
 
         return Inertia::render('Items/Index', [
-            'items' => $items,
+            'items'      => $items,
+            'filters'    => $filters,
+            'categories' => $this->itemService->getCategoriesWithItems(),
+            'stats'      => [
+                'total'    => $this->itemService->countItems(),
+                'in_stock' => $this->stockMovementService->countItemsInStock(),
+            ],
         ]);
     }
 
