@@ -11,7 +11,7 @@ import BackupStatCard from '@/Components/Backup/BackupStatCard.vue'
 import BackupToggleRow from '@/Components/Backup/BackupToggleRow.vue'
 import BackupToaster from '@/Components/Backup/BackupToaster.vue'
 import JalaliDateInput from '@/Components/JalaliDateInput.vue'
-import { faNumber, MODE_META, readableError, STRATEGY_META, useBackupCenter } from '@/Composables/useBackupCenter'
+import { faNumber, MODE_META, readableError, useBackupCenter } from '@/Composables/useBackupCenter'
 
 /* --------------------------------------------------------------------------
  * مرکز پشتیبان‌گیری — نسخه‌ی Royal
@@ -82,12 +82,11 @@ const savedImportToggles = loadImportToggles()
 
 const importForm = reactive({
   source_path: '',
-  strategy: 'merge',
+  strategy: 'reindex', // تنها روش بازیابی: ادغام و مرتب‌سازی بر پایه‌ی تاریخ ثبت
   safety_backup: true, // فقط محلی؛ معادل سراسری در تنظیمات نداره (قبلاً حذف شد)
   verify_checksums: true, // مقدار واقعی در applyDefaults() از settings.verify_checksums ست میشه
   relink: savedImportToggles.relink ?? true,
   remember_path: savedImportToggles.remember_path ?? true,
-  confirmation: '',
 })
 
 const settingsForm = reactive({
@@ -103,9 +102,7 @@ const exportPath = reactive({ validated: false, freeSpace: null })
 const stat = computed(() => api.statistics.value || {})
 const defaults = computed(() => api.defaults.value || {})
 const modeList = computed(() => Object.entries(MODE_META).map(([key, meta]) => ({ key, ...meta })))
-const strategyList = computed(() => Object.entries(STRATEGY_META).map(([key, meta]) => ({ key, ...meta })))
-const activeStrategy = computed(() => STRATEGY_META[importForm.strategy] || {})
-const needsConfirmation = computed(() => importForm.strategy === 'replace')
+
 
 const selectionSummary = computed(() =>
   selectedEntities.value.length
@@ -493,24 +490,15 @@ function reveal(ms) {
           </div>
 
           <div class="backup-grid">
-            <BackupCard title="روش بازیابی" description="مشخص کن با اطلاعات فعلی چه کار شود." icon="🧩" :delay="60">
-              <div class="backup-grid">
-                <button
-                  v-for="strategy in strategyList"
-                  :key="strategy.key"
-                  type="button"
-                  class="backup-mode-card"
-                  :class="{ 'is-active': importForm.strategy === strategy.key }"
-                  @click="importForm.strategy = strategy.key"
-                >
-                  <span class="backup-mode-card__icon" aria-hidden="true">{{ strategy.icon }}</span>
-                  <span class="backup-mode-card__title">{{ strategy.label }}</span>
-                  <span class="backup-mode-card__hint">{{ strategy.hint }}</span>
-                </button>
+            <BackupCard title="روش بازیابی" description="اطلاعات بسته با اطلاعات فعلی ادغام و بر اساس تاریخ مرتب می‌شود." icon="📅" :delay="60">
+              <div class="backup-mode-card is-active" style="cursor: default; pointer-events: none">
+                <span class="backup-mode-card__icon" aria-hidden="true">📅</span>
+                <span class="backup-mode-card__title">ادغام و مرتب‌سازی بر پایه‌ی تاریخ</span>
+                <span class="backup-mode-card__hint">قدیمی‌ترین‌ها اول قرار می‌گیرند؛ هیچ اطلاعات فعلی‌ای حذف نمی‌شود و ارتباط فاکتورها، مشتریان و کالاها حفظ می‌ماند</span>
               </div>
             </BackupCard>
 
-            <BackupCard title="گزینه‌های ایمنی" :description="activeStrategy.hint || ''" icon="🛡" tone="emerald" :delay="140">
+            <BackupCard title="گزینه‌های ایمنی" description="پیش از بازیابی نسخه‌ی ایمنی گرفته می‌شود تا در صورت نیاز برگردد." icon="🛡" tone="emerald" :delay="140">
               <div class="backup-grid">
                 <BackupToggleRow v-model="importForm.safety_backup" label="نسخه‌ی ایمنی پیش از بازیابی" hint="اگر نتیجه مطلوب نبود، همه‌چیز برمی‌گردد" />
                 <BackupToggleRow v-model="importForm.verify_checksums" label="بررسی سلامت فایل‌ها" hint="تشخیص فایل ناقص یا دست‌کاری‌شده" />
@@ -518,10 +506,7 @@ function reveal(ms) {
                 <BackupToggleRow v-model="importForm.remember_path" label="این مسیر را به خاطر بسپار" hint="دفعه‌ی بعد همین مسیر پیشنهاد می‌شود" />
               </div>
 
-              <label v-if="needsConfirmation" class="backup-field">
-                <span class="backup-field__label">برای جایگزینی کامل، عبارت REPLACE را وارد کن</span>
-                <input v-model="importForm.confirmation" type="text" dir="ltr" class="backup-input" placeholder="REPLACE">
-              </label>
+
 
               <template #footer>
                 <div class="backup-hero__actions">

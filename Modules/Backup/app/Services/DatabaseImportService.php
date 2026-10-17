@@ -590,7 +590,7 @@ class DatabaseImportService
             $query->orderBy($column);
         }
 
-        return $query->get()->map(fn ($row) => (array) $row)->all();
+        return $query->get()->map(fn($row) => (array) $row)->all();
     }
 
     /**
@@ -703,6 +703,11 @@ class DatabaseImportService
                 // هیچ فرزندی بی‌مرجع نماند. این حلقه‌ی گم‌شده‌ی نسخه‌ی قبل بود.
                 $rows[$hit]['_alias'][] = ['origin' => 'backup', 'old_id' => $backupId];
 
+                // رکورد ادغام‌شده باید با «قدیمی‌ترین» تاریخ شناخته شود؛ مثلاً مشتری‌ای که
+                // از فروردین وجود داشته نباید به‌خاطر ساخته‌شدن دوباره‌اش بعد از ریست،
+                // در ترتیب زمانی به مرداد منتقل شود.
+                $earliest = $this->earlierTimestamp($rows[$hit]['created_at'] ?? null, $row['created_at'] ?? null);
+
                 $aliases[] = ['origin' => 'backup', 'old_id' => $backupId, 'into' => $hit, 'action' => $onDuplicate, 'signature' => $signature];
 
                 if ($onDuplicate === 'fill_nulls') {
@@ -723,6 +728,10 @@ class DatabaseImportService
                     ];
                 }
 
+                if ($earliest !== null && in_array('created_at', $columns, true)) {
+                    $rows[$hit]['created_at'] = $earliest;
+                }
+
                 continue;
             }
 
@@ -737,7 +746,7 @@ class DatabaseImportService
         }
 
         // ۳) سورت: قدیمی‌تر → ID کوچک‌تر. در تساوی، بکاپ مقدم است.
-        usort($rows, fn ($a, $b) => $this->compareForReindex($a, $b));
+        usort($rows, fn($a, $b) => $this->compareForReindex($a, $b));
 
         // ۴) شماره‌گذاری از ۱ + نگاشت old→new (شامل رکوردهای ادغام‌شده).
         $idMap   = ['existing' => [], 'backup' => []];
@@ -803,7 +812,7 @@ class DatabaseImportService
         $expected = count($existingRows) + count($backupRows) - count($aliases);
 
         if (count($rows) !== $expected) {
-            throw new RuntimeException("خطای داخلی در «{$table}»: ".count($rows).' رکورد در برابر '.count($existingRows).'+' .count($backupRows).' ورودی.');
+            throw new RuntimeException("خطای داخلی در «{$table}»: " . count($rows) . ' رکورد در برابر ' . count($existingRows) . '+' . count($backupRows) . ' ورودی.');
         }
 
         return [
@@ -826,6 +835,26 @@ class DatabaseImportService
      * مقایسه نمی‌شود؛ چون فضای ID بکاپ و فضای فعلی با هم فرق دارند و همان عدد
      * به دو والد متفاوت می‌رسد. مقدار به ID جدید والد ترجمه می‌شود.
      */
+    /** قدیمی‌ترین دو تاریخ (مقدار خالی/نامعتبر نادیده گرفته می‌شود)؛ در نبود هر دو null. */
+    private function earlierTimestamp(mixed $a, mixed $b): ?string
+    {
+        $ta = is_string($a) && trim($a) !== '' ? strtotime(trim($a)) : false;
+        $tb = is_string($b) && trim($b) !== '' ? strtotime(trim($b)) : false;
+
+        if ($ta === false && $tb === false) {
+            return null;
+        }
+
+        if ($ta === false) {
+            return trim((string) $b);
+        }
+
+        if ($tb === false) {
+            return trim((string) $a);
+        }
+
+        return $tb < $ta ? trim((string) $b) : trim((string) $a);
+    }
     private function rowSignature(array $row, array $natural, string $origin, array $plans, array $foreign): string
     {
         $parts = [];
@@ -942,15 +971,16 @@ class DatabaseImportService
 
         DB::statement($tempDdl);
 
-        $values = [];
+        $defaults = $this->columnDefaults($table);
+        $values   = [];
 
         foreach ($plan['rows'] as $row) {
-            $payload = array_fill_keys($columns, null);
+            $payload = [];
 
             foreach ($columns as $column) {
-                if (array_key_exists($column, $row)) {
-                    $payload[$column] = $row[$column];
-                }
+                // ستونی که در CSV بکاپ نبوده (بکاپ قدیمی‌تر از ستون‌های بعداً اضافه‌شده)
+                // مقدار DEFAULT خودش را می‌گیرد، نه NULL؛ وگرنه قید NOT NULL کل بازیابی را خراب می‌کند.
+                $payload[$column] = array_key_exists($column, $row) ? $row[$column] : ($defaults[$column] ?? null);
             }
 
             $values[] = array_values($payload);
@@ -999,13 +1029,43 @@ class DatabaseImportService
      */
     private function insertChunk(string $table, array $columns, array $values): void
     {
-        $quoted = implode(', ', array_map(fn ($column) => "[{$column}]", $columns));
+        $quoted = implode(', ', array_map(fn($column) => "[{$column}]", $columns));
         $oneRow = '(' . implode(', ', array_fill(0, count($columns), '?')) . ')';
         $sql    = "INSERT INTO [{$table}] ({$quoted}) VALUES " . implode(', ', array_fill(0, count($values), $oneRow));
 
-        DB::statement($sql, array_merge(...array_map(fn (array $row) => array_values($row), $values)));
+        DB::statement($sql, array_merge(...array_map(fn(array $row) => array_values($row), $values)));
     }
+    /**
+     * مقدار DEFAULT ستون‌های جدول (برای ستون‌هایی که در بکاپ قدیمی وجود ندارند).
+     *
+     * @return array<string, mixed>
+     */
+    private function columnDefaults(string $table): array
+    {
+        $defaults = [];
 
+        foreach (DB::select("PRAGMA table_info([{$table}])") as $info) {
+            $info = (array) $info;
+            $raw  = $info['dflt_value'] ?? null;
+
+            if ($raw === null) {
+                continue;
+            }
+
+            $raw = trim((string) $raw);
+
+            if (preg_match('/^\'(.*)\'$/s', $raw, $m)) {
+                $defaults[$info['name']] = str_replace("''", "'", $m[1]);
+            } elseif (is_numeric($raw)) {
+                $defaults[$info['name']] = $raw + 0;
+            } elseif (strcasecmp($raw, 'CURRENT_TIMESTAMP') === 0) {
+                $defaults[$info['name']] = now()->format('Y-m-d H:i:s');
+            }
+            // NULL و عبارت‌های پیچیده: همان NULL می‌ماند
+        }
+
+        return $defaults;
+    }
     /**
      * جدول‌هایی که در این اجرا rebuild نمی‌شوند ولی به یک جدولِ بازسازی‌شده
      * اشاره می‌کنند: کلیدهایشان باید مستقیماً بازنویسی شوند (در نسخه‌ی قبل
@@ -1148,7 +1208,7 @@ class DatabaseImportService
     private function allTables(): array
     {
         return array_map(
-            fn ($row) => (string) ((array) $row)['name'],
+            fn($row) => (string) ((array) $row)['name'],
             DB::select("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
         );
     }
@@ -1278,4 +1338,3 @@ class DatabaseImportService
         return null;
     }
 }
-
