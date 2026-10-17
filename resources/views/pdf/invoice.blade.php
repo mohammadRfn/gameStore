@@ -4,274 +4,608 @@
 <head>
     <meta charset="UTF-8">
     @php
-    function faNum($num) {
-    $en = ['0','1','2','3','4','5','6','7','8','9'];
-    $fa = ['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
-    return str_replace($en, $fa, (string) $num);
-    }
+        $faNum = static function ($value) {
+            return str_replace(
+                ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
+                ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'],
+                (string) $value
+            );
+        };
 
-    function ltr($text) {
-    $escaped = e($text);
-    return preg_replace_callback(
-    '/[A-Za-z0-9][A-Za-z0-9\s\-\.\_\/]*[A-Za-z0-9]|[A-Za-z0-9]/u',
-    function ($m) {
-    return '<bdo dir="ltr">' . $m[0] . '</bdo>';
-    },
-    $escaped
-    );
-    }
+        $ltr = static function ($value) {
+            $parts = preg_split(
+                '/([\x00-\x7F]+)/u',
+                (string) $value,
+                -1,
+                PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY
+            ) ?: [];
+
+            return implode('', array_map(static function ($part) {
+                $escaped = e($part);
+
+                return preg_match('/^[\x00-\x7F]+$/', $part)
+                    ? '<bdo dir="ltr">' . $escaped . '</bdo>'
+                    : $escaped;
+            }, $parts));
+        };
+
+        $storeName = $storeProfile?->display_name ?: 'گیم‌شاپ';
+        $invoiceDate = $invoice->paid_at ?? $invoice->created_at;
+        $invoiceDateLabel = $invoice->paid_at ? 'تاریخ پرداخت' : 'تاریخ صدور';
+        $invoiceDateText = $invoiceDate
+            ? \Morilog\Jalali\Jalalian::fromCarbon($invoiceDate)->format('Y/m/d')
+            : '—';
+
+        $paymentStatuses = [
+            'paid' => ['label' => 'پرداخت‌شده', 'class' => 'paid'],
+            'unpaid' => ['label' => 'پرداخت‌نشده', 'class' => 'unpaid'],
+            'returned' => ['label' => 'مرجوع‌شده', 'class' => 'returned'],
+        ];
+        $paymentStatus = $paymentStatuses[$invoice->payment_status ?? 'unpaid'] ?? $paymentStatuses['unpaid'];
+        $paymentMethods = [
+            'cash' => 'نقدی',
+            'card_to_card' => 'کارت به کارت',
+            'pos_terminal' => 'دستگاه کارت‌خوان',
+        ];
+        $paymentMethod = $paymentMethods[$invoice->payment_method ?? ''] ?? null;
+
+        $storePhone = implode(' / ', array_filter([
+            $storeProfile?->phone,
+            $storeProfile?->secondary_phone,
+        ]));
+        $storeContacts = array_values(array_filter([
+            ['label' => 'تلفن', 'value' => $storePhone],
+            ['label' => 'ایمیل', 'value' => $storeProfile?->email],
+            ['label' => 'وب‌سایت', 'value' => $storeProfile?->website],
+            ['label' => 'تلگرام', 'value' => $storeProfile?->telegram],
+            ['label' => 'اینستاگرام', 'value' => $storeProfile?->instagram],
+        ], static fn ($contact) => trim((string) $contact['value']) !== ''));
+        $storeAddress = $storeProfile?->invoice_address;
     @endphp
+
     <style>
         body {
-            font-family: vazirmatn;
-            font-size: 11px;
-            color: #222;
+            margin: 0;
+            padding: 0;
+            color: #282720;
+            background-color: #ffffff;
+            font-family: vazirmatn, Tahoma, Arial, sans-serif;
+            font-size: 9.5pt;
+            line-height: 1.75;
         }
 
-        .header {
+        table {
             width: 100%;
-            border-bottom: 3px solid #c9a227;
-            padding-bottom: 10px;
-            margin-bottom: 16px;
+            border-collapse: collapse;
         }
 
-        .header table {
+        .invoice-sheet {
             width: 100%;
+        }
+
+        .masthead {
+            margin-bottom: 0;
+            border-bottom: 3px solid #c7a24e;
+        }
+
+        .masthead td {
+            padding: 14px 16px;
+            color: #f5f0e4;
+            background-color: #191916;
+            vertical-align: middle;
+        }
+
+        .brand-cell {
+            width: 64%;
+        }
+
+        .invoice-meta {
+            width: 36%;
+            text-align: left;
+            border-right: 1px solid #38372f;
+        }
+
+        .brand-lockup {
+            width: auto;
+        }
+
+        .brand-lockup td {
+            padding: 0;
+            background-color: transparent;
+            vertical-align: middle;
+        }
+
+        .brand-mark {
+            width: 42px;
+            height: 42px;
+            color: #191916;
+            background-color: #d6b65e !important;
+            border-radius: 7px;
+            text-align: center;
+            direction: ltr;
+            font-family: Arial, sans-serif;
+            font-size: 10pt;
+            font-weight: bold;
+        }
+
+        .brand-copy {
+            padding-right: 11px !important;
+        }
+
+        .brand-kicker {
+            margin-bottom: 1px;
+            color: #d8bb6d;
+            direction: ltr;
+            text-align: right;
+            font-family: Arial, sans-serif;
+            font-size: 7pt;
+            letter-spacing: 1px;
         }
 
         .shop-title {
-            font-size: 20px;
+            color: #fbf8ef;
+            font-size: 17pt;
             font-weight: bold;
-            color: #1a1a1a;
+            line-height: 1.35;
         }
 
-        .invoice-badge {
-            font-size: 13px;
-            color: #c9a227;
+        .shop-caption {
+            margin-top: 2px;
+            color: #a9a494;
+            font-size: 8.5pt;
+        }
+
+        .invoice-meta-label {
+            color: #aaa594;
+            font-size: 8pt;
+        }
+
+        .invoice-number {
+            margin-top: 2px;
+            color: #e9cc77;
+            font-family: Arial, Tahoma, sans-serif;
+            font-size: 14pt;
+            font-weight: bold;
+            line-height: 1.5;
+        }
+
+        .contact-strip {
+            margin-top: 7px;
+            border: 1px solid #e9e4d9;
+            background-color: #f8f7f3;
+        }
+
+        .contact-cell,
+        .address-cell {
+            padding: 4px 9px;
+            color: #6e6b62;
+            border-bottom: 1px solid #e9e4d9;
+            font-size: 8pt;
+        }
+
+        .contact-cell {
+            width: 33.333%;
+        }
+
+        .contact-label {
+            color: #9a772c;
             font-weight: bold;
         }
 
-        .shop-meta {
-            margin-top: 6px;
-            font-size: 9.5px;
-            color: #666;
-            line-height: 1.7;
+        .contact-value {
+            color: #45433d;
         }
 
-        .shop-meta div {
-            margin-bottom: 1px;
+        .address-cell {
+            border-bottom: 0;
         }
 
-        .meta-table {
-            width: 100%;
-            margin-bottom: 14px;
-            border-collapse: collapse;
+        .customer-summary {
+            margin-top: 13px;
+            margin-bottom: 17px;
+            border: 1px solid #e4ddcd;
+            background-color: #f6f3eb;
         }
 
-        .meta-table td {
-            padding: 5px 8px;
-            font-size: 11px;
+        .customer-summary td {
+            padding: 9px 12px;
+            border-left: 1px solid #e4ddcd;
+            vertical-align: middle;
         }
 
-        .meta-label {
-            color: #777;
+        .customer-summary td:last-child {
+            border-left: 0;
         }
 
-        .items-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
+        .customer-cell {
+            width: 46%;
         }
 
-        .items-table th {
-            background: #1a1a1a;
-            color: #fff;
-            padding: 8px 6px;
-            font-size: 10.5px;
-            text-align: right;
+        .date-cell {
+            width: 27%;
         }
 
-        .items-table td {
-            padding: 7px 6px;
-            font-size: 10.5px;
-            border-bottom: 1px solid #e5e5e5;
+        .status-cell {
+            width: 27%;
         }
 
-        .items-table tr:nth-child(even) td {
-            background: #faf8f2;
+        .summary-label {
+            display: block;
+            color: #898476;
+            font-size: 8pt;
         }
 
-        .totals-table {
-            width: 45%;
-            margin-top: 14px;
-            margin-right: 0;
-            margin-left: auto;
-            border-collapse: collapse;
-        }
-
-        .totals-table td {
-            padding: 6px 8px;
-            font-size: 11px;
-        }
-
-        .totals-table .final-row td {
-            border-top: 2px solid #c9a227;
+        .customer-name {
+            display: block;
+            margin-top: 2px;
+            color: #292821;
+            font-size: 10.5pt;
             font-weight: bold;
-            font-size: 13px;
-            color: #c9a227;
         }
 
-        .status-badge {
+        .summary-value {
+            display: block;
+            margin-top: 3px;
+            color: #36352e;
+            font-size: 9.5pt;
+            font-weight: bold;
+        }
+
+        .status-tag {
             display: inline-block;
-            padding: 3px 10px;
+            margin-top: 4px;
+            padding: 2px 8px;
+            border: 1px solid transparent;
             border-radius: 10px;
-            font-size: 10px;
+            font-size: 8pt;
             font-weight: bold;
         }
 
         .status-paid {
-            background: #e6f4ea;
-            color: #2e7d4f;
+            color: #286945;
+            border-color: #c9e1cf;
+            background-color: #e9f3eb;
         }
 
         .status-unpaid {
-            background: #fdecea;
-            color: #c0392b;
+            color: #9b4e3b;
+            border-color: #efd3c9;
+            background-color: #fbefeb;
         }
 
         .status-returned {
-            background: #eceef1;
-            color: #555;
+            color: #62615c;
+            border-color: #d9d8d2;
+            background-color: #eeede9;
         }
 
-        .footer {
-            margin-top: 30px;
-            font-size: 9.5px;
-            color: #999;
+        .summary-subline {
+            margin-top: 3px;
+            color: #777368;
+            font-size: 7.5pt;
+        }
+
+        .section-heading {
+            margin-bottom: 7px;
+            padding-right: 8px;
+            color: #26251f;
+            border-right: 3px solid #c7a24e;
+            font-size: 11pt;
+            font-weight: bold;
+            line-height: 1.4;
+        }
+
+        .items-table {
+            table-layout: fixed;
+            border: 1px solid #e4e0d8;
+        }
+
+        .items-table thead {
+            display: table-header-group;
+        }
+
+        .items-table th {
+            padding: 7px 6px;
+            color: #f8f5ec;
+            border-bottom: 2px solid #c7a24e;
+            background-color: #292821;
+            text-align: right;
+            font-size: 8pt;
+            font-weight: bold;
+            line-height: 1.5;
+        }
+
+        .items-table td {
+            padding: 7px 6px;
+            color: #35342e;
+            border-bottom: 1px solid #e9e6df;
+            font-size: 8.7pt;
+            vertical-align: middle;
+        }
+
+        .items-table tbody tr {
+            page-break-inside: avoid;
+        }
+
+        .items-table .row-even td {
+            background-color: #faf9f6;
+        }
+
+        .cell-center {
+            text-align: center !important;
+        }
+
+        .money-cell {
+            text-align: left;
+            direction: ltr;
+            font-family: vazirmatn, Tahoma, Arial, sans-serif;
+        }
+
+        .money-heading {
+            text-align: right !important;
+            direction: rtl;
+            font-family: vazirmatn, Tahoma, Arial, sans-serif;
+        }
+
+        .money-strong {
+            color: #806323 !important;
+            font-weight: bold;
+        }
+
+        .item-name {
+            word-wrap: break-word;
+        }
+
+        .return-tag {
+            display: inline-block;
+            margin-right: 5px;
+            padding: 1px 5px;
+            color: #8e503e;
+            border: 1px solid #ead2c7;
+            border-radius: 6px;
+            background-color: #faf0ec;
+            font-size: 7pt;
+        }
+
+        .empty-row td {
+            padding: 18px 8px;
+            color: #8b867a;
             text-align: center;
-            border-top: 1px solid #eee;
-            padding-top: 8px;
+        }
+
+        .totals-table {
+            width: 57%;
+            margin-top: 13px;
+            margin-right: 0;
+            margin-left: auto;
+        }
+
+        .totals-table td {
+            padding: 5px 9px;
+            border-bottom: 1px solid #ece8df;
+            font-size: 8.8pt;
+        }
+
+        .total-label {
+            color: #777267;
+        }
+
+        .total-value {
+            color: #34332d;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .adjustment-label {
+            color: #777267;
+        }
+
+        .adjustment-value {
+            color: #34332d;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .total-final td {
+            padding: 9px 11px;
+            color: #fbf8ef;
+            border-top: 2px solid #d0ae55;
+            border-bottom: 0;
+            background-color: #201f1a;
+            font-size: 10.5pt;
+            font-weight: bold;
+        }
+
+        .total-final .total-value {
+            color: #efd889;
+            font-size: 12pt;
+        }
+
+        .currency {
+            color: inherit;
+            font-size: 7.5pt;
+            font-weight: normal;
+        }
+
+        .invoice-footer {
+            margin-top: 22px;
+            border-top: 1px solid #e5e0d5;
+        }
+
+        .invoice-footer td {
+            padding-top: 9px;
+            color: #898477;
+            font-size: 8pt;
+        }
+
+        .footer-thanks {
+            color: #806323 !important;
+            font-size: 9.5pt !important;
+            font-weight: bold;
+        }
+
+        .footer-note {
+            text-align: left;
         }
     </style>
 </head>
 
 <body>
-
-    <div class="header">
-        <table>
+    <div class="invoice-sheet">
+        <table class="masthead" dir="rtl">
             <tr>
-                <td style="width:50%">
-                    <div class="shop-title">{{ $storeProfile->brand_name ?? 'گیم‌شاپ' }}</div>
-                    <div style="font-size:10px;color:#888;margin-top:2px">فاکتور فروش</div>
-                    @if($storeProfile)
-                    <div class="shop-meta">
-                        @if($storeProfile->phone)
-                        <div>تلفن: {!! ltr($storeProfile->phone) !!}</div>
-                        @endif
-                        @if($storeProfile->secondary_phone)
-                        <div>تلفن دوم: {!! ltr($storeProfile->secondary_phone) !!}</div>
-                        @endif
-                        @if($storeProfile->email)
-                        <div>ایمیل: {!! ltr($storeProfile->email) !!}</div>
-                        @endif
-                        @if($storeProfile->website)
-                        <div>وب‌سایت: {!! ltr($storeProfile->website) !!}</div>
-                        @endif
-                        @if($storeProfile->telegram)
-                        <div>تلگرام: {!! ltr($storeProfile->telegram) !!}</div>
-                        @endif
-                        @if($storeProfile->instagram)
-                        <div>اینستاگرام: {!! ltr($storeProfile->instagram) !!}</div>
-                        @endif
-                        @if($storeProfile->invoice_address)
-                        <div>آدرس: {{ $storeProfile->invoice_address }}</div>
-                        @endif
-                    </div>
-                    @endif
+                <td class="brand-cell">
+                    <table class="brand-lockup" dir="rtl">
+                        <tr>
+                            <td class="brand-mark">GS</td>
+                            <td class="brand-copy">
+                                <div class="brand-kicker">GAME STORE / INVOICE</div>
+                                <div class="shop-title">{{ $storeName }}</div>
+                                <div class="shop-caption">فاکتور فروش کالا و خدمات</div>
+                            </td>
+                        </tr>
+                    </table>
                 </td>
-                <td style="width:50%;text-align:left">
-                    <div class="invoice-badge">شماره فاکتور: {!! ltr($invoice->invoice_number) !!}</div>
-                    <div style="font-size:10px;color:#888;margin-top:2px">
-                        تاریخ پرداخت: {{ faNum(\Morilog\Jalali\Jalalian::fromCarbon($invoice->paid_at ?? $invoice->created_at)->format('Y/m/d')) }}
-                    </div>
+                <td class="invoice-meta">
+                    <div class="invoice-meta-label">شماره فاکتور</div>
+                    <div class="invoice-number">{!! $ltr($invoice->invoice_number) !!}</div>
                 </td>
             </tr>
         </table>
-    </div>
 
-    <table class="meta-table">
-        <tr>
-            <td style="width:50%">
-                <span class="meta-label">مشتری:</span>
-                <strong>{{ $invoice->customer?->name ?? 'بدون مشتری' }}</strong>
-            </td>
-            <td style="width:50%;text-align:left">
-                <span class="meta-label">وضعیت پرداخت:</span>
-                <span class="status-badge status-{{ $invoice->payment_status }}">
-                    @if($invoice->payment_status === 'paid') پرداخت شده
-                    @elseif($invoice->payment_status === 'returned') مرجوع شده
-                    @else پرداخت نشده @endif
-                </span>
-            </td>
-        </tr>
-    </table>
+        @if(count($storeContacts) || $storeAddress)
+            <table class="contact-strip" dir="rtl">
+                @foreach($storeContacts as $contact)
+                    @if($loop->first || $loop->index % 3 === 0)
+                        <tr>
+                    @endif
+                    <td class="contact-cell">
+                        <span class="contact-label">{{ $contact['label'] }}:</span>
+                        <span class="contact-value">{!! $ltr($contact['value']) !!}</span>
+                    </td>
+                    @if($loop->iteration % 3 === 0 || $loop->last)
+                        </tr>
+                    @endif
+                @endforeach
+                @if($storeAddress)
+                    <tr>
+                        <td colspan="3" class="address-cell">
+                            <span class="contact-label">نشانی فروشگاه:</span>
+                            {{ $storeAddress }}
+                        </td>
+                    </tr>
+                @endif
+            </table>
+        @endif
 
-    <table class="items-table">
-        <thead>
+        <table class="customer-summary" dir="rtl">
             <tr>
-                <th>ردیف</th>
-                <th>شرح</th>
-                <th>تعداد</th>
-                <th>قیمت واحد</th>
-                <th>جمع</th>
+                <td class="customer-cell">
+                    <span class="summary-label">صورتحساب برای</span>
+                    <strong class="customer-name">{{ $invoice->customer?->name ?? 'بدون مشتری' }}</strong>
+                </td>
+                <td class="date-cell">
+                    <span class="summary-label">{{ $invoiceDateLabel }}</span>
+                    <strong class="summary-value"><bdo dir="ltr">{{ $faNum($invoiceDateText) }}</bdo></strong>
+                </td>
+                <td class="status-cell">
+                    <span class="summary-label">وضعیت پرداخت</span>
+                    <span class="status-tag status-{{ $paymentStatus['class'] }}">{{ $paymentStatus['label'] }}</span>
+                    @if($paymentStatus['class'] === 'paid' && $paymentMethod)
+                        <div class="summary-subline">روش پرداخت: {{ $paymentMethod }}</div>
+                    @endif
+                </td>
             </tr>
-        </thead>
-        <tbody>
-            @foreach($invoice->orderItems as $i => $item)
+        </table>
+
+        <div class="section-heading">اقلام فاکتور</div>
+
+        <table class="items-table" dir="rtl">
+            <colgroup>
+                <col style="width: 8%;">
+                <col style="width: 44%;">
+                <col style="width: 12%;">
+                <col style="width: 18%;">
+                <col style="width: 18%;">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th class="cell-center">ردیف</th>
+                    <th>شرح کالا یا خدمت</th>
+                    <th class="cell-center">تعداد</th>
+                    <th class="money-heading">قیمت واحد (تومان)</th>
+                    <th class="money-heading">مبلغ (تومان)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($invoice->orderItems as $item)
+                    <tr class="{{ $loop->even ? 'row-even' : '' }}">
+                        <td class="cell-center">{{ $faNum($loop->iteration) }}</td>
+                        <td class="item-name">
+                            {!! $ltr($item->product_name) !!}
+                            @if($item->is_returned)
+                                <span class="return-tag">مرجوع شده</span>
+                            @endif
+                        </td>
+                        <td class="cell-center"><bdo dir="ltr">{{ $faNum($item->quantity) }}</bdo></td>
+                        <td class="money-cell"><bdo dir="ltr">{{ $faNum(number_format($item->price)) }}</bdo></td>
+                        <td class="money-cell money-strong"><bdo dir="ltr">{{ $faNum(number_format($item->total_price)) }}</bdo></td>
+                    </tr>
+                @endforeach
+
+                @foreach($invoice->serviceJobs as $serviceJob)
+                    <tr class="{{ ($invoice->orderItems->count() + $loop->iteration) % 2 === 0 ? 'row-even' : '' }}">
+                        <td class="cell-center">{{ $faNum($invoice->orderItems->count() + $loop->iteration) }}</td>
+                        <td class="item-name">{!! $ltr('سرویس #' . $serviceJob->id . ' - ' . ($serviceJob->device_type ?? 'دستگاه')) !!}</td>
+                        <td class="cell-center">{{ $faNum(1) }}</td>
+                        <td class="money-cell"><bdo dir="ltr">{{ $faNum(number_format($serviceJob->final_price)) }}</bdo></td>
+                        <td class="money-cell money-strong"><bdo dir="ltr">{{ $faNum(number_format($serviceJob->final_price)) }}</bdo></td>
+                    </tr>
+                @endforeach
+
+                @if($invoice->orderItems->isEmpty() && $invoice->serviceJobs->isEmpty())
+                    <tr class="empty-row">
+                        <td colspan="5">موردی برای این فاکتور ثبت نشده است.</td>
+                    </tr>
+                @endif
+            </tbody>
+        </table>
+
+        <table class="totals-table" dir="rtl">
             <tr>
-                <td>{{ faNum($i + 1) }}</td>
-                <td>{!! ltr($item->product_name) !!}{{ $item->is_returned ? ' (مرجوع شده)' : '' }}</td>
-                <td>{{ faNum($item->quantity) }}</td>
-                <td>{{ faNum(number_format($item->price)) }}</td>
-                <td>{{ faNum(number_format($item->total_price)) }}</td>
+                <td class="total-label">جمع اقلام</td>
+                <td class="total-value">
+                    <bdo dir="ltr">{{ $faNum(number_format($invoice->total_amount)) }}</bdo>
+                    <span class="currency">تومان</span>
+                </td>
             </tr>
+            @foreach($invoice->adjustments as $adjustment)
+                <tr>
+                    <td class="adjustment-label">{{ $adjustment->title }}</td>
+                    <td class="adjustment-value">
+                        <bdo dir="ltr">{{ $adjustment->direction === 'increase' ? '+' : '-' }}{{ $adjustment->type === 'percentage' ? $faNum($adjustment->value) . '%' : $faNum(number_format($adjustment->value)) }}</bdo>
+                        @if($adjustment->type !== 'percentage')
+                            <span class="currency">تومان</span>
+                        @endif
+                    </td>
+                </tr>
             @endforeach
-            @foreach($invoice->serviceJobs as $sj)
-            <tr>
-                <td>-</td>
-                <td>سرویس {!! ltr('#' . $sj->id) !!} - {{ $sj->device_type ?? 'دستگاه' }}</td>
-                <td>{{ faNum(1) }}</td>
-                <td>{{ faNum(number_format($sj->final_price)) }}</td>
-                <td>{{ faNum(number_format($sj->final_price)) }}</td>
+            <tr class="total-final">
+                <td>مبلغ نهایی</td>
+                <td class="total-value">
+                    <bdo dir="ltr">{{ $faNum(number_format($invoice->final_amount)) }}</bdo>
+                    <span class="currency">تومان</span>
+                </td>
             </tr>
-            @endforeach
-        </tbody>
-    </table>
+        </table>
 
-    <table class="totals-table">
-        <tr>
-            <td class="meta-label">جمع اقلام</td>
-            <td style="text-align:left">{{ faNum(number_format($invoice->total_amount)) }} تومان</td>
-        </tr>
-        @foreach($invoice->adjustments as $adj)
-        <tr>
-            <td class="meta-label">{{ $adj->title }}</td>
-            <td style="text-align:left">
-                {{ $adj->direction === 'increase' ? '+' : '-' }}
-                {{ $adj->type === 'percentage' ? faNum($adj->value) . '%' : faNum(number_format($adj->value)) . ' تومان' }}
-            </td>
-        </tr>
-        @endforeach
-        <tr class="final-row">
-            <td>مبلغ نهایی</td>
-            <td style="text-align:left">{{ faNum(number_format($invoice->final_amount)) }} تومان</td>
-        </tr>
-    </table>
-
-    <div class="footer">
-        این فاکتور توسط سامانه گیم‌شاپ صادر شده است.
+        <table class="invoice-footer" dir="rtl">
+            <tr>
+                <td class="footer-thanks">از خرید شما سپاسگزاریم.</td>
+                <td class="footer-note">این فاکتور توسط سامانه {{ $storeName }} صادر شده است.</td>
+            </tr>
+        </table>
     </div>
-
 </body>
 
 </html>

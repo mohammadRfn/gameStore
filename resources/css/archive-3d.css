@@ -24,7 +24,7 @@
   --a3d-lift: 0px;
   --a3d-scale: 1;
   --a3d-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --a3d-glass: color-mix(in srgb, var(--gs-bg-card-strong) 72%, transparent);
+  --a3d-glass: color-mix(in srgb, var(--gs-bg-card-strong) 88%, transparent);
 }
 
 /* --------------------------------------------------------------------------
@@ -97,8 +97,6 @@
   border-radius: var(--gs-radius-lg);
   background: var(--a3d-glass);
   border: 1px solid var(--gs-border);
-  backdrop-filter: blur(18px) saturate(1.35);
-  -webkit-backdrop-filter: blur(18px) saturate(1.35);
   box-shadow: var(--gs-shadow-sm);
   overflow: hidden;
 }
@@ -150,8 +148,7 @@
   position: absolute;
   inset: 12% 8% -18% 8%;
   border-radius: 50%;
-  background: var(--a3d-aura-color, var(--gs-gold-glow));
-  filter: blur(46px);
+  background: radial-gradient(closest-side, var(--a3d-aura-color, var(--gs-gold-glow)), transparent 100%);
   opacity: 0;
   transform: translateZ(-60px);
   transition: opacity 0.5s ease;
@@ -167,6 +164,7 @@
 .a3d-scene {
   position: absolute;
   inset: 0;
+  contain: layout paint style;
   overflow: hidden;
   pointer-events: none;
   z-index: 0;
@@ -180,34 +178,41 @@
   width: 260%;
   height: 118%;
   translate: -50% 0;
+  transform: perspective(560px) rotateX(74deg);
+  transform-origin: 50% 100%;
+  -webkit-mask-image: linear-gradient(to top, #000 4%, transparent 78%);
+  mask-image: linear-gradient(to top, #000 4%, transparent 78%);
+  opacity: 0.85;
+  overflow: hidden;
+}
+
+/* فقط transform انیمیت می‌شود (روی GPU)؛ یک سلول اضافه‌ی بالا حلقه را بی‌درز می‌کند */
+.a3d-grid-floor::before {
+  content: '';
+  position: absolute;
+  inset: -62px 0 0 0;
   background-image:
     linear-gradient(to right, var(--gs-grid-line) 1px, transparent 1px),
     linear-gradient(to bottom, var(--gs-grid-line) 1px, transparent 1px);
   background-size: 62px 62px;
-  transform: perspective(560px) rotateX(74deg);
-  transform-origin: 50% 100%;
   animation: a3d-grid-scroll 9s linear infinite;
-  -webkit-mask-image: linear-gradient(to top, #000 4%, transparent 78%);
-  mask-image: linear-gradient(to top, #000 4%, transparent 78%);
-  opacity: 0.85;
+  will-change: transform;
 }
 
 @keyframes a3d-grid-scroll {
-  from { background-position: 0 0, 0 0; }
-  to   { background-position: 0 62px, 0 62px; }
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(0, 62px, 0); }
 }
 
 .a3d-orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(58px);
   opacity: 0.42;
-  will-change: transform;
 }
 
-.a3d-orb--gold   { background: radial-gradient(circle, var(--gs-gold) 0%, transparent 68%); }
-.a3d-orb--blue   { background: radial-gradient(circle, var(--gs-accent) 0%, transparent 68%); }
-.a3d-orb--violet { background: radial-gradient(circle, var(--gs-accent-3) 0%, transparent 68%); }
+.a3d-orb--gold   { background: radial-gradient(closest-side, var(--gs-gold) 0%, transparent 100%); }
+.a3d-orb--blue   { background: radial-gradient(closest-side, var(--gs-accent) 0%, transparent 100%); }
+.a3d-orb--violet { background: radial-gradient(closest-side, var(--gs-accent-3) 0%, transparent 100%); }
 
 @keyframes a3d-float-a {
   0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
@@ -260,7 +265,6 @@
   place-items: center;
   font-size: 1.25rem;
   color: var(--gs-gold);
-  backdrop-filter: blur(2px);
 }
 
 .a3d-cube__face--front  { transform: translateZ(calc(var(--cube-size, 74px) / 2)); }
@@ -391,7 +395,15 @@
 /* --------------------------------------------------------------------------
    10) احترام کامل به تنظیم کاهش حرکت سیستم‌عامل
    -------------------------------------------------------------------------- */
+/* وقتی صحنه از دید خارج شده یا پنجره پنهان است، انیمیشن‌ها متوقف می‌شوند */
+.a3d-stage.is-paused .a3d-scene *,
+.a3d-stage.is-paused .a3d-scene *::before,
+.a3d-stage.is-paused .a3d-cube {
+  animation-play-state: paused !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .a3d-grid-floor::before,
   .a3d-grid-floor,
   .a3d-cube,
   .a3d-float-a,

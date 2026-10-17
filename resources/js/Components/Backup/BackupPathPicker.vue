@@ -40,7 +40,8 @@ async function pickFolder() {
     const detail = e?.response?.data?.message
 
     console.error('pick-directory failed:', status, detail || e.message)
-    emit('bridge-missing', detail ? `${detail} (کد ${status})` : null)
+    // دلیل واقعی (کد HTTP یا خطای شبکه) در هشدار نشان داده می‌شود
+    emit('bridge-missing', detail ? `${detail} (کد ${status})` : `انتخاب پوشه ناموفق بود: ${status ? 'HTTP ' + status : e.message}. مسیر را دستی وارد کن.`)
   }
 }
 </script>

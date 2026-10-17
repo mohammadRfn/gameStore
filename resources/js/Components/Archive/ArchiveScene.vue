@@ -10,7 +10,7 @@
      کاملاً pointer-events:none است و هیچ تداخلی با کلیک‌ها ندارد.
      ========================================================================== -->
 <template>
-  <div class="a3d-scene" aria-hidden="true">
+  <div ref="sceneRoot" class="a3d-scene" aria-hidden="true">
     <!-- کف مشبک پرسپکتیو -->
     <div class="a3d-grid-floor"></div>
 
@@ -42,10 +42,11 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 
 const props = defineProps({
-  dustCount: { type: Number, default: 18 },
+  dustCount: { type: Number, default: 10 },
   parallax: { type: Boolean, default: true },
 })
 
+const sceneRoot = ref(null)
 const orbLayerA = ref(null)
 const orbLayerB = ref(null)
 const orbLayerC = ref(null)
@@ -63,6 +64,14 @@ const dustParticles = Array.from({ length: props.dustCount }, (_, index) => ({
 }))
 
 let frame = null
+let observer = null
+
+/* وقتی hero از دید خارج شد یا پنجره minimize/پنهان شد، انیمیشن‌ها را متوقف کن */
+let inView = true
+function syncPaused() {
+  const stage = sceneRoot.value?.closest('.a3d-stage')
+  if (stage) stage.classList.toggle('is-paused', !inView || document.hidden)
+}
 
 function reducedMotion() {
   return typeof window !== 'undefined'
@@ -92,10 +101,21 @@ function handlePointer(event) {
 
 onMounted(() => {
   window.addEventListener('pointermove', handlePointer, { passive: true })
+  document.addEventListener('visibilitychange', syncPaused)
+
+  if (sceneRoot.value && 'IntersectionObserver' in window) {
+    observer = new IntersectionObserver(([entry]) => {
+      inView = entry.isIntersecting
+      syncPaused()
+    })
+    observer.observe(sceneRoot.value)
+  }
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('pointermove', handlePointer)
+  document.removeEventListener('visibilitychange', syncPaused)
+  observer?.disconnect()
   if (frame) cancelAnimationFrame(frame)
 })
 </script>

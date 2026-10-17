@@ -82,8 +82,19 @@ class BackupController extends Controller
             'default_path' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $default  = $data['default_path'] ?: $this->paths->defaultExportRoot();
-        $selected = null;
+        // کاربر ممکن است چند دقیقه در پنجره‌ی انتخاب بماند؛ PHP نباید وسط کار قطع شود
+        @set_time_limit(0);
+        ignore_user_abort(true);
+
+        $default   = $data['default_path'] ?: $this->paths->defaultExportRoot();
+        $selected  = null;
+        $reason    = null;
+        $startedAt = microtime(true);
+
+        // اگر روی سیستم پراکسی/VPN (HTTP_PROXY) تنظیم باشد، تماس PHP با API محلی Electron
+        // از آن عبور می‌کند و شکست می‌خورد؛ ترافیک لوکال باید مستقیم برود.
+        putenv('NO_PROXY=127.0.0.1,localhost,::1');
+        putenv('no_proxy=127.0.0.1,localhost,::1');
 
         if (config('backup.native_dialog', true)) {
             try {
@@ -94,17 +105,29 @@ class BackupController extends Controller
                     ->folders()
                     ->open();
             } catch (Throwable $e) {
-                \Illuminate\Support\Facades\Log::warning('[backup] native dialog threw', ['error' => $e->getMessage()]);
-                $selected = null;
+                $reason = $e->getMessage();
+                \Illuminate\Support\Facades\Log::warning('[backup] native dialog threw', ['error' => $reason]);
+            }
+
+            // اگر دیالوگ NativePHP «فوراً» null داد، یعنی اصلاً باز نشده (لغو کاربر حداقل
+            // چند ثانیه طول می‌کشد). در این حالت دیالوگ بومی ویندوز را مستقیم باز می‌کنیم.
+            if ($selected === null && (microtime(true) - $startedAt) < 1.5) {
+                $selected = $this->openNativeDialogViaShell($default);
             }
         } else {
-            // حالت وب‌سرور محلی: صریحاً سراغ NativePHP نمی‌رویم (چون بدون خطا
-            // فقط null برمی‌گرداند) و مستقیم دیالوگ بومی سیستم‌عامل را از شل باز می‌کنیم.
+            // حالت وب‌سرور محلی: مستقیم دیالوگ بومی سیستم‌عامل را از شل باز می‌کنیم.
             $selected = $this->openNativeDialogViaShell($default);
         }
 
         if ($selected === null) {
-            return response()->json(['message' => 'دیالوگ انتخاب پوشه در این محیط در دسترس نیست.'], 422);
+            // کاربر پنجره را بسته/لغو کرده است: خطا نیست، فقط مسیری برنمی‌گردد
+            if ((microtime(true) - $startedAt) >= 1.5) {
+                return response()->json(['data' => ['path' => null, 'cancelled' => true]]);
+            }
+
+            return response()->json([
+                'message' => 'دیالوگ انتخاب پوشه در این محیط در دسترس نیست.' . ($reason ? " ({$reason})" : ''),
+            ], 422);
         }
 
         return response()->json(['data' => ['path' => $selected]]);
@@ -119,10 +142,12 @@ class BackupController extends Controller
 
         $command = match (PHP_OS_FAMILY) {
             'Windows' => sprintf(
-                'powershell -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; ' .
+                'powershell -NoProfile -STA -WindowStyle Hidden -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; ' .
+                    'Add-Type -AssemblyName System.Windows.Forms; ' .
+                    '$o = New-Object System.Windows.Forms.Form; $o.TopMost = $true; ' .
                     '$f = New-Object System.Windows.Forms.FolderBrowserDialog; ' .
                     'if (Test-Path %1$s) { $f.SelectedPath = %1$s }; ' .
-                    'if ($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $f.SelectedPath }"',
+                    'if ($f.ShowDialog($o) -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $f.SelectedPath }"',
                 "'" . str_replace("'", "''", $default) . "'",
             ),
             'Darwin' => "osascript -e 'POSIX path of (choose folder with prompt \"پوشه را انتخاب کنید\")' 2>/dev/null",

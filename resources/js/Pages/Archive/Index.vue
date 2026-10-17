@@ -31,7 +31,7 @@
 
     <!-- ================= HERO سه‌بعدی ================= -->
     <section class="hero a3d-stage">
-      <ArchiveScene :dust-count="20" />
+      <ArchiveScene :dust-count="10" />
 
       <div class="hero-content">
         <div class="hero-text">
