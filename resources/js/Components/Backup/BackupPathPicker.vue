@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import axios from 'axios'
 import BackupCard from '@/Components/Backup/BackupCard.vue'
 import { formatBytes } from '@/Composables/useBackupCenter'
 
