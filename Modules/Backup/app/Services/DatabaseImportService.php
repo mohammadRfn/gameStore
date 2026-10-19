@@ -570,6 +570,7 @@ class DatabaseImportService
         return [
             'on_duplicate' => $onDuplicate,
             'null_orphans' => (bool) ($policy['null_orphans'] ?? false),
+            'revive_deleted' => (bool) ($policy['revive_deleted'] ?? true),
             'orphan_action' => (string) ($policy['on_missing_parent'] ?? 'null'),  // null | keep | fail
             'strict_indexes' => (bool) ($policy['strict_indexes'] ?? true),
             'insert_chunk' => max(50, (int) ($options['chunk_size'] ?? config('backup.runtime.chunk_size', 500))),
@@ -666,10 +667,22 @@ class DatabaseImportService
         $onDuplicate = $policy['on_duplicate'];
         $foreign     = $this->foreignKeyColumns($table);
 
+        // جدول بدون natural key: هویت رکورد = همه‌ی ستون‌های محتوایی. کلیدهای خارجی هم
+        // در امضا هستند و به ID جدید والد ترجمه می‌شوند؛ پس ادغام والد به فرزندان سرایت می‌کند.
+        if ($natural === []) {
+            $natural = $this->contentSignatureColumns($columns, $backupRows);
+        }
+
+        // ترتیب پایدار برای جفت‌کردن یک‌به‌یکِ رکوردهای هم‌امضا (قدیمی‌تر اول).
+        usort($backupRows, fn($a, $b) => [$this->timestampOf($a + ['_origin' => 'backup']), (int) ($a['id'] ?? 0)]
+            <=> [$this->timestampOf($b + ['_origin' => 'backup']), (int) ($b['id'] ?? 0)]);
+
         /** @var array<int, array<string, mixed>> $rows */
         $rows = [];
-        /** @var array<string, int> $bySignature */
+        /** @var array<string, array<int, int>> $bySignature  امضا => صف ایندکس رکوردهای موجود */
         $bySignature = [];
+        /** @var array<string, int> $consumed  امضا => تعداد رکورد موجودی که با بکاپ جفت شده */
+        $consumed = [];
         /** @var array<int, array{origin: string, old_id: int, into: int, action: string}> $aliases */
         $aliases = [];
 
@@ -679,7 +692,7 @@ class DatabaseImportService
             $rows[] = $row + ['_origin' => 'existing', '_old_id' => (int) ($row['id'] ?? 0), '_alias' => []];
 
             if ($natural !== []) {
-                $bySignature[$this->rowSignature($rows[$index], $natural, 'existing', $plans, $foreign)] ??= $index;
+                $bySignature[$this->rowSignature($rows[$index], $natural, 'existing', $plans, $foreign)][] = $index;
             }
         }
 
@@ -692,8 +705,12 @@ class DatabaseImportService
             if ($natural !== []) {
                 $signature = $this->rowSignature($row, $natural, 'backup', $plans, $foreign);
 
-                if (isset($bySignature[$signature])) {
-                    $hit = $bySignature[$signature];
+                // جفت‌سازی یک‌به‌یک: هر رکورد موجود فقط با «یک» رکورد بکاپ جفت می‌شود.
+                $used = $consumed[$signature] ?? 0;
+
+                if (isset($bySignature[$signature][$used])) {
+                    $hit                  = $bySignature[$signature][$used];
+                    $consumed[$signature] = $used + 1;
                 }
             }
 
@@ -709,6 +726,14 @@ class DatabaseImportService
                 $earliest = $this->earlierTimestamp($rows[$hit]['created_at'] ?? null, $row['created_at'] ?? null);
 
                 $aliases[] = ['origin' => 'backup', 'old_id' => $backupId, 'into' => $hit, 'action' => $onDuplicate, 'signature' => $signature];
+
+                // رکورد موجود سافت‌دیلیت شده ولی نسخه‌ی بکاپ زنده است: برگردان
+                if ($policy['revive_deleted']
+                    && in_array('deleted_at', $columns, true)
+                    && ($rows[$hit]['deleted_at'] ?? null) !== null
+                    && ($row['deleted_at'] ?? null) === null) {
+                    $rows[$hit]['deleted_at'] = null;
+                }
 
                 if ($onDuplicate === 'fill_nulls') {
                     foreach ($columns as $column) {
@@ -737,12 +762,7 @@ class DatabaseImportService
 
             unset($row['id']);
 
-            $index  = count($rows);
             $rows[] = $row + ['_origin' => 'backup', '_old_id' => $backupId, '_alias' => []];
-
-            if ($natural !== []) {
-                $bySignature[$signature ?? ''] ??= $index;
-            }
         }
 
         // ۳) سورت: قدیمی‌تر → ID کوچک‌تر. در تساوی، بکاپ مقدم است.
@@ -874,7 +894,10 @@ class DatabaseImportService
                 }
             }
 
-            if (is_string($value)) {
+            if (is_numeric($value) && str_contains((string) $value, '.')) {
+                // 1500 / 1500.0 / "1500.00" باید یکی حساب شوند
+                $value = rtrim(rtrim((string) $value, '0'), '.');
+            } elseif (is_string($value)) {
                 $value = mb_strtolower(trim(preg_replace('/\s+/u', ' ', $value) ?? $value));
             }
 
@@ -924,7 +947,24 @@ class DatabaseImportService
 
         return ($row['_origin'] ?? 'existing') === 'existing' ? PHP_INT_MAX : 0;
     }
+    /**
+     * ستون‌های «هویتی» برای جدولی که natural key ندارد: همه‌ی ستون‌هایی که
+     * در CSV بکاپ هم هستند، به‌جز id و ستون‌های وضعیتی (updated_at / deleted_at).
+     *
+     * @param  array<int, string>  $columns
+     * @param  array<int, array<string, mixed>>  $backupRows
+     * @return array<int, string>
+     */
+    private function contentSignatureColumns(array $columns, array $backupRows): array
+    {
+        if ($backupRows === []) {
+            return [];
+        }
 
+        $present = array_keys($backupRows[0]);
+
+        return array_values(array_diff(array_intersect($columns, $present), ['id', 'updated_at', 'deleted_at']));
+    }
     /** @return array<int, string> */
     private function orderColumns(string $table): array
     {
@@ -1088,14 +1128,8 @@ class DatabaseImportService
                 }
             }
 
-            // رکوردهای بکاپی که «ادغام» شدند و فرزند در جدول بیرونی دارند:
-            foreach ($plan['aliases'] as $alias) {
-                $survivorId = $plan['rows'][$alias['into']]['id'] ?? null;
-
-                if ($survivorId !== null && (int) $alias['old_id'] !== (int) $survivorId) {
-                    $changes[(int) $alias['old_id']] = (int) $survivorId;
-                }
-            }
+            // aliasهای بکاپ اینجا اعمال نمی‌شوند: جدول بیرونی فقط داده‌ی «زنده» دارد
+            // و ارجاع‌هایش در فضای ID فعلی است.
 
             if ($changes === []) {
                 continue;

@@ -33,7 +33,7 @@ class LogShippingException extends RuntimeException
     public static function rejected(int $status, string $message, array $response = []): self
     {
         // خطاهای 4xx (به‌جز 408/409/429) قابل تلاش مجدد نیستند
-        $retryable = $status >= 500 || in_array($status, [408, 409, 425, 429], true);
+        $retryable = $status >= 500 || in_array($status, [401, 403, 408, 409, 423, 425, 429], true);
 
         return new self($message, (string) ($response['error']['code'] ?? 'HTTP_' . $status), $status, $response, $retryable);
     }

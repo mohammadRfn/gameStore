@@ -86,8 +86,9 @@ class LogShippingService
                     $summary['failed'] += $logs->count();
                     $summary['errors'][] = $e->getMessage();
 
-                    if (! $e->retryable) {
-                        break; // پیکربندی یا داده اشکال دارد؛ ادامه بی‌فایده است
+                    // خطای غیرقابل‌تلاش، یا قطعی شبکه (بدون پاسخ HTTP): ادامه بی‌فایده است
+                    if (! $e->retryable || $e->httpStatus === null) {
+                        break;
                     }
                 }
             }
@@ -360,7 +361,7 @@ class LogShippingService
 
         foreach ($logs as $log) {
             $attempts = (int) $log->sync_attempts + 1;
-            $dead = ! $retryable || $attempts >= $maxAttempts;
+            $dead = ! $retryable || ($maxAttempts > 0 && $attempts >= $maxAttempts);
             $delay = $backoff[min($attempts - 1, count($backoff) - 1)] ?? 3600;
             // jitter ±۲۰٪: بعد از قطعی سرور، دستگاه‌ها همزمان retry نکنند
             $delay = max(1, (int) round($delay * (1 + random_int(-20, 20) / 100)));

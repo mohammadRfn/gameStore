@@ -250,7 +250,7 @@ return [
             'model'        => ServiceRequest::class,
             'group'        => '40_services',
             'label'        => 'درخواست‌ها',
-            'natural_key'  => [],
+            'natural_key'  => ['customer_name', 'created_at'],
             'soft_deletes' => true,
         ],
         'request_categories' => [

@@ -232,10 +232,11 @@ return [
         'verify_ssl'           => (bool) env('AUDITLOG_VERIFY_SSL', true),
         'gzip'                 => (bool) env('AUDITLOG_GZIP', true),
         'gzip_threshold_bytes' => 16384,
-        'max_attempts'         => (int) env('AUDITLOG_MAX_ATTEMPTS', 8),
+        // 0 = بدون سقف؛ خطای قابل‌تلاش (قطعی شبکه/سرور) هرگز لاگ را dead نمی‌کند
+        'max_attempts'         => (int) env('AUDITLOG_MAX_ATTEMPTS', 0),
 
-        // فاصله‌ی تلاش مجدد بر حسب ثانیه (نمایی/پلکانی)
-        'backoff' => [60, 180, 600, 1800, 3600, 10800, 21600, 43200],
+        // سقف فاصله‌ی تلاش ۱ ساعت تا بعد از برگشتن سرور زود ارسال شود
+        'backoff' => [60, 180, 600, 1800, 3600],
 
         // احراز هویت (هم‌راستا با ClientApi\Http\Middleware\AuthenticateLicenseToken +
         // VerifyClientSignature در StoreServer؛ سرور راز مشترک/HMAC جداگانه‌ای ندارد)

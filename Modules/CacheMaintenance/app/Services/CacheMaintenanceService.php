@@ -734,7 +734,14 @@ class CacheMaintenanceService
             ->values()
             ->all();
 
-        return array_map(fn($p) => str_replace('\\', '/', $p), $paths);
+        $paths = array_merge(
+            $paths,
+            DB::table('items')->whereNotNull('image_path')->pluck('image_path')->all(),
+            DB::table('order_items')->whereNotNull('image_path')->pluck('image_path')->all(),
+            DB::table('invoices')->whereNotNull('receipt_image_path')->pluck('receipt_image_path')->all(),
+        );
+
+        return array_map(fn($p) => str_replace('\\', '/', $p), array_filter($paths));
     }
 
     protected function orphanMediaMetrics(): array
@@ -832,9 +839,8 @@ class CacheMaintenanceService
         }
 
         return $this->clear([
-            'targets' => array_merge(self::DEFAULT_TARGETS, ['orphan_media']),
+            'targets' => self::DEFAULT_TARGETS,
             'dry_run' => false,
-            'include_orphan_media' => true,
             'force' => true,
         ], $userId);
     }
