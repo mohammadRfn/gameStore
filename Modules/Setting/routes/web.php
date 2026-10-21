@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use Modules\Setting\Http\Controllers\StorageFileController;
+use Illuminate\Session\Middleware\StartSession;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Illuminate\Support\Facades\Route;
 use Modules\Setting\Http\Controllers\AppSettingController;
 use Inertia\Inertia;
@@ -37,3 +40,13 @@ Route::prefix('settings')
             ->where('key', '[a-zA-Z0-9\.\-_]+')
             ->name('reset');
     });
+// سرو عکس‌ها بدون symlink (public/storage) — برای بیلد الکترون
+// عمداً بدون auth و license.module چون منوی دیجیتال هم از همین آدرس استفاده می‌کند
+Route::get('/storage/{path}', [StorageFileController::class, 'show'])
+    ->where('path', '.*')
+    ->withoutMiddleware([
+        StartSession::class,
+        ShareErrorsFromSession::class,
+        \App\Http\Middleware\HandleInertiaRequests::class,
+    ])
+    ->name('storage.file');
