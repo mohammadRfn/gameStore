@@ -1,5 +1,5 @@
 -- baseline اسکیما (تولیدشده توسط schema:export) — دستی ویرایش نکنید
--- 2026-10-11T16:00:48+00:00 | version 1.0.0
+-- 2026-10-21T12:19:59+00:00 | version 1.0.0
 
 CREATE TABLE IF NOT EXISTS "adjustment_categories" (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -544,6 +544,12 @@ CREATE TABLE IF NOT EXISTS "order_items" (
     FOREIGN KEY (invoice_id)  REFERENCES invoices(id)    ON DELETE CASCADE,
     FOREIGN KEY (item_id)     REFERENCES items(id)       ON DELETE SET NULL,
     FOREIGN KEY (category_id) REFERENCES categories(id)  ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS patch_db_test (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    note       TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS "personal_access_tokens" ("id" integer primary key autoincrement not null, "tokenable_type" varchar not null, "tokenable_id" integer not null, "name" text not null, "token" varchar not null, "abilities" text, "last_used_at" datetime, "expires_at" datetime, "created_at" datetime, "updated_at" datetime);

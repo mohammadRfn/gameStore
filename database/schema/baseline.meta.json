@@ -1,6 +1,6 @@
 {
     "version": "1.0.0",
-    "generated_at": "2026-10-11T16:00:48+00:00",
+    "generated_at": "2026-10-21T12:19:59+00:00",
     "tables": [
         "adjustment_categories",
         "app_settings",
@@ -31,6 +31,7 @@
         "migrations",
         "monthly_sales",
         "order_items",
+        "patch_db_test",
         "personal_access_tokens",
         "request_categories",
         "requests",
@@ -51,5 +52,5 @@
         "migrations"
     ],
     "includes_upgrades": [],
-    "baseline_sha256": "46742ad8f7803b3b846a406d2f9fe1c317400a5e21b15b4e9f0cb233795b88f3"
+    "baseline_sha256": "dc46b6ef1bfa2c845a1c1d305de41f20aea7cb51bf080b88a8d3919d6c2a0230"
 }
