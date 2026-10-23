@@ -868,7 +868,7 @@
       array (
         'driver' => 'local',
         'root' => 'C:\\Users\\moham\\Documents\\projects\\gameshop\\storage\\app/private',
-        'serve' => true,
+        'serve' => false,
         'throw' => false,
         'report' => false,
       ),
@@ -878,6 +878,7 @@
         'root' => 'C:\\Users\\moham\\Documents\\projects\\gameshop\\storage\\app/public',
         'url' => 'http://localhost/storage',
         'visibility' => 'public',
+        'serve' => true,
         'throw' => false,
         'report' => false,
       ),
@@ -2541,6 +2542,7 @@
     'seed_tables' => 
     array (
       0 => 'migrations',
+      1 => 'adjustment_categories',
     ),
     'exclude' => 
     array (

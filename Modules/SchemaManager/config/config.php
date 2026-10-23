@@ -11,7 +11,7 @@ return [
 
     // جدول‌هایی که ردیف‌هایشان در نصب تازه کپی می‌شود. 'migrations' باید باشد تا `migrate`
     // جدول‌های استاندارد (که baseline ساخته) را دوباره نسازد. جدول users را اینجا نگذار.
-    'seed_tables' => ['migrations'],
+    'seed_tables' => ['migrations', 'adjustment_categories'],
 
     // جدول‌های اضافه‌ی دیتابیس توسعه که نباید به مشتری برسد
     'exclude' => [],

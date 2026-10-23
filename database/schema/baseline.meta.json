@@ -1,6 +1,6 @@
 {
     "version": "1.0.0",
-    "generated_at": "2026-10-21T12:19:59+00:00",
+    "generated_at": "2026-10-23T20:55:30+00:00",
     "tables": [
         "adjustment_categories",
         "app_settings",
@@ -52,5 +52,5 @@
         "migrations"
     ],
     "includes_upgrades": [],
-    "baseline_sha256": "dc46b6ef1bfa2c845a1c1d305de41f20aea7cb51bf080b88a8d3919d6c2a0230"
+    "baseline_sha256": "fc7180bf811d4604c5f9a4ad2b08ed620d5f82e3fcd9e0c7110debf73d0e9732"
 }

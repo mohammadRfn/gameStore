@@ -1,5 +1,5 @@
 -- baseline اسکیما (تولیدشده توسط schema:export) — دستی ویرایش نکنید
--- 2026-10-21T12:19:59+00:00 | version 1.0.0
+-- 2026-10-23T20:55:30+00:00 | version 1.0.0
 
 CREATE TABLE IF NOT EXISTS "adjustment_categories" (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
