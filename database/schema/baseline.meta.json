@@ -1,6 +1,6 @@
 {
     "version": "1.0.0",
-    "generated_at": "2026-10-23T20:55:30+00:00",
+    "generated_at": "2026-10-23T21:25:13+00:00",
     "tables": [
         "adjustment_categories",
         "app_settings",
@@ -49,8 +49,11 @@
         "warranty_providers"
     ],
     "seed_tables": [
-        "migrations"
+        "migrations",
+        "adjustment_categories"
     ],
-    "includes_upgrades": [],
-    "baseline_sha256": "fc7180bf811d4604c5f9a4ad2b08ed620d5f82e3fcd9e0c7110debf73d0e9732"
+    "includes_upgrades": [
+        "0001_seed_adjustment_categories.sql"
+    ],
+    "baseline_sha256": "0b3e05d080d87555376399d3fe2b2e76272fda65b1fc637a3cac249c60440696"
 }
