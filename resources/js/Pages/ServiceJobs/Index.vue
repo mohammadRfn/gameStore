@@ -88,6 +88,9 @@
                             <td class="gx-price" style="font-size:.85rem">{{ formatPrice(job.estimated_price) }}</td>
                             <td>
                                 <div style="display:flex;gap:.4rem;justify-content:flex-end">
+                                    <a :href="route('service-jobs.pdf', job.id)" target="_blank" class="a3d-btn a3d-btn--sm a3d-btn--ghost">
+                                        PDF
+                                    </a>
                                     <Link :href="route('service-jobs.show', job.id)" class="a3d-btn a3d-btn--sm a3d-btn--ghost">
                                         <Eye :size="13" /> مشاهده
                                     </Link>

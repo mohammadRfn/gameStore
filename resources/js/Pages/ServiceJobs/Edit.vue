@@ -18,6 +18,7 @@
             >
                 <template #chip-icon>🔧</template>
                 <template #actions>
+                    <a :href="route('service-jobs.pdf', job.id)" target="_blank" class="a3d-btn">پی‌دی‌اف</a>
                     <Link :href="route('service-jobs.show', job.id)" class="a3d-btn">مشاهده</Link>
                     <Link :href="route('service-jobs.index')" class="a3d-btn a3d-btn--ghost">← بازگشت</Link>
                 </template>

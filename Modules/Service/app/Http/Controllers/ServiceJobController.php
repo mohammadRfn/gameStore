@@ -101,6 +101,17 @@ class ServiceJobController extends Controller
         return back()->with('success', 'سرویس به فاکتور «' . $invoice->invoice_number . '» اضافه شد.');
     }
 
+    public function exportPdf(int $id)
+    {
+        $job = $this->serviceJobService->findServiceJob($id);
+        $pdf = app(\Modules\Service\Services\ServiceJobPdfService::class)->generate($job);
+
+        return response($pdf, 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="service-' . $job->id . '.pdf"',
+        ]);
+    }
+
     public function destroy(int $id)
     {
         try {

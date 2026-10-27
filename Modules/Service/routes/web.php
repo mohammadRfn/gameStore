@@ -8,6 +8,8 @@ use Modules\Service\Http\Controllers\ServiceTypeController;
 Route::middleware(['auth', 'verified', 'license.module:Service'])->group(function () {
     Route::post('service-jobs/{id}/attach-invoice', [ServiceJobController::class, 'attachToInvoice'])
         ->name('service-jobs.attach-invoice');
+    Route::get('service-jobs/{id}/pdf', [ServiceJobController::class, 'exportPdf'])
+        ->name('service-jobs.pdf');
     Route::resource('service-jobs', ServiceJobController::class);
 
     Route::post('service-types/quick', [ServiceTypeController::class, 'quickStore'])

@@ -18,6 +18,9 @@
             >
                 <template #chip-icon><Wrench :size="13" /></template>
                 <template #actions>
+                    <a :href="route('service-jobs.pdf', job.id)" target="_blank" class="a3d-btn">
+                        <FileText :size="15" /> پی‌دی‌اف
+                    </a>
                     <Link :href="route('service-jobs.edit', job.id)" class="a3d-btn a3d-btn--gold">
                         <Pencil :size="15" /> ویرایش
                     </Link>
