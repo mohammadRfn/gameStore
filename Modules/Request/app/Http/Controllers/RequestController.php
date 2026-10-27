@@ -26,8 +26,13 @@ class RequestController extends Controller
 
     public function show(int $id)
     {
+        $serviceRequest = $this->requestService->showRequest($id);
+
         return Inertia::render('Requests/Show', [
-            'request' => $this->requestService->showRequest($id),
+            'request'               => $serviceRequest,
+            // سرویس‌های تحویل‌شدهٔ این درخواست که می‌توانند به فاکتورش اضافه شوند
+            'attachableServiceJobs' => app(\Modules\Service\Services\ServiceJobService::class)
+                ->attachableJobsForRequest($serviceRequest),
         ]);
     }
 
@@ -41,7 +46,20 @@ class RequestController extends Controller
 
     public function store(RequestRequest $request)
     {
-        $this->requestService->createRequest($request->validated());
+        $data = $request->validated();
+
+        if (!empty($data['create_invoice'])) {
+            try {
+                $invoice = $this->requestService->createRequestWithInvoice($data);
+            } catch (\Exception $e) {
+                // مثلاً کمبود موجودی/سریال؛ تراکنش برگشت خورده و فرم با همان محتوا باز می‌ماند
+                return back()->withErrors(['items' => $e->getMessage()]);
+            }
+
+            return redirect()->route('invoices.show', $invoice->id);
+        }
+
+        $this->requestService->createRequest($data);
         return redirect()->route('requests.index');
     }
 

@@ -31,6 +31,8 @@ const form = useForm({
     customer_name: '',
     description: '',
     category_ids: [],
+    items: [],            // اقلام انتخاب‌شده برای فاکتور [{item_id, quantity, name, sale_price}]
+    create_invoice: false,
 })
 
 /* پیش‌انتخاب مشتری از query string (?customer_id=12) */
@@ -44,10 +46,12 @@ onMounted(() => {
     }
 })
 
-function submit() {
-    form.post(route('requests.store'), {
-        onError: () => danger('لطفاً خطاهای فرم را برطرف کنید.'),
-    })
+function submit(opts = {}) {
+    form
+        .transform((data) => ({ ...data, create_invoice: !!opts?.invoice }))
+        .post(route('requests.store'), {
+            onError: () => danger('لطفاً خطاهای فرم را برطرف کنید.'),
+        })
 }
 </script>
 

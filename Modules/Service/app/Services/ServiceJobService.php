@@ -7,9 +7,109 @@ use Modules\Service\Models\ServiceJob;
 use Modules\Service\Models\ServiceJobItem;
 use Modules\Stock\Models\Item;
 use RuntimeException;
+use Illuminate\Support\Str;
+use Modules\Invoice\Models\Invoice;
+use Modules\Request\Models\Request as ServiceRequest;
 use Modules\Stock\Services\StockMovementService;
 class ServiceJobService
 {
+    /** سرویسِ تحویل‌شدهٔ درخواست‌هایی از این دسته‌بندی‌ها می‌تواند به فاکتور همان درخواست اضافه شود */
+    public const ATTACHABLE_REQUEST_CATEGORIES = ['تعمیرات', 'خدمات'];
+
+    /**
+     * فاکتور پرداخت‌نشدهٔ درخواستِ مناسب (دسته‌بندی تعمیرات/خدمات)؛ در غیر این صورت null.
+     */
+    protected function attachableInvoiceOfRequest(?int $requestId): ?Invoice
+    {
+        if (!$requestId) {
+            return null;
+        }
+
+        $request = ServiceRequest::with('categories:id,name')->find($requestId);
+        if (!$request) {
+            return null;
+        }
+
+        if (!array_intersect($request->categories->pluck('name')->all(), self::ATTACHABLE_REQUEST_CATEGORIES)) {
+            return null;
+        }
+
+        $invoice = Invoice::where('request_id', $request->id)->latest('id')->first();
+        if (!$invoice || $invoice->isLocked()) {
+            return null;
+        }
+
+        $invoice->setRelation('request', $request);
+
+        return $invoice;
+    }
+
+    /** شرایط: تحویل‌شده + هنوز به فاکتوری وصل نیست + درخواست و فاکتور مناسب */
+    protected function attachableInvoiceFor(ServiceJob $job): ?Invoice
+    {
+        if ($job->status !== ServiceJob::STATUS_DELIVERED || $job->invoice_id) {
+            return null;
+        }
+
+        return $this->attachableInvoiceOfRequest($job->request_id);
+    }
+
+    /** پیش‌نمایش کوچک درخواست + فاکتوری که سرویس می‌تواند به آن اضافه شود (یا null) */
+    public function invoiceAttachPreview(ServiceJob $job): ?array
+    {
+        $invoice = $this->attachableInvoiceFor($job);
+        if (!$invoice) {
+            return null;
+        }
+
+        $req = $invoice->request;
+
+        return [
+            'invoice_id'     => $invoice->id,
+            'invoice_number' => $invoice->invoice_number,
+            'total_amount'   => (float) $invoice->total_amount,
+            'request'        => [
+                'id'            => $req->id,
+                'customer_name' => $req->customer_name,
+                'description'   => Str::limit((string) $req->description, 70),
+                'categories'    => $req->categories->pluck('name')->values()->all(),
+            ],
+        ];
+    }
+
+    /** افزودن سرویس به فاکتور درخواستش (فقط وقتی همهٔ شرایط برقرار باشد) */
+    public function attachToRequestInvoice(int $jobId): Invoice
+    {
+        return DB::transaction(function () use ($jobId) {
+            $job = ServiceJob::findOrFail($jobId);
+
+            $invoice = $this->attachableInvoiceFor($job);
+            if (!$invoice) {
+                throw new RuntimeException('افزودن به فاکتور ممکن نیست: سرویس باید «تحویل داده شده» و هنوز بدون فاکتور باشد و درخواستش (تعمیرات/خدمات) فاکتور پرداخت‌نشده داشته باشد.');
+            }
+
+            $job->update(['invoice_id' => $invoice->id]);
+            $invoice->recalculateAmounts();
+
+            return $invoice;
+        });
+    }
+
+    /** سرویس‌های تحویل‌شدهٔ یک درخواست که هنوز به فاکتور اضافه نشده‌اند (برای صفحهٔ مشاهدهٔ درخواست) */
+    public function attachableJobsForRequest(ServiceRequest $request): array
+    {
+        if (!$this->attachableInvoiceOfRequest($request->id)) {
+            return [];
+        }
+
+        return ServiceJob::where('request_id', $request->id)
+            ->where('status', ServiceJob::STATUS_DELIVERED)
+            ->whereNull('invoice_id')
+            ->orderBy('id')
+            ->get(['id', 'device_type', 'final_price'])
+            ->toArray();
+    }
+
     public function findServiceJob(int $id): ServiceJob
     {
         return ServiceJob::with('items.item', 'serviceTypes.serviceType', 'customer')->findOrFail($id);

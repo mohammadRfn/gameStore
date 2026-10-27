@@ -61,7 +61,7 @@ class ServiceJob extends Model
 
     public function serviceType(): BelongsTo
     {
-        return $this->belongsTo(ServiceType::class);
+        return $this->belongsTo(ServiceType::class)->withTrashed();
     }
     public function serviceTypes(): HasMany
     {

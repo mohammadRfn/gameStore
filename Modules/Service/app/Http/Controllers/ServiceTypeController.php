@@ -17,45 +17,46 @@ class ServiceTypeController extends Controller
     public function index()
     {
         return Inertia::render('ServiceTypes/Index', [
-            'serviceTypes' => $this->serviceTypeService->getAllServiceTypes(),
+            'serviceTypes' => $this->serviceTypeService->listWithUsage(),
         ]);
     }
 
     public function show(int $id)
     {
-        return Inertia::render('ServiceTypes/Show', [
-            'serviceType' => $this->serviceTypeService->getServiceTypeById($id),
-        ]);
+        return redirect()->route('service-types.index');
     }
 
     public function create()
     {
-        return Inertia::render('ServiceTypes/Create');
+        return redirect()->route('service-types.index');
     }
 
     public function store(ServiceTypeRequest $request)
     {
         $this->serviceTypeService->createServiceType($request->validated());
-        return redirect()->route('service-types.index');
+        return redirect()->route('service-types.index')->with('success', 'نوع سرویس اضافه شد.');
     }
 
     public function edit(int $id)
     {
-        return Inertia::render('ServiceTypes/Edit', [
-            'serviceType' => $this->serviceTypeService->getServiceTypeById($id),
-        ]);
+        return redirect()->route('service-types.index');
     }
 
     public function update(ServiceTypeRequest $request, int $id)
     {
         $this->serviceTypeService->updateServiceType($id, $request->validated());
-        return redirect()->route('service-types.show', $id);
+        return redirect()->route('service-types.index')->with('success', 'نوع سرویس به‌روزرسانی شد.');
     }
 
     public function destroy(int $id)
     {
-        $this->serviceTypeService->deleteServiceType($id);
-        return redirect()->route('service-types.index');
+        try {
+            $this->serviceTypeService->deleteServiceType($id);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('service-types.index')->with('success', 'نوع سرویس حذف شد.');
     }
     public function quickStore(Request $request)
     {

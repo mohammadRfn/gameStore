@@ -158,6 +158,9 @@
 
                 <!-- ============== سایدبار ============== -->
                 <div style="display: flex; flex-direction: column; gap: 1.1rem">
+                    <!-- افزودن به فاکتور مربوطه (فقط وقتی شرایط برقرار است) -->
+                    <ServiceInvoiceAttach :job-id="job.id" :target="attachTarget" />
+
                     <!-- قیمت‌گذاری -->
                     <div class="gx-total" :style="{ '--gx-i': 1 }">
                         <p class="gx-total__label">قیمت نهایی سرویس</p>
@@ -207,6 +210,7 @@ import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import LuxScene from '@/Components/Lux/LuxScene.vue'
 import LuxHero from '@/Components/Lux/LuxHero.vue'
+import ServiceInvoiceAttach from '@/Components/ServiceInvoiceAttach.vue'
 import {
     ArrowRight,
     CalendarDays,
@@ -219,7 +223,7 @@ import {
     Wrench,
 } from 'lucide-vue-next'
 
-const props = defineProps({ job: Object })
+const props = defineProps({ job: Object, attachTarget: { type: Object, default: null } })
 
 const statusSteps = [
     { key: 'received', label: 'دریافت' },

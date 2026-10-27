@@ -10,15 +10,17 @@
  *   <RequestForm :form="form" :customers="customers" :categories="categories" mode="create"
  *                :cancel-href="route('requests.index')" @submit="submit" />
  */
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
-import { AlertCircle, Check, FileText, Info, Layers, RefreshCw, RotateCcw, Sparkles, Tag, User, UserRound } from 'lucide-vue-next'
+import { AlertCircle, Check, FileText, Info, Layers, Receipt, RefreshCw, RotateCcw, Sparkles, Tag, User, UserRound } from 'lucide-vue-next'
 import { vReveal } from '@/Composables/useTilt'
 import { faInt } from '@/Utils/format'
 import { avatarHue, initials } from '@/Utils/crm'
 import CrmField from '@/Components/Crm/CrmField.vue'
 import CrmPanel from '@/Components/Crm/CrmPanel.vue'
 import CrmStatusChip from '@/Components/Crm/CrmStatusChip.vue'
+import RequestQuickCustomer from '@/Components/Crm/RequestQuickCustomer.vue'
+import RequestCategoryItems from '@/Components/Crm/RequestCategoryItems.vue'
 
 const props = defineProps({
     form: { type: Object, required: true },
@@ -37,11 +39,20 @@ const dirty = computed(() => props.form.isDirty)
 const submitLabel = computed(() => (isEdit.value ? 'ذخیرهٔ تغییرات' : 'ثبت درخواست'))
 
 /* انتخاب مشتری → پرکردن خودکار نام */
+const extraCustomers = ref([]) // مشتریانی که همین‌جا ساخته شده‌اند
+const allCustomers = computed(() => [...props.customers, ...extraCustomers.value])
+
 function onCustomerChange() {
     const id = props.form.customer_id
     if (id === '' || id === null || id === undefined) return
-    const found = props.customers.find((c) => String(c.id) === String(id))
+    const found = allCustomers.value.find((c) => String(c.id) === String(id))
     if (found) props.form.customer_name = found.name
+}
+
+function onCustomerCreated(c) {
+    extraCustomers.value.push({ id: c.id, name: c.name })
+    props.form.customer_id = c.id
+    props.form.customer_name = c.name
 }
 
 /* دسته‌بندی‌های چندانتخابی */
@@ -61,6 +72,10 @@ const catError = computed(() => props.form.errors.category_ids || props.form.err
 
 <template>
     <form class="crm-grid-side" @submit.prevent="emit('submit')">
+        <div class="rb-main">
+        <!-- ---------- ایجاد سریع مشتری (بالای فرم) ---------- -->
+        <RequestQuickCustomer v-if="!isEdit" @created="onCustomerCreated" />
+
         <!-- ---------- فرم ---------- -->
         <CrmPanel
             :title="isEdit ? 'ویرایش درخواست' : 'درخواست جدید'"
@@ -80,7 +95,7 @@ const catError = computed(() => props.form.errors.category_ids || props.form.err
                         @change="onCustomerChange"
                     >
                         <option value="">— مشتری موردی / بدون پرونده —</option>
-                        <option v-for="c in customers" :key="c.id" :value="c.id">{{ c.name }}</option>
+                        <option v-for="c in allCustomers" :key="c.id" :value="c.id">{{ c.name }}</option>
                     </CrmField>
 
                     <CrmField
@@ -123,6 +138,19 @@ const catError = computed(() => props.form.errors.category_ids || props.form.err
                         </Transition>
                     </div>
 
+                    <!-- کالاهای دسته‌بندی‌های انتخاب‌شده (اختیاری، فقط هنگام ثبت) -->
+                    <div v-if="!isEdit && form.category_ids.length" class="is-full">
+                        <RequestCategoryItems
+                            :categories="categories"
+                            :selected-ids="form.category_ids"
+                            :basket="form.items"
+                            @update:basket="form.items = $event"
+                        />
+                        <span v-if="form.errors.items" class="crm-field__error" style="margin-top: 0.4rem">
+                            <AlertCircle :size="13" /> {{ form.errors.items }}
+                        </span>
+                    </div>
+
                     <CrmField
                         v-model="form.description"
                         type="textarea"
@@ -148,17 +176,28 @@ const catError = computed(() => props.form.errors.category_ids || props.form.err
                         </span>
                     </Transition>
 
-                    <div style="display: flex; gap: 0.5rem">
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem">
                         <Link :href="cancelHref" class="a3d-btn a3d-btn--ghost">انصراف</Link>
                         <button type="submit" class="a3d-btn a3d-btn--gold" :disabled="form.processing || (isEdit && !dirty)">
                             <RefreshCw v-if="form.processing" :size="15" class="crm-spin" />
                             <Check v-else :size="15" />
                             {{ form.processing ? 'در حال ذخیره…' : submitLabel }}
                         </button>
+                        <button
+                            v-if="!isEdit"
+                            type="button"
+                            class="a3d-btn a3d-btn--ghost"
+                            :disabled="form.processing"
+                            @click="emit('submit', { invoice: true })"
+                        >
+                            <Receipt :size="15" />
+                            ثبت و ایجاد فاکتور
+                        </button>
                     </div>
                 </div>
             </div>
         </CrmPanel>
+        </div>
 
         <!-- ---------- پیش‌نمایش تیکت ---------- -->
         <aside v-reveal="{ delay: 140 }" class="a3d-holo crm-preview">

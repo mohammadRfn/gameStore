@@ -45,6 +45,8 @@ import ToastHost from '@/Components/Settings/ToastHost.vue'
 
 const props = defineProps({
     request: { type: Object, required: true },
+    /** سرویس‌های تحویل‌شده‌ای که می‌توان به فاکتور این درخواست اضافه کرد */
+    attachableServiceJobs: { type: Array, default: () => [] },
 })
 
 const { toasts, dismiss } = useToasts({ flash: true })
@@ -61,6 +63,10 @@ const PAYMENT_META = {
     returned: { label: 'مرجوع‌شده', tone: 'error' },
 }
 const paymentMeta = computed(() => PAYMENT_META[invoice.value?.payment_status] || null)
+
+function attachServiceJob(jobId) {
+    router.post(route('service-jobs.attach-invoice', jobId), {}, { preserveScroll: true })
+}
 
 /* ------------------------------------------------------------------ */
 /* حذف                                                                   */
@@ -253,6 +259,26 @@ function doDelete() {
                                 <Link :href="route('invoices.show', invoice.id)" class="a3d-btn a3d-btn--gold a3d-btn--sm" style="margin-top: 0.4rem; width: 100%; justify-content: center">
                                     <Receipt :size="14" /> مشاهدهٔ فاکتور کامل
                                 </Link>
+
+                                <!-- سرویس‌های تحویل‌شده‌ای که هنوز به این فاکتور اضافه نشده‌اند -->
+                                <div v-if="attachableServiceJobs.length" style="display: grid; gap: 0.4rem; margin-top: 0.5rem">
+                                    <p style="margin: 0; font-size: 0.72rem; font-weight: 700; color: var(--gs-gold)">
+                                        سرویس تحویل‌شده — آمادهٔ افزودن به فاکتور
+                                    </p>
+                                    <div
+                                        v-for="j in attachableServiceJobs"
+                                        :key="j.id"
+                                        style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.6rem; border-radius: 10px; border: 1px solid var(--gs-border-hover); background: var(--gs-gold-muted)"
+                                    >
+                                        <span style="flex: 1; min-width: 0; font-size: 0.74rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">
+                                            سرویس #{{ faInt(j.id) }} — {{ j.device_type || 'بدون نوع دستگاه' }}
+                                            <small style="color: var(--gs-text-muted)">({{ money(j.final_price) }})</small>
+                                        </span>
+                                        <button type="button" class="a3d-btn a3d-btn--gold a3d-btn--sm" @click="attachServiceJob(j.id)">
+                                            <Plus :size="13" /> افزودن
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
                             <CrmEmptyState

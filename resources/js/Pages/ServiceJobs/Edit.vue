@@ -23,6 +23,9 @@
                 </template>
             </LuxHero>
 
+        <!-- افزودن به فاکتور مربوطه (بعد از ذخیرهٔ وضعیت «تحویل داده شده») -->
+        <ServiceInvoiceAttach :job-id="job.id" :target="attachTarget" />
+
         <form @submit.prevent="submit">
             <div class="gs-sj-grid">
 
@@ -301,6 +304,7 @@ import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import LuxScene from '@/Components/Lux/LuxScene.vue'
 import LuxHero from '@/Components/Lux/LuxHero.vue'
+import ServiceInvoiceAttach from '@/Components/ServiceInvoiceAttach.vue'
 import JalaliDateInput from '@/Components/JalaliDateInput.vue'
 import { computed, ref } from 'vue'
 import axios from 'axios'
@@ -308,6 +312,7 @@ import axios from 'axios'
 // 1) props همیشه اول
 const props = defineProps({
     job: Object,
+    attachTarget: { type: Object, default: null },
     customers: Array,
     requests: Array,
     serviceTypes: Array,

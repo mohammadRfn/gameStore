@@ -52,8 +52,11 @@ class ServiceJobController extends Controller
     }
     public function show(int $id)
     {
+        $job = $this->serviceJobService->findServiceJob($id);
+
         return Inertia::render('ServiceJobs/Show', [
-            'job' => $this->serviceJobService->findServiceJob($id),
+            'job'          => $job,
+            'attachTarget' => $this->serviceJobService->invoiceAttachPreview($job),
         ]);
     }
 
@@ -70,8 +73,13 @@ class ServiceJobController extends Controller
 
     public function edit(int $id)
     {
+        $job = $this->serviceJobService->findServiceJob($id);
+
         return Inertia::render('ServiceJobs/Edit', array_merge(
-            ['job' => $this->serviceJobService->findServiceJob($id)],
+            [
+                'job'          => $job,
+                'attachTarget' => $this->serviceJobService->invoiceAttachPreview($job),
+            ],
             $this->sharedFormData()
         ));
     }
@@ -80,6 +88,17 @@ class ServiceJobController extends Controller
     {
         $this->serviceJobService->updateServiceJob($id, $request->validated());
         return redirect()->route('service-jobs.show', $id);
+    }
+
+    public function attachToInvoice(int $id)
+    {
+        try {
+            $invoice = $this->serviceJobService->attachToRequestInvoice($id);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'سرویس به فاکتور «' . $invoice->invoice_number . '» اضافه شد.');
     }
 
     public function destroy(int $id)

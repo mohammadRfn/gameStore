@@ -24,6 +24,11 @@ class ServiceType extends Model
         'is_active'  => 'boolean',
     ];
 
+    public function jobLinks(): HasMany
+    {
+        return $this->hasMany(ServiceJobServiceType::class);
+    }
+
     public function serviceJobs(): HasMany
     {
         return $this->hasMany(ServiceJob::class);

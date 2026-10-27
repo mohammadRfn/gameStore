@@ -26,6 +26,6 @@ class ServiceJobServiceType extends Model
 
     public function serviceType(): BelongsTo
     {
-        return $this->belongsTo(ServiceType::class);
+        return $this->belongsTo(ServiceType::class)->withTrashed();
     }
 }

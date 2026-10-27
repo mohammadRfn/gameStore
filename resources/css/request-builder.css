@@ -1,0 +1,157 @@
+/* ============================================================
+   request-builder.css — کادرهای کوچک اختیاریِ صفحهٔ «ثبت درخواست جدید»
+   (مشتری سریع، مرورگر کالاها، تغییر قیمت). فقط با توکن‌های --gs-* → هم تیره، هم روشن
+   ============================================================ */
+.rb-main { display: grid; gap: 1rem; min-width: 0; }
+
+/* ---------- کادر قابل‌جمع‌شدن ---------- */
+.rb-box {
+    border-radius: 16px;
+    border: 1px solid var(--gs-border);
+    background: var(--gs-bg-card);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: border-color 0.28s var(--gs-transition), box-shadow 0.28s var(--gs-transition);
+}
+.rb-box:hover, .rb-box.is-open { border-color: var(--gs-border-hover); }
+.rb-box.is-open { box-shadow: var(--gs-shadow-gold); }
+
+.rb-box__head {
+    display: flex; align-items: center; gap: 0.6rem; width: 100%;
+    padding: 0.62rem 0.85rem; background: none; border: 0; cursor: pointer;
+    color: var(--gs-text-primary); font-family: inherit; text-align: start;
+}
+.rb-box__icon {
+    display: grid; place-items: center; width: 28px; height: 28px; flex: none;
+    border-radius: 9px; color: var(--gs-gold); background: var(--gs-gold-muted);
+}
+.rb-box__title { flex: 1; min-width: 0; font-size: 0.82rem; font-weight: 700; display: flex; flex-direction: column; gap: 0.1rem; }
+.rb-box__title small { font-size: 0.68rem; font-weight: 500; color: var(--gs-text-muted); }
+.rb-box__badge {
+    min-width: 20px; padding: 0.05rem 0.4rem; border-radius: 999px; text-align: center;
+    font-size: 0.7rem; font-weight: 800; color: #14100a; background: var(--gs-gold-grad);
+}
+.rb-box__opt {
+    padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.64rem; font-weight: 600;
+    color: var(--gs-text-muted); border: 1px dashed var(--gs-border);
+}
+.rb-box__chev { flex: none; color: var(--gs-text-secondary); transition: transform 0.3s var(--gs-transition); }
+.rb-box.is-open .rb-box__chev { transform: rotate(180deg); color: var(--gs-gold); }
+
+.rb-box__wrap { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.32s var(--gs-transition); }
+.rb-box.is-open .rb-box__wrap { grid-template-rows: 1fr; }
+.rb-box__inner { overflow: hidden; min-height: 0; }
+.rb-box__body { padding: 0.2rem 0.85rem 0.85rem; display: grid; gap: 0.7rem; }
+
+/* ---------- مشتری سریع ---------- */
+.rb-quick { display: grid; gap: 0.6rem; }
+.rb-quick__btn { justify-self: end; }
+.rb-ok {
+    display: flex; align-items: center; gap: 0.35rem; margin: 0;
+    font-size: 0.74rem; font-weight: 600; color: var(--gs-success);
+}
+
+/* ---------- فیلتر دسته‌ها ---------- */
+.rb-cats { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.rb-cat {
+    padding: 0.22rem 0.65rem; border-radius: 999px; font-family: inherit; font-size: 0.7rem; font-weight: 600;
+    border: 1px solid var(--gs-border); background: var(--gs-glass); color: var(--gs-text-secondary); cursor: pointer;
+    transition: all 0.2s var(--gs-transition);
+}
+.rb-cat:hover { border-color: var(--gs-border-hover); color: var(--gs-text-primary); }
+.rb-cat.is-on { color: #14100a; background: var(--gs-gold-grad); border-color: transparent; }
+
+.rb-state { display: flex; align-items: center; gap: 0.4rem; margin: 0; padding: 0.6rem 0.2rem; font-size: 0.76rem; color: var(--gs-text-secondary); }
+.rb-state--err { color: var(--gs-error); }
+
+/* ---------- لیست فشردهٔ کالاها ---------- */
+.rb-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.3rem; transition: opacity 0.2s; }
+.rb-list.is-loading { opacity: 0.55; }
+.rb-item {
+    border-radius: 11px; border: 1px solid var(--gs-border-soft); background: var(--gs-glass);
+    transition: border-color 0.2s, background 0.2s;
+}
+.rb-item:hover { border-color: var(--gs-border-hover); }
+.rb-item.is-open { border-color: var(--gs-border-hover); background: var(--gs-glass-hover); }
+.rb-item.is-picked { border-color: var(--gs-gold-dark); }
+
+.rb-item__row {
+    display: flex; align-items: center; gap: 0.5rem; width: 100%;
+    padding: 0.36rem 0.6rem; background: none; border: 0; cursor: pointer;
+    font-family: inherit; color: var(--gs-text-primary); text-align: start;
+}
+.rb-item__check {
+    display: grid; place-items: center; flex: none; width: 15px; height: 15px; border-radius: 50%;
+    border: 1px solid var(--gs-border-hover); color: #14100a;
+}
+.rb-item.is-picked .rb-item__check { background: var(--gs-gold-grad); border-color: transparent; }
+.rb-item__name { flex: 1; min-width: 0; font-size: 0.76rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rb-item__price { flex: none; font-size: 0.72rem; font-weight: 700; color: var(--gs-gold); }
+
+.rb-stock { flex: none; padding: 0.05rem 0.45rem; border-radius: 999px; font-size: 0.64rem; font-weight: 700; }
+.rb-stock.is-ok { color: var(--gs-success); background: var(--gs-success-soft); }
+.rb-stock.is-out { color: var(--gs-error); background: var(--gs-error-soft); }
+.rb-stock.is-na { color: var(--gs-text-muted); background: var(--gs-glass); }
+
+.rb-item__more { display: grid; gap: 0.6rem; padding: 0.2rem 0.6rem 0.65rem; border-top: 1px dashed var(--gs-border-soft); }
+
+/* قیمتِ قابل‌نمایش به مشتری */
+.rb-show {
+    display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem; border-radius: 12px;
+    background: var(--gs-gold-muted); border: 1px solid var(--gs-border-hover);
+}
+.rb-show span { font-size: 0.7rem; color: var(--gs-text-secondary); }
+.rb-show b { font-size: 1.15rem; font-weight: 800; color: var(--gs-gold); }
+.rb-show__ok { margin-inline-start: auto; display: inline-flex; align-items: center; gap: 0.25rem; font-style: normal; font-size: 0.68rem; font-weight: 700; color: var(--gs-success); }
+
+.rb-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; }
+.rb-qty { display: inline-flex; align-items: center; border-radius: 10px; border: 1px solid var(--gs-border); overflow: hidden; }
+.rb-qty button {
+    display: grid; place-items: center; width: 28px; height: 28px; border: 0; cursor: pointer;
+    background: var(--gs-glass); color: var(--gs-text-primary);
+}
+.rb-qty button:hover { background: var(--gs-gold-muted); color: var(--gs-gold); }
+.rb-qty input {
+    width: 44px; height: 28px; text-align: center; border: 0; outline: 0; font-family: inherit; font-size: 0.78rem; font-weight: 700;
+    background: transparent; color: var(--gs-text-primary); -moz-appearance: textfield;
+}
+.rb-qty input::-webkit-outer-spin-button, .rb-qty input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* ویرایش قیمت */
+.rb-edit { display: grid; gap: 0.5rem; padding: 0.6rem; border-radius: 12px; border: 1px solid var(--gs-border); background: var(--gs-bg-soft); }
+.rb-edit__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; }
+@media (max-width: 560px) { .rb-edit__grid { grid-template-columns: 1fr; } }
+.rb-edit__grid label { display: grid; gap: 0.25rem; min-width: 0; }
+.rb-edit__grid label > span { font-size: 0.68rem; font-weight: 600; color: var(--gs-text-secondary); }
+.rb-edit__err { margin: 0; font-size: 0.72rem; color: var(--gs-error); }
+.rb-edit__foot { display: flex; justify-content: flex-end; gap: 0.4rem; }
+
+/* ---------- صفحه‌بندی کوچک ---------- */
+.rb-pager { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0.25rem; }
+.rb-pager button {
+    display: grid; place-items: center; min-width: 28px; height: 28px; padding: 0 0.3rem; border-radius: 9px;
+    border: 1px solid var(--gs-border); background: var(--gs-glass); color: var(--gs-text-secondary);
+    font-family: inherit; font-size: 0.72rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+}
+.rb-pager button:hover:not(:disabled) { border-color: var(--gs-border-hover); color: var(--gs-text-primary); }
+.rb-pager button.is-active { color: #14100a; background: var(--gs-gold-grad); border-color: transparent; }
+.rb-pager button:disabled { opacity: 0.4; cursor: default; }
+.rb-pager__info { margin-inline-start: 0.4rem; font-size: 0.68rem; color: var(--gs-text-muted); }
+
+/* ---------- جمع‌بندی سفارش ---------- */
+.rb-basket { display: grid; gap: 0.4rem; padding: 0.6rem 0.7rem; border-radius: 12px; border: 1px dashed var(--gs-border-hover); background: var(--gs-gold-muted); }
+.rb-basket__t { display: flex; align-items: center; gap: 0.35rem; margin: 0; font-size: 0.74rem; font-weight: 700; color: var(--gs-gold); }
+.rb-basket__chips { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.rb-chip {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.15rem 0.35rem 0.15rem 0.55rem; border-radius: 999px;
+    font-size: 0.7rem; font-weight: 600; color: var(--gs-text-primary); background: var(--gs-bg-card-strong); border: 1px solid var(--gs-border);
+}
+.rb-chip button { display: grid; place-items: center; width: 16px; height: 16px; border: 0; border-radius: 50%; cursor: pointer; color: var(--gs-text-secondary); background: var(--gs-glass-hover); }
+.rb-chip button:hover { color: var(--gs-error); }
+.rb-basket__sum { margin: 0; font-size: 0.74rem; color: var(--gs-text-secondary); }
+.rb-basket__sum b { color: var(--gs-text-primary); }
+.rb-basket__hint { margin: 0; font-size: 0.66rem; color: var(--gs-text-muted); }
+
+/* دکمهٔ ثبت + فاکتور کنار ثبت درخواست */
+.rb-foot-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; }

@@ -22,6 +22,9 @@
                         <Plus :size="15" />
                         سرویس جدید
                     </Link>
+                    <Link :href="route('service-types.index')" class="a3d-btn a3d-btn--ghost">
+                        نوع‌های سرویس
+                    </Link>
                 </template>
             </LuxHero>
 

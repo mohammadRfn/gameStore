@@ -27,6 +27,10 @@ class RequestRequest extends FormRequest
             'category_ids'    => 'required|array',
             'category_ids.*'  => 'exists:categories,id',
             'description'     => 'required|string',
+            'create_invoice'  => 'nullable|boolean',
+            'items'           => 'nullable|array',
+            'items.*.item_id' => 'required|integer|exists:items,id',
+            'items.*.quantity' => 'required|integer|min:1|max:100000',
         ];
     }
 }
