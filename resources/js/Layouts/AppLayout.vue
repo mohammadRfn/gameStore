@@ -175,7 +175,7 @@ const vClickOutside = {
     min-height: 100vh;
     background: var(--gs-bg);
     color: var(--gs-text-primary);
-    font-family: 'IRANYekan', Tahoma, Arial, sans-serif;
+    font-family: 'Vazir', Tahoma, Arial, sans-serif;
 }
 
 /* ============================================================
@@ -365,7 +365,7 @@ const vClickOutside = {
     display: block;
     width: 100%;
     padding: 0.65rem 1rem;
-    font-family: 'IRANYekan', Tahoma, Arial, sans-serif;
+    font-family: 'Vazir', Tahoma, Arial, sans-serif;
     font-size: 0.875rem;
     color: var(--gs-text-primary);
     background: none;

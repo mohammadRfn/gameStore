@@ -121,7 +121,7 @@ async function submit() {
     padding: 1.5rem;
     background: var(--gs-bg);
     color: var(--gs-text-primary);
-    font-family: 'IRANYekan', Tahoma, Arial, sans-serif;
+    font-family: 'Vazir', Tahoma, Arial, sans-serif;
 }
 
 .fp__card {
