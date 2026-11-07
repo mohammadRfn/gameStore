@@ -54,7 +54,7 @@ class LicenseGate
         return $this->payload = $payload;
     }
 
-    // امضا معتبر + اثرانگشت درست + منقضی نشده + مهلت آفلاین تمام نشده
+    // امضا معتبر + اثرانگشت درست + منقضی نشده (بدون مهلت آفلاین)
     public function isUsable(): bool
     {
         $p = $this->payload();
@@ -69,7 +69,7 @@ class LicenseGate
             return false;
         }
 
-        return (int) ($p['valid_until'] ?? 0) >= $now;
+        return true;
     }
 
     /** @return list<string> */
