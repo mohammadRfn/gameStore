@@ -7,6 +7,8 @@ use Modules\Invoice\Http\Controllers\OrderItemController;
 use Modules\Invoice\Http\Controllers\InvoiceAdjustmentController;
 
 Route::middleware(['auth', 'verified', 'license.module:Invoice'])->group(function () {
+    // باید قبل از resource بیاید، وگرنه «profit-export» به‌جای {invoice} گرفته می‌شود
+    Route::get('invoices/profit-export', [InvoiceController::class, 'exportProfit'])->name('invoices.profit-export');
     Route::resource('invoices', InvoiceController::class);
     Route::resource('order-items', OrderItemController::class);
 

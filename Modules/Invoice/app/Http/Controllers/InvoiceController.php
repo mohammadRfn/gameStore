@@ -5,11 +5,16 @@ namespace Modules\Invoice\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Modules\Category\Models\Category;
 use Illuminate\Http\Request as HttpRequest;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
+use Maatwebsite\Excel\Facades\Excel;
+use Morilog\Jalali\Jalalian;
 use Modules\Customer\Models\Customer;
 use Modules\Invoice\Http\Requests\InvoiceRequest;
 use Modules\Invoice\Models\AdjustmentCategory;
 use Modules\Invoice\Services\InvoicePdfService;
+use Modules\Invoice\Exports\InvoiceProfitExport;
+use Modules\Invoice\Services\InvoiceProfitReportService;
 use Modules\Invoice\Services\InvoiceService;
 use Modules\Request\Models\Request as ServiceRequest;
 
@@ -30,6 +35,34 @@ class InvoiceController extends Controller
             'Content-Disposition' => 'inline; filename="invoice-' . $invoice->invoice_number . '.pdf"',
         ]);
     }
+    /**
+     * خروجی اکسل سود و زیان فاکتورها در بازهٔ دلخواه (from/to به‌صورت میلادی YYYY-MM-DD).
+     */
+    public function exportProfit(HttpRequest $request)
+    {
+        $data = $request->validate([
+            'from' => 'required|date',
+            'to'   => 'required|date|after_or_equal:from',
+        ], [
+            'from.required'    => 'تاریخ شروع بازه را انتخاب کن.',
+            'to.required'      => 'تاریخ پایان بازه را انتخاب کن.',
+            'to.after_or_equal' => 'تاریخ پایان نمی‌تواند قبل از تاریخ شروع باشد.',
+        ]);
+
+        $from = Carbon::parse($data['from'])->startOfDay();
+        $to   = Carbon::parse($data['to'])->endOfDay();
+
+        $report = app(InvoiceProfitReportService::class)->build($from, $to);
+
+        $fromLabel = class_exists(Jalalian::class) ? Jalalian::fromCarbon($from)->format('Y-m-d') : $from->toDateString();
+        $toLabel   = class_exists(Jalalian::class) ? Jalalian::fromCarbon($to)->format('Y-m-d') : $to->toDateString();
+
+        return Excel::download(
+            new InvoiceProfitExport($report, $from, $to),
+            "سود-و-زیان-فاکتورها-{$fromLabel}-تا-{$toLabel}.xlsx"
+        );
+    }
+
     public function index(HttpRequest $request)
     {
         $filters = $request->only(['search', 'status']);
