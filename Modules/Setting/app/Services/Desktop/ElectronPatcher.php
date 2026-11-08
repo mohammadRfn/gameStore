@@ -19,6 +19,8 @@ namespace Modules\Setting\Services\Desktop;
  *   - (boot) درخواست «booted» به لاراول موقع بوت سرد سیستم (اجرای خودکار) اگر به خاطر خطای اتصال شکست بخورد
  *     دوباره تلاش می‌شود، و مراحل راه‌اندازی در  %APPDATA%/<app>/native-boot.log ثبت می‌شود
  *
+ *   - (installer) نصب‌کننده‌ی فارسی/راست‌چین (resources/desktop/installer.nsh) و حذف هر توضیح پیش‌فرضی که به سازنده‌ی برنامه اشاره کند؛
+ *     توضیح فایل/شورتکات = فقط نام برنامه
  * چندبار اجرا کردنش بی‌خطر است (idempotent).
  */
 final class ElectronPatcher
@@ -30,6 +32,8 @@ final class ElectronPatcher
     private const MARKER_SINGLE = 'GS-SINGLE-PATCH';
 
     private const MARKER_NOPROXY = 'GS-NOPROXY-PATCH';
+
+    private const MARKER_INSTALLER = 'GS-INSTALLER-PATCH';
 
     public static function defaultDistPath(): string
     {
@@ -168,7 +172,41 @@ JS],
                     proxy: false,
 JS],
             ]),
+            // electron-builder.mjs کنار پوشه‌ی electron-plugin است (resources/js)
+            'electron-builder.mjs [installer]' => $this->patchFile($this->builderConfig($dist), self::MARKER_INSTALLER, [
+                ['/const appUrl = process\.env\.APP_URL;/', <<<'JS'
+const appUrl = process.env.APP_URL;
+// GS-INSTALLER-PATCH: نصب‌کننده‌ی فارسی؛ فایل از داخل پروژه خوانده می‌شود تا با composer update از بین نرود
+const gsInstallerNsh = process.env.APP_PATH ? join(process.env.APP_PATH, 'resources', 'desktop', 'installer.nsh') : null;
+JS],
+                ['/nsis: \{(\s*)oneClick: false,/', <<<'JS'
+nsis: {
+        ...(gsInstallerNsh && existsSync(gsInstallerNsh) ? { include: gsInstallerNsh } : {}),
+        multiLanguageInstaller: false,
+        warningsAsErrors: false,
+        oneClick: false,
+JS],
+                ['/extraMetadata: \{(\s*)name: fileName,/', <<<'JS'
+extraMetadata: {
+        description: appName,
+        name: fileName,
+JS],
+            ]),
         ];
+    }
+
+    /** electron-builder.js یا electron-builder.mjs (بسته به نسخه‌ی NativePHP) کنار پوشه‌ی electron-plugin است */
+    private function builderConfig(string $dist): string
+    {
+        $dir = dirname($dist, 2);
+
+        foreach (['electron-builder.js', 'electron-builder.mjs'] as $name) {
+            if (is_file("$dir/$name")) {
+                return "$dir/$name";
+            }
+        }
+
+        return "$dir/electron-builder.js";
     }
 
     /**

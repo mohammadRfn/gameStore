@@ -337,6 +337,8 @@ function downloadProfit() {
     gap: 1rem;
     width: min(560px, 100%);
     max-height: 90vh;
+    /* بدون اسکرول افقی: هاله‌ی پشت کادر از لبه بیرون می‌زند و با overflow-y محور افقی هم اسکرول‌پذیر می‌شد */
+    overflow-x: hidden;
     overflow-y: auto;
     padding: 1.3rem 1.4rem 1.1rem;
     border-radius: 20px;
